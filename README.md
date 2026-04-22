@@ -1,9 +1,18 @@
+COMMIT=$(git rev-parse HEAD)
+CANON2=$(sha256sum canon-2.pdf | cut -d' ' -f1)
+CANON3=$(sha256sum canon-3.pdf | cut -d' ' -f1)
+
+cat > README.md << 'EOF'
 # MCC (Meta-Cognitive Control)
 
-A control layer between AI-generated intent and real-world execution. **Non-Production Use only.**
+A control layer between AI-generated intent and real-world execution.  
+**Non-Production Use only.**
 
-MCC introduces a formal decision boundary between **intent generation** (LLMs, agents) and **execution authority** (systems, APIs, workflows).  
-Instead of trusting AI outputs directly, MCC evaluates whether an action **should happen at all**.
+MCC introduces a formal decision boundary between **intent generation** (LLMs, agents) and **execution authority** (systems, APIs, workflows).
+
+Instead of trusting AI outputs, MCC enforces a single invariant:
+
+> **Execution requires a decision.**
 
 ---
 
@@ -13,6 +22,7 @@ AI systems can generate actions.
 They cannot reliably decide whether those actions should be executed.
 
 As soon as systems:
+
 - call APIs  
 - move money  
 - trigger workflows  
@@ -24,62 +34,64 @@ MCC defines that boundary.
 
 ---
 
-## Core Idea
+## Core Architecture
 
-AI Model → Intent → **MCC** → Decision → Execution (or Denial)
+AI Model → Intent → MCC → Decision → Execution (or Denial)
 
 - AI proposes an action  
 - MCC evaluates it against policy  
 - Only approved actions are executed  
 
+MCC acts as a **hard execution gate** between AI and the real world.
+
 ---
 
-## Quick Start (Conceptual)
+## Example
 
-Example:
+Input (AI-generated intent):
 
-```json
-{
-  "intent": "send_payment",
-  "amount": 50000,
-  "recipient": "external_vendor"
-}
-```
+    {
+      "intent": "send_payment",
+      "amount": 50000,
+      "recipient": "external_vendor"
+    }
 
 MCC decision:
 
-```text
-DENY
-reason: amount exceeds policy threshold
-```
+    DENY
+    reason: amount exceeds policy threshold
 
-No execution occurs.
+Result:
+
+- No API call  
+- No execution  
+- System remains safe  
 
 ---
 
-## Minimal Integration (Runnable Pattern)
+## Minimal Integration Pattern
 
-Place MCC directly in front of your execution layer:
+    def mcc_evaluate(request):
+        if request["intent"] == "send_payment" and request["amount"] > 10000:
+            return "DENY"
+        return "ALLOW"
 
-```python
-def mcc_evaluate(request):
-    if request["intent"] == "send_payment" and request["amount"] > 10000:
-        return "DENY"
-    return "ALLOW"
+    decision = mcc_evaluate({
+        "intent": "send_payment",
+        "amount": 50000,
+        "recipient": "external_vendor"
+    })
 
-decision = mcc_evaluate({
-    "intent": "send_payment",
-    "amount": 50000,
-    "recipient": "external_vendor"
-})
+    if decision == "ALLOW":
+        execute_payment()
+    else:
+        block_execution()
 
-if decision == "ALLOW":
-    execute_payment()
-else:
-    block_execution()
-```
+MCC enforces strict separation:
 
-MCC acts as a **hard execution gate** between AI and the real world.
+- AI → proposes  
+- MCC → decides  
+- System → executes  
 
 ---
 
@@ -92,7 +104,7 @@ This repository provides a minimal PoC demonstrating:
 - policy-based decision logic  
 - strict separation of intent and execution  
 
-It is intended for:
+Intended for:
 
 - research  
 - evaluation  
@@ -102,7 +114,7 @@ It is intended for:
 
 ## Where MCC Fits
 
-MCC is applicable to:
+MCC applies wherever AI systems can act:
 
 - AI agents with tool execution  
 - financial / transactional systems  
@@ -112,16 +124,52 @@ MCC is applicable to:
 
 ---
 
+## Proof of Existence
+
+Canonical materials are hashed to establish timestamped existence.
+
+- Canon-2 SHA-256: __CANON2__  
+- Canon-3 SHA-256: __CANON3__  
+
+These hashes correspond to privately held canonical documents not included in this repository.
+
+---
+
+## Authorship Record
+
+Git commit (HEAD):  
+__COMMIT__  
+
+Commit date (UTC):  
+2026-04-22T16:14:12Z  
+
+Wayback snapshot:  
+https://web.archive.org/web/20260422161412/https://github.com/mcc-prior-art/mcc-policy-engine  
+
+---
+
+## Prior Art
+
+This repository establishes public prior art for:
+
+- the MCC control-layer pattern  
+- fail-closed execution gating  
+- separation of intent and execution authority  
+
+Private Canon materials are not included.
+
+---
+
 ## Licensing
 
-Use of this repository is governed by the **MCC Evaluation License 1.0**.
+Use of this repository is governed by the MCC Evaluation License 1.0.
 
-- **Non-Production Use only**  
+- Non-Production Use only  
 - Production use requires a separate commercial agreement  
 
 Full license:
 
-- [`LICENSE`](./LICENSE)  
+- LICENSE file in this repository  
 - https://github.com/mcc-prior-art/mcc-policy-engine/blob/main/LICENSE  
 
 ---
@@ -130,7 +178,7 @@ Full license:
 
 Production deployment and enterprise integration are available under separate terms.
 
-This may include:
+Includes:
 
 - access to MCC Canon specifications (Canon-1, Canon-2, Canon-3)  
 - production-grade policy design  
@@ -138,35 +186,7 @@ This may include:
 - integration and certification support  
 
 Contact:  
-**mcc.prior.art.2026@proton.me**
-
-Early enterprise partnerships and pilot integrations are open.
-
----
-
-## Prior Art
-
-This repository establishes public prior art for the MCC control-layer pattern.
-
-Private Canon materials are not included.
-
-Proof of existence:
-
-- Canon-2 SHA-256: `PASTE_REAL_HASH`  
-- Canon-3 SHA-256: `PASTE_REAL_HASH`  
-
----
-
-## Authorship Record
-
-Git commit (HEAD):  
-`PASTE_COMMIT_HASH_HERE`
-
-Commit date (UTC):  
-`PASTE_REAL_COMMIT_DATE`
-
-Wayback snapshot:  
-https://web.archive.org/web/PASTE_TIMESTAMP/https://github.com/mcc-prior-art/mcc-policy-engine  
+mcc.prior.art.2026@proton.me  
 
 ---
 
@@ -179,7 +199,9 @@ MCC builds on:
 - agent execution frameworks  
 - distributed system governance  
 
-It formalizes a **control boundary** between AI-generated intent and real-world execution.
+It formalizes a missing layer:
+
+> a control boundary between AI-generated intent and real-world execution.
 
 ---
 
@@ -187,6 +209,21 @@ It formalizes a **control boundary** between AI-generated intent and real-world 
 
 This repository documents a control architecture pattern.
 
-Public availability does not grant rights to proprietary extensions, private Canon materials, or production implementations.
+Public availability does not grant rights to:
+
+- proprietary extensions  
+- private Canon materials  
+- production implementations  
 
 All rights not expressly granted are reserved.
+EOF
+
+sed -i '' "s|__COMMIT__|$COMMIT|g" README.md
+sed -i '' "s|__CANON2__|$CANON2|g" README.md
+sed -i '' "s|__CANON3__|$CANON3|g" README.md
+
+git add README.md
+git commit -m "docs: add cryptographic timestamps"
+git push
+
+echo "Done. Verify: https://web.archive.org/web/20260422161412/https://github.com/mcc-prior-art/mcc-policy-engine"
