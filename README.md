@@ -96,6 +96,8 @@ execute({"action": "delete_user"})
 EXECUTED: user deleted
 ```
 
+---
+
 ### With MCC
 
 ```python
@@ -108,9 +110,11 @@ else:
 ```
 
 ```text
-Decision: DENY
+Decision: DENY  
 Result: BLOCKED
 ```
+
+---
 
 ### Conclusion
 
@@ -122,11 +126,18 @@ It is an enforcement boundary.
 It is a required control layer for systems that act.  
 This behavior is deterministic and enforceable by design.
 
-Run the full proof:
+---
+
+## Full Runnable Proof
+
+Run locally:
 
 ```bash
 python examples/mcc_runtime_proof.py
 ```
+
+Source:
+https://github.com/mcc-prior-art/mcc-policy-engine/blob/main/examples/mcc_runtime_proof.py
 
 ---
 
