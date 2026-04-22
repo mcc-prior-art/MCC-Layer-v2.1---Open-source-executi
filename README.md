@@ -1,210 +1,144 @@
-# MCC v1.5 Policy Engine — Reference Implementation
+# MCC (Meta-Cognitive Control)
 
-![Status](https://img.shields.io/badge/status-alpha-orange)
-![Prior Art](https://img.shields.io/badge/prior%20art-2026--04--22-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+A control layer between AI-generated intent and real-world execution. **Non-Production Use only.**
 
-> **MCC defines a control boundary between intent and execution in AI systems.**
+MCC introduces a formal decision boundary that evaluates whether an action proposed by an AI system should be executed, modified, or denied.
 
-Fail-closed control layer for policy-gated execution with cryptographic hash-chain audit.
+This repository contains a minimal reference implementation (PoC) of the MCC pattern and serves as a public prior art record of this control-layer architecture.
 
----
+## What This Is
 
-## Prior Art Notice
+- A **reference implementation** of the MCC control layer
+- A **prior art publication** of the control-boundary pattern
+- A **foundation for enterprise-grade control systems**
 
-This repository establishes public prior art as of **2026-04-22** for fail-closed policy enforcement with tamper-evident SHA256 hash-chain audit logging.
+## What This Is Not
 
-- Release: v1.5  
-- Commit: `9b4bfad1b6af628f4feb39e9913d98fe586aa766`
+- Not a full production system
+- Not a plug-and-play safety solution
+- Not a replacement for governance, policy, or compliance layers
 
-All artifacts are publicly accessible and reproducible.
+## Quick Start (Conceptual)
 
----
+MCC sits between intent and execution.
 
-## TL;DR
+Example flow:
 
-- Deny-by-default execution  
-- Fail-closed on uncertainty or error  
-- Intent ≠ execution (enforced boundary)  
-- Cryptographic audit (hash-chain)  
-- Defines a control standard for AI systems that act  
+1. AI system generates an action
+   - `send_payment`, amount: `50000`
 
----
+2. MCC evaluates the request against policy
+   - checks limits, recipient, context
 
-## Definition
+3. Decision
+   - **ALLOW** → execution proceeds
+   - **DENY** → execution is blocked
 
-MCC (Meta-Cognitive Control) is a control layer that separates intent generation from action execution using policy evaluation and fail-closed semantics.
+Minimal example:
 
----
-
-## Control Model
-
-All actions MUST pass through MCC before execution.
-
-```text
-Intent → MCC → Decision → Execution
-```
-
-| Condition | Result |
-|---|---|
-| Unknown intent | DENY |
-| Policy violation | DENY |
-| Error / uncertainty | DENY |
-
-Execution requires explicit `ALLOW`.
-
----
-
-## Normative Requirements
-
-An MCC-compliant system MUST:
-
-1. Enforce deny-by-default execution  
-2. Evaluate all intents before execution  
-3. Fail closed on any error or uncertainty  
-4. Gate execution strictly by decision outcome  
-5. Record all decisions in an audit log  
-6. Maintain tamper-evident (hash-linked) audit records  
-7. Execution MUST NOT occur outside the MCC control path  
-
----
-
-## Decision Contract
-
-```python
-decision = mcc.evaluate(intent)
-
-# decision object
-decision.verdict   # "ALLOW" | "DENY"
-decision.reason    # explanation
-decision.trace_id  # audit reference
-```
-
----
-
-## Proof (Minimal Demonstration)
-
-This demonstrates the necessity of a control boundary.
-
-### Without MCC
-
-```python
-execute({"action": "delete_user"})
-```
-
-```text
-EXECUTED: user deleted
-```
-
----
-
-### With MCC
-
-```python
-decision = mcc.evaluate({"action": "delete_user"})
-
-if decision.verdict == "ALLOW":
-    execute(...)
-else:
-    block()
-```
-
-```text
-Decision: DENY  
-Result: BLOCKED
-```
-
----
-
-### Conclusion
-
-Without MCC → execution occurs  
-With MCC → execution is controlled  
-
-MCC is not advisory.  
-It is an enforcement boundary.  
-It is a required control layer for systems that act.  
-This behavior is deterministic and enforceable by design.
-
----
-
-## Full Runnable Proof
-
-Run locally:
-
-```bash
-python examples/mcc_runtime_proof.py
-```
-
-Source:
-https://github.com/mcc-prior-art/mcc-policy-engine/blob/main/examples/mcc_runtime_proof.py
-
----
-
-## Audit Model
-
-Each decision produces a hash-linked record:
-
-```python
-record = {
-  "prev_hash": ...,
-  "intent": ...,
-  "verdict": ...,
-  "trace_id": ...
+```json
+{
+  "intent": "send_payment",
+  "amount": 50000,
+  "recipient": "external_vendor"
 }
-
-hash = SHA256(prev_hash + serialized_record)
 ```
 
----
+Result:
 
-## Security Properties
+```text
+DENY
+reason: amount exceeds policy threshold
+```
 
-- Fail-closed (safe by default)  
-- Deny-by-default execution  
-- Policy-gated control boundary  
-- Full traceability via audit  
+No external action is executed.
 
----
+## Licensing, Commercial Use, Canon & Authorship Record
 
-## Scope
+This repository is published to establish prior art and authorship timeline for the MCC (Meta-Cognitive Control) pattern — a control layer between AI-generated intent and real-world execution.
 
-MCC defines:
+The code provided here is a minimal reference implementation (PoC) intended for research, evaluation, and architectural demonstration purposes only.
+It is not a complete production system and is provided without guarantees.
 
-- control boundaries for acting systems  
-- policy-gated execution  
-- fail-closed enforcement  
+### License (PoC Code)
 
----
+Use of the code in this repository is governed by the **MCC Evaluation License 1.0**.
 
-## Non-Goals
+In summary:
 
-MCC does NOT define:
+- The code may be used, modified, and tested for **Non-Production Use only**
+- **Production Use is not permitted** under this license and requires a separate commercial agreement
 
-- how intents are generated  
-- policy logic implementation  
-- execution systems  
-- domain-specific rules  
+For full terms, see:
+- [`LICENSE`](./LICENSE)
+- https://github.com/mcc-prior-art/mcc-policy-engine/blob/main/LICENSE
 
----
+### Commercial Use
 
-## Conformance
+Production deployment, enterprise usage, or integration of MCC-style control systems is available under separate commercial terms.
 
-An implementation is MCC-compliant if it satisfies all normative requirements.
+This typically includes controlled access to the MCC Canon specifications:
 
-Minimum validation:
+- **Canon-1 — Core Principles & Control Model**
+- **Canon-2 — Validation & Operational Protocol**
+- **Canon-3 — Governance & Control Architecture**
 
-1. Unknown intent → DENY  
-2. Policy violation → DENY  
-3. Error → DENY  
-4. No execution without ALLOW  
-5. Audit records MUST be hash-linked  
-6. Every evaluation MUST produce an audit entry  
+Additional scope:
 
-Implementations failing any condition MUST NOT be considered compliant.
+- Production-grade policy design
+- Audit, governance, and safety guarantees
+- Integration and certification support
 
----
+For commercial licensing and enterprise use, contact:
+**mcc.prior.art.2026@proton.me**
 
-## License
+Early enterprise partnerships and pilot integrations are currently open.
 
-MIT. No patent rights are granted.
+### Proof of Prior Art (Private Materials)
+
+The following hashes attest to the existence of private Canon materials at the time of publication:
+
+- Canon-2 SHA-256: `PASTE_REAL_HASH`
+- Canon-3 SHA-256: `PASTE_REAL_HASH`
+
+These materials are not public and may be verified upon request by matching the hash against the original documents.
+
+### Timestamp & Authorship Record
+
+Git commit (HEAD at time of publication):
+`PASTE_COMMIT_HASH_HERE`
+
+Commit date (UTC):
+`PASTE_REAL_COMMIT_DATE`
+
+Wayback snapshot:
+https://web.archive.org/web/PASTE_TIMESTAMP/https://github.com/mcc-prior-art/mcc-policy-engine
+
+These records provide verifiable evidence of public availability and authorship timeline at the time of publication.
+
+### References & Context
+
+The MCC (Meta-Cognitive Control) pattern builds on and formalizes concepts related to:
+
+- AI system safety and alignment
+- Policy enforcement layers in distributed systems
+- Decision boundaries between intent generation and action execution
+- Auditability and control in real-world AI deployments
+
+Relevant context includes:
+
+- LLM-based agent architectures and tool execution frameworks
+- Safety and alignment research in modern AI systems
+- Policy engines and rule-based enforcement systems in software infrastructure
+
+MCC extends these directions by introducing a formal control boundary between AI-generated intent and real-world execution, with explicit validation, governance, and audit layers.
+
+This repository represents an early public formalization of this control pattern as a distinct architectural layer.
+
+### Notice
+
+This repository documents a control architecture pattern.
+
+Public availability of this PoC does not grant rights to proprietary extensions, private Canon materials, or production implementations.
+
+All rights not expressly granted are reserved.
