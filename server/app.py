@@ -125,7 +125,6 @@ POLICY = {
     }
 }
 
-
 # =========================
 # MCC CORE
 # =========================
@@ -156,7 +155,7 @@ class MCC:
             }
 
             serialized = json.dumps(record, sort_keys=True)
-            current_hash = self._hash(self.prev_hash + serialized)
+            current_hash = hashlib.sha256((self.prev_hash + serialized).encode()).hexdigest()
 
             self.prev_hash = current_hash
             self.audit_log.append({**record, "hash": current_hash})
@@ -166,7 +165,7 @@ class MCC:
         scopes = tenant_ctx["scopes"]
 
         request_id = str(uuid.uuid4())
-        trace_id = self._hash(request_id + req.session_id)[:12]
+        trace_id = hashlib.sha256((request_id + req.session_id).encode()).hexdigest()[:12]
 
         if req.idempotency_key and req.idempotency_key in idempotency_cache:
             return idempotency_cache[req.idempotency_key]
@@ -251,7 +250,6 @@ class MCC:
             request_id=request_id
         )
 
-
 # =========================
 # APP
 # =========================
@@ -259,17 +257,14 @@ class MCC:
 app = FastAPI(title="MCC Policy Engine", version="1.0")
 mcc = MCC()
 
-
 @app.post("/evaluate", response_model=EvaluateResponse)
 async def evaluate(req: EvaluateRequest, tenant_ctx: Dict = Depends(get_tenant)):
     await check_rate_limit(tenant_ctx["tenant"])
     return await mcc.evaluate(tenant_ctx, req)
 
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 @app.get("/ready")
 def ready():
