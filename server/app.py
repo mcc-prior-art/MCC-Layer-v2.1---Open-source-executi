@@ -15,7 +15,7 @@ from typing import Dict, Any, Optional
 from collections import defaultdict
 
 from fastapi import FastAPI, HTTPException, Header, Depends
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, model_validator
 
 # =========================
 # CONFIG
@@ -48,14 +48,14 @@ logger = logging.getLogger("mcc")
 class EvaluateRequest(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=128)
     intent: str = Field(..., min_length=1, max_length=MAX_INTENT_LENGTH)
-    args: Dict[str, Any]
+    args: Dict[str, Any] = Field(default_factory=dict)
     idempotency_key: Optional[str] = None
 
-    @root_validator
-    def validate_args(cls, values):
-        if len(json.dumps(values.get("args", {}))) > MAX_ARGS_BYTES:
+    @model_validator(mode="after")
+    def validate_args_size(self):
+        if len(json.dumps(self.args)) > MAX_ARGS_BYTES:
             raise ValueError("ARGS_TOO_LARGE")
-        return values
+        return self
 
 
 class Reason(BaseModel):
@@ -69,6 +69,7 @@ class EvaluateResponse(BaseModel):
     trace_id: str
     request_id: str
 
+
 # =========================
 # RATE LIMIT
 # =========================
@@ -77,20 +78,22 @@ rate_lock = asyncio.Lock()
 rate_counters = defaultdict(list)
 blocked_until = defaultdict(float)
 
+
 async def check_rate_limit(tenant: str):
     async with rate_lock:
         now = time.time()
 
         if blocked_until[tenant] > now:
-            raise HTTPException(429, "RATE_LIMIT_BLOCKED")
+            raise HTTPException(status_code=429, detail="RATE_LIMIT_BLOCKED")
 
         rate_counters[tenant] = [t for t in rate_counters[tenant] if t > now - 60]
 
         if len(rate_counters[tenant]) >= RATE_LIMIT_PER_MIN:
             blocked_until[tenant] = now + BLOCK_WINDOW_SEC
-            raise HTTPException(429, "RATE_LIMIT_EXCEEDED")
+            raise HTTPException(status_code=429, detail="RATE_LIMIT_EXCEEDED")
 
         rate_counters[tenant].append(now)
+
 
 # =========================
 # AUTH
@@ -98,8 +101,9 @@ async def check_rate_limit(tenant: str):
 
 def get_tenant(x_api_key: str = Header(...)):
     if x_api_key not in API_KEYS:
-        raise HTTPException(401, "INVALID_API_KEY")
+        raise HTTPException(status_code=401, detail="INVALID_API_KEY")
     return API_KEYS[x_api_key]
+
 
 # =========================
 # IDEMPOTENCY
@@ -108,7 +112,7 @@ def get_tenant(x_api_key: str = Header(...)):
 idempotency_cache: Dict[str, EvaluateResponse] = {}
 
 # =========================
-# POLICY (externalized)
+# POLICY
 # =========================
 
 POLICY = {
@@ -120,6 +124,7 @@ POLICY = {
         "forbidden": True
     }
 }
+
 
 # =========================
 # MCC CORE
@@ -142,9 +147,9 @@ class MCC:
             record = {
                 "timestamp": self._now(),
                 "tenant": tenant,
-                "request": req.dict(),
+                "request": req.model_dump(),
                 "decision": decision,
-                "reason": reason.dict(),
+                "reason": reason.model_dump(),
                 "trace_id": trace_id,
                 "request_id": request_id,
                 "prev_hash": self.prev_hash
@@ -172,9 +177,19 @@ class MCC:
                 timeout=POLICY_TIMEOUT_SEC
             )
         except asyncio.TimeoutError:
-            result = EvaluateResponse("DENY", Reason("TIMEOUT", "policy timeout"), trace_id, request_id)
+            result = EvaluateResponse(
+                decision="DENY",
+                reason=Reason(code="TIMEOUT", message="policy timeout"),
+                trace_id=trace_id,
+                request_id=request_id
+            )
         except Exception:
-            result = EvaluateResponse("DENY", Reason("ERROR", "fail-closed"), trace_id, request_id)
+            result = EvaluateResponse(
+                decision="DENY",
+                reason=Reason(code="ERROR", message="fail-closed"),
+                trace_id=trace_id,
+                request_id=request_id
+            )
 
         await self._audit(tenant, req, result.decision, result.reason, trace_id, request_id)
 
@@ -188,21 +203,54 @@ class MCC:
         policy = POLICY.get(req.intent)
 
         if not policy:
-            return EvaluateResponse("DENY", Reason("UNKNOWN_INTENT", "not allowed"), trace_id, request_id)
+            return EvaluateResponse(
+                decision="DENY",
+                reason=Reason(code="UNKNOWN_INTENT", message="not allowed"),
+                trace_id=trace_id,
+                request_id=request_id
+            )
 
         if policy.get("forbidden"):
-            return EvaluateResponse("DENY", Reason("FORBIDDEN", "blocked by policy"), trace_id, request_id)
+            return EvaluateResponse(
+                decision="DENY",
+                reason=Reason(code="FORBIDDEN", message="blocked by policy"),
+                trace_id=trace_id,
+                request_id=request_id
+            )
 
         if policy.get("scope") and policy["scope"] not in scopes:
-            return EvaluateResponse("DENY", Reason("FORBIDDEN_SCOPE", "missing scope"), trace_id, request_id)
+            return EvaluateResponse(
+                decision="DENY",
+                reason=Reason(code="FORBIDDEN_SCOPE", message="missing scope"),
+                trace_id=trace_id,
+                request_id=request_id
+            )
 
         if req.intent == "send_payment":
             amount = req.args.get("amount", 0)
-            if amount <= policy["max_amount"]:
-                return EvaluateResponse("ALLOW", Reason("OK", "within limit"), trace_id, request_id)
-            return EvaluateResponse("DENY", Reason("LIMIT", "amount too large"), trace_id, request_id)
 
-        return EvaluateResponse("DENY", Reason("DEFAULT", "blocked"), trace_id, request_id)
+            if amount <= policy["max_amount"]:
+                return EvaluateResponse(
+                    decision="ALLOW",
+                    reason=Reason(code="OK", message="within limit"),
+                    trace_id=trace_id,
+                    request_id=request_id
+                )
+
+            return EvaluateResponse(
+                decision="DENY",
+                reason=Reason(code="LIMIT", message="amount too large"),
+                trace_id=trace_id,
+                request_id=request_id
+            )
+
+        return EvaluateResponse(
+            decision="DENY",
+            reason=Reason(code="DEFAULT", message="blocked"),
+            trace_id=trace_id,
+            request_id=request_id
+        )
+
 
 # =========================
 # APP
@@ -211,14 +259,17 @@ class MCC:
 app = FastAPI(title="MCC Policy Engine", version="1.0")
 mcc = MCC()
 
+
 @app.post("/evaluate", response_model=EvaluateResponse)
 async def evaluate(req: EvaluateRequest, tenant_ctx: Dict = Depends(get_tenant)):
     await check_rate_limit(tenant_ctx["tenant"])
     return await mcc.evaluate(tenant_ctx, req)
 
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
 
 @app.get("/ready")
 def ready():
