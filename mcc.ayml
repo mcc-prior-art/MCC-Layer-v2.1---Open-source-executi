@@ -1,0 +1,8 @@
+version: 1.0
+actions:
+  payments:
+    ALLOW: amount < 100
+    ESCALATE: amount < 10000
+    DENY: amount >= 10000
+audit: true
+rollback: true
