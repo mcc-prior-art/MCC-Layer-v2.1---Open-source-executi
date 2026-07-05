@@ -199,6 +199,9 @@ mcc-layer/
 │       └── version.py         ← pilot release metadata (PILOT_RELEASE_NAME = "MCC-Core Pilot v0.1", PILOT_VERSION = "0.1.0-pilot")
 ├── pilot_api/                 ← the EXTERNAL pilot API the agent acts upon (separate service; deterministic state, /operations evidence, strict schemas; no governance)
 │   └── app.py                 ← /leads /campaigns/{id}/budget /notifications /tasks /webhooks /operations /health
+├── pilot_notify/              ← Real Governed Executor Pilot: mock notification service + receipt-verifying governed-executor adapter (EXECUTED only on a confirmed receipt matching payload+correlation_id; plugs into GovernanceService.upstream — no governance duplicated)
+│   ├── service.py             ← mock external notification service (POST /send_notification -> receipt; /receipts; /health)
+│   └── governed_upstream.py   ← receipt_verifying_upstream adapter (raises unless 2xx + received + correlation + payload-hash match -> fail-closed non-EXECUTED)
 ├── gateway/                   ← the gate as an HTTP service
 │   ├── app.py                 ← POST /evaluate; /verify; /export; mounts governance HTTP routes
 │   ├── pilot_policy.py        ← hardcoded authority + velocity (PILOT_VELOCITY) config for the first pilot client
@@ -325,6 +328,7 @@ mcc-layer/
     ├── test_mcc_agent.py      ← governed agent E2E: ALLOW/DENY/ESCALATE(+invalid approvals)/CONSTRAIN, replay/nonce/idempotency, Redis fail-closed, SSRF/malformed, audit-before-exec, bypass, real external execution, state-unchanged-after-blocked
     ├── test_mcc_agent_no_direct_egress.py ← static guard: no forbidden networking imports in src/mcc_agent (incl. subprocess); no direct-execute surface
     ├── test_pilot_release.py  ← Pilot v0.1 release matrix: version metadata, clean/fail-closed startup, four verdicts, audit-evidence completeness, audit-before-exec, chain verify, no-exec-before-auth, constrained-payload-executed, Redis replay (gated)
+    ├── test_governed_executor_pilot.py ← Real Governed Executor Pilot E2E: ALLOW->genuine EXECUTED (confirmed receipt), DENY/ESCALATE(approve)/CONSTRAIN, replay, altered payload, expired, missing-auth, invalid approval, Redis outage, audit-write-failure, mismatched receipt != EXECUTED, no direct bypass (real gateway + gate + audit + receipt)
     ├── test_mcc_client_sdk.py ← Python SDK: real-HTTP integration (four verdicts + audit verify vs gateway.app) + controlled-transport units (fail-closed, unknown verdict, timeout/transport, DENY/ESCALATE never execute, CONSTRAIN authoritative payload, replay, ambiguous exec, no unsafe retry, idempotency/correlation propagation)
     ├── examples/test_egress_credentials_governed.py ← secrets resolved only after authorization + durable audit; never in response/audit
     └── opa_test_vectors.json

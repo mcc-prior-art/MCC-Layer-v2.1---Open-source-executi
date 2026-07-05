@@ -1,0 +1,100 @@
+# Real Governed Executor Pilot — one-command demo.
+#
+#   docker compose -f docker-compose.notify-pilot.yml up --build --abort-on-container-exit
+#
+# Services:
+#   redis              — Redis-backed nonce/idempotency/velocity/approval state.
+#   mock-notification  — the local mock external service the pilot notifies.
+#   mcc-gateway        — the MCC gateway: authority + decision token + execution
+#                        gate + coordinator + audit. The GOVERNED EXECUTOR is the
+#                        gateway's coordinator-driven execution path plus the
+#                        receipt-verifying adapter (MCC_UPSTREAM_RECEIPT_VERIFY=1):
+#                        it performs the outbound call and confirms the receipt,
+#                        so EXECUTED means a genuine, matching external receipt.
+#                        (It is embedded in the gateway on purpose — splitting the
+#                        governed executor into a second service would fragment the
+#                        single enforcement path.)
+#   pilot-agent        — the governed agent: uses the SDK; never calls the mock
+#                        service directly.
+#
+# Trust boundary: the agent shares a network with the gateway only. The mock
+# service is reachable by the gateway (governed executor) but NOT by the agent.
+networks:
+  agent_edge:
+  gov_internal:
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mock-notification:
+    build:
+      context: .
+      dockerfile: deploy/pilot/Dockerfile.notify
+    command: ["uvicorn", "pilot_notify.service:app", "--host", "0.0.0.0", "--port", "9200"]
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9200/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mcc-gateway:
+    build:
+      context: .
+      dockerfile: deploy/pilot/Dockerfile.notify
+    command: ["uvicorn", "gateway.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      MCC_GATEWAY_API_KEY: "demo-key"
+      MCC_GATEWAY_OPERATOR_API_KEY: "op-key"
+      MCC_GATEWAY_MODE: "inline"
+      MCC_GATEWAY_AUDIT_LOG_PATH: "/data/audit.jsonl"
+      # The governed executor: perform the outbound call and require a confirmed,
+      # matching receipt before EXECUTED (opt-in; default gateway behaviour is
+      # unchanged).
+      MCC_UPSTREAM_BASE: "http://mock-notification:9200"
+      MCC_UPSTREAM_RECEIPT_VERIFY: "1"
+      # Redis-backed state (no in-memory fallback; fail closed if Redis is down).
+      MCC_REDIS_URL: "redis://redis:6379/0"
+      MCC_NONCE_BACKEND: "redis"
+      MCC_IDEMPOTENCY_BACKEND: "redis"
+      MCC_VELOCITY_BACKEND: "redis"
+      MCC_APPROVAL_BACKEND: "redis"
+      MCC_CHALLENGE_BACKEND: "redis"
+    networks: [agent_edge, gov_internal]
+    volumes:
+      - notify-audit:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      mock-notification:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  pilot-agent:
+    build:
+      context: .
+      dockerfile: deploy/pilot/Dockerfile.notify
+    command: ["python", "/app/notify_pilot_agent.py"]
+    environment:
+      MCC_GATEWAY_URL: "http://mcc-gateway:8001"
+      MCC_GATEWAY_API_KEY: "demo-key"
+      MCC_GATEWAY_OPERATOR_API_KEY: "op-key"
+    networks: [agent_edge]
+    depends_on:
+      mcc-gateway:
+        condition: service_healthy
+
+volumes:
+  notify-audit:
