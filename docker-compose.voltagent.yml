@@ -4,8 +4,6 @@
 #       --abort-on-container-exit --exit-code-from voltagent-agent
 #
 # Flow:
-#   config-init        generates the evaluator keyset (public trust config for the
-#                      gateway + private keys for the quorum) into a shared volume.
 #   redis              Redis-backed nonce/idempotency/velocity/approval/challenge.
 #   mock-notification  the external service the notification is delivered to.
 #   mcc-gateway        MCC-Core: authority + decision token + execution gate +
@@ -27,17 +25,6 @@ volumes:
   voltagent-audit:
 
 services:
-  config-init:
-    build:
-      context: .
-      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
-    command:
-      ["python", "-m", "integrations.voltagent.mcc_side.generate_config",
-       "--out", "/config", "--evaluators", "3", "--force"]
-    volumes:
-      - mcc-config:/config
-    networks: [gov_internal]
-
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
@@ -64,7 +51,17 @@ services:
     build:
       context: .
       dockerfile: integrations/voltagent/docker/Dockerfile.mcc
-    command: ["uvicorn", "gateway.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    # Generate the evaluator keyset into the shared volume on first start (idempotent),
+    # then serve. Done here rather than in a one-shot container so nothing exits
+    # early (which would trip --abort-on-container-exit and tear down the stack).
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ ! -f /config/consensus_trust.json ]; then
+          python -m integrations.voltagent.mcc_side.generate_config --out /config --evaluators 3
+        fi
+        exec uvicorn gateway.app:app --host 0.0.0.0 --port 8001
     environment:
       MCC_GATEWAY_API_KEY: "demo-key"
       MCC_GATEWAY_OPERATOR_API_KEY: "op-key"
@@ -84,12 +81,10 @@ services:
       MCC_APPROVAL_BACKEND: "redis"
       MCC_CHALLENGE_BACKEND: "redis"
     volumes:
-      - mcc-config:/config:ro
+      - mcc-config:/config
       - voltagent-audit:/data
     networks: [agent_edge, gov_internal]
     depends_on:
-      config-init:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
       mock-notification:
@@ -104,7 +99,13 @@ services:
     build:
       context: .
       dockerfile: integrations/voltagent/docker/Dockerfile.mcc
-    command: ["uvicorn", "integrations.voltagent.mcc_side.evaluator_quorum:app", "--host", "0.0.0.0", "--port", "8080"]
+    # Wait for the gateway to have written the evaluator keyset, then serve.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        until [ -f /config/evaluator_1.pem ]; do echo "waiting for evaluator keys..."; sleep 1; done
+        exec uvicorn integrations.voltagent.mcc_side.evaluator_quorum:app --host 0.0.0.0 --port 8080
     environment:
       MCC_QUORUM_GATEWAY_URL: "http://mcc-gateway:8001"
       MCC_GATEWAY_API_KEY: "demo-key"
@@ -113,8 +114,6 @@ services:
       - mcc-config:/config:ro
     networks: [agent_edge, gov_internal]
     depends_on:
-      config-init:
-        condition: service_completed_successfully
       mcc-gateway:
         condition: service_healthy
     healthcheck:
