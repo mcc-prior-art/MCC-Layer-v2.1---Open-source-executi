@@ -1,0 +1,43 @@
+{
+  "name": "@mcc/voltagent-governed-integration",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Real VoltAgent framework integration with MCC-Core: VoltAgent reasons and proposes; MCC-Core governs, gates, and executes. The agent has no direct execution authority and no bypass path.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "biome format ./src ./tests",
+    "format:write": "biome format --write ./src ./tests",
+    "lint": "biome lint ./src ./tests",
+    "check": "biome check ./src ./tests",
+    "demo": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@voltagent/core": "2.8.1",
+    "ai": "6.0.219",
+    "zod": "3.25.76"
+  },
+  "peerDependencies": {
+    "@ai-sdk/openai": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/openai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/openai": "3.0.80",
+    "@ai-sdk/provider": "3.0.13",
+    "@biomejs/biome": "1.9.4",
+    "@types/node": "22.14.0",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "vitest": "3.0.5"
+  }
+}

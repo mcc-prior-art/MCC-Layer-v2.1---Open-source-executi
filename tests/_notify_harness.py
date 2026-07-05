@@ -122,6 +122,10 @@ class NotifyPilotHarness:
             from mcc_core import AuditLog
             return {"valid": AuditLog.verify_chain(self.gateway.audit.path)}
 
+        @app.get("/health")
+        def health():
+            return {"status": "ok", "policy_hash": self.gateway.policy_hash}
+
         mount_mandate_routes(app, self.service, api_key=API_KEY, operator_key=OPERATOR_KEY)
         mount_approval_routes(app, self.service, api_key=API_KEY, operator_key=OPERATOR_KEY)
         mount_consensus_routes(app, self.service, api_key=API_KEY, operator_key=OPERATOR_KEY)

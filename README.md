@@ -594,6 +594,56 @@ proven end-to-end by the 20 deterministic tests in
 `tests/test_reference_governed_agent.py`. See
 `examples/reference_governed_agent/README.md` for full detail.
 
+## VoltAgent Governed Integration — the first real third-party framework
+
+The **Real VoltAgent Governed Integration** (`integrations/voltagent/`) is the
+first integration of a real, external agent framework with MCC-Core.
+
+> **VoltAgent provides agent reasoning and orchestration. MCC-Core provides
+> verified execution governance.**
+
+[VoltAgent](https://voltagent.dev) (a TypeScript AI agent framework) handles
+reasoning, instruction-following, orchestration, and tool selection. MCC-Core
+remains the **sole** authority for governance evaluation, identity/authority
+verification, ALLOW/DENY/ESCALATE/CONSTRAIN, approval, execution authorization and
+gating, governed external execution, receipt verification, `EXECUTED` status, and
+append-only audit evidence. It reuses the framework-neutral contract from the
+reference governed agent — it does **not** implement MCP and does **not** make
+MCC-Core VoltAgent-specific.
+
+```mermaid
+flowchart LR
+    U[NL request] --> VA[VoltAgent<br/>reason + select tool]
+    VA -->|proposal| C[MCC client]
+    C -->|/evaluate| G[MCC-Core]
+    G -->|verdict| C
+    C -.ALLOW/CONSTRAIN.-> Q[Independent evaluator quorum]
+    C -.ESCALATE.-> OP[Operator approval]
+    Q --> GE[Execution gate → governed executor]
+    OP --> GE
+    GE --> X[External service + verified receipt]
+    GE --> AUD[Audit chain]
+    C -->|governed result| VA
+    VA -.->|NEVER direct| X
+```
+
+VoltAgent has **no direct execution authority** and **no bypass path**: its client
+holds no operator key and no notification-service URL; it can never approve its own
+escalations; an independent evaluator quorum (not VoltAgent) holds the consensus
+keys; `EXECUTED` is returned only after governed execution and a verified external
+receipt. A static test enforces the absence of any direct execution route.
+
+**Run it (one command):**
+
+```bash
+docker compose -f docker-compose.voltagent.yml up --build \
+    --abort-on-container-exit --exit-code-from voltagent-agent
+```
+
+See `integrations/voltagent/README.md` for the full architecture, provider
+configuration, verdict behavior, receipt verification, and tests. Other frameworks
+(LangGraph, CrewAI, …) can integrate later through the same SDK boundary.
+
 ## Without MCC / With MCC
 
 Mobile-safe comparison:

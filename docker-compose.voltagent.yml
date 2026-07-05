@@ -1,0 +1,145 @@
+# Real VoltAgent Governed Integration — one-command end-to-end stack.
+#
+#   docker compose -f docker-compose.voltagent.yml up --build \
+#       --abort-on-container-exit --exit-code-from voltagent-agent
+#
+# Flow:
+#   config-init        generates the evaluator keyset (public trust config for the
+#                      gateway + private keys for the quorum) into a shared volume.
+#   redis              Redis-backed nonce/idempotency/velocity/approval/challenge.
+#   mock-notification  the external service the notification is delivered to.
+#   mcc-gateway        MCC-Core: authority + decision token + execution gate +
+#                      coordinator + audit + the receipt-verifying governed executor
+#                      (EXECUTED only on a confirmed matching receipt). Consensus on.
+#   evaluator-quorum   independent N-of-M evaluators (hold the private keys); sign
+#                      votes only for executable decisions. VoltAgent never holds a key.
+#   voltagent-agent    the real VoltAgent agent. Talks to the gateway + quorum only;
+#                      no notification-service client, no operator key, no bypass.
+#
+# Trust boundary: the agent shares a network with the gateway + quorum only. The
+# mock notification service is reachable by the governed executor, never the agent.
+networks:
+  agent_edge:
+  gov_internal:
+
+volumes:
+  mcc-config:
+  voltagent-audit:
+
+services:
+  config-init:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    command:
+      ["python", "-m", "integrations.voltagent.mcc_side.generate_config",
+       "--out", "/config", "--evaluators", "3", "--force"]
+    volumes:
+      - mcc-config:/config
+    networks: [gov_internal]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mock-notification:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    command: ["uvicorn", "pilot_notify.service:app", "--host", "0.0.0.0", "--port", "9200"]
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9200/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mcc-gateway:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    command: ["uvicorn", "gateway.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      MCC_GATEWAY_API_KEY: "demo-key"
+      MCC_GATEWAY_OPERATOR_API_KEY: "op-key"
+      MCC_GATEWAY_MODE: "inline"
+      MCC_GATEWAY_AUDIT_LOG_PATH: "/data/audit.jsonl"
+      # Receipt-verifying governed executor: EXECUTED only on a confirmed receipt.
+      MCC_UPSTREAM_BASE: "http://mock-notification:9200"
+      MCC_UPSTREAM_RECEIPT_VERIFY: "1"
+      # Multi-Context Consensus: trust the evaluator quorum's public keys.
+      MCC_CONSENSUS_TRUST_CONFIG: "/config/consensus_trust.json"
+      MCC_CONSENSUS_THRESHOLD: "3"
+      # Redis-backed state (fail closed if Redis is down).
+      MCC_REDIS_URL: "redis://redis:6379/0"
+      MCC_NONCE_BACKEND: "redis"
+      MCC_IDEMPOTENCY_BACKEND: "redis"
+      MCC_VELOCITY_BACKEND: "redis"
+      MCC_APPROVAL_BACKEND: "redis"
+      MCC_CHALLENGE_BACKEND: "redis"
+    volumes:
+      - mcc-config:/config:ro
+      - voltagent-audit:/data
+    networks: [agent_edge, gov_internal]
+    depends_on:
+      config-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mock-notification:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  evaluator-quorum:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    command: ["uvicorn", "integrations.voltagent.mcc_side.evaluator_quorum:app", "--host", "0.0.0.0", "--port", "8080"]
+    environment:
+      MCC_QUORUM_GATEWAY_URL: "http://mcc-gateway:8001"
+      MCC_GATEWAY_API_KEY: "demo-key"
+      MCC_EVALUATOR_KEYS_DIR: "/config"
+    volumes:
+      - mcc-config:/config:ro
+    networks: [agent_edge, gov_internal]
+    depends_on:
+      config-init:
+        condition: service_completed_successfully
+      mcc-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  voltagent-agent:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.agent
+    environment:
+      MCC_GATEWAY_URL: "http://mcc-gateway:8001"
+      MCC_QUORUM_URL: "http://evaluator-quorum:8080"
+      MCC_GATEWAY_API_KEY: "demo-key"
+      MCC_GATEWAY_OPERATOR_API_KEY: "op-key"
+      MCC_VOLTAGENT_ACTOR: "agent/notify-bot"
+      MCC_VOLTAGENT_RESOURCE: "crm"
+      # Deterministic offline model by default (no paid API). Set
+      # MCC_VOLTAGENT_MODEL_PROVIDER=openai + OPENAI_API_KEY to use a real LLM.
+      MCC_VOLTAGENT_MODEL_PROVIDER: "deterministic"
+    networks: [agent_edge]
+    depends_on:
+      mcc-gateway:
+        condition: service_healthy
+      evaluator-quorum:
+        condition: service_healthy

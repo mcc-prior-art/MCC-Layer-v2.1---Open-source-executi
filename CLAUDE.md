@@ -259,6 +259,17 @@ mcc-layer/
 │       ├── actions.py / models.py ← send_notification payload builder + NL parser; typed ProposedAction/AgentRunResult/ProviderError
 │       ├── cli.py / _localstack.py ← CLI demo (four scenarios) + private in-process governed stack harness (not the agent)
 │       └── README.md / Dockerfile ← package doc (invariants, quick-start) + self-contained demo image
+├── integrations/
+│   └── voltagent/            ← Real VoltAgent Governed Integration (first real third-party framework; reuses the PR #35 contract; NOT MCP)
+│       ├── src/agent.ts / tools/governed-notification.ts ← VoltAgent Agent + the ONE governed tool (operator-less client; no direct external route)
+│       ├── src/mcc-client.ts / schemas.ts ← gateway-contract HTTP client + governed-path orchestration; strict zod proposal + trusted-identity binding
+│       ├── src/model.ts / demo.ts / e2e-runner.ts ← provider config + deterministic offline model; runnable NL demo; Docker E2E runner (markers)
+│       ├── tests/            ← vitest: schemas/no-bypass (offline) + integration (spawns the REAL MCC stack); globalSetup launches mcc_side/testserver
+│       ├── mcc_side/evaluator_quorum.py ← independent N-of-M evaluator quorum (holds keys; signs only executable decisions over the gateway's authoritative payload)
+│       ├── mcc_side/generate_config.py / testserver.py ← evaluator keyset (public trust + private keys) + in-process real stack for the TS tests
+│       ├── docker/Dockerfile.mcc / Dockerfile.agent ← Python (gateway+quorum+notify+config) + Node (agent) images
+│       └── README.md         ← integration doc: VoltAgent vs MCC boundary, verdicts, receipt verification, bypass prevention, diagram
+├── docker-compose.voltagent.yml ← one-command VoltAgent stack (config-init → redis + mock-notification + gateway[consensus+receipt] + quorum + agent)
 ├── scripts/
 │   ├── generate_signing_key.py ← Ed25519 key generator (PKCS8 PEM, mode 0600)
 │   ├── redis_nonce_smoke.py    ← E2E: two gates share one Redis → cross-instance replay rejected
@@ -338,6 +349,7 @@ mcc-layer/
     ├── test_pilot_release.py  ← Pilot v0.1 release matrix: version metadata, clean/fail-closed startup, four verdicts, audit-evidence completeness, audit-before-exec, chain verify, no-exec-before-auth, constrained-payload-executed, Redis replay (gated)
     ├── test_governed_executor_pilot.py ← Real Governed Executor Pilot E2E: ALLOW->genuine EXECUTED (confirmed receipt), DENY/ESCALATE(approve)/CONSTRAIN, replay, altered payload, expired, missing-auth, invalid approval, Redis outage, audit-write-failure, mismatched receipt != EXECUTED, no direct bypass (real gateway + gate + audit + receipt)
     ├── test_reference_governed_agent.py ← Reference Governed Agent (20 tests): four verdict flows→genuine EXECUTED, forged/expired/mismatched approval fail-closed, ESCALATE preserves original payload, CONSTRAIN executes only clamped payload, altered-votes rejected, receipt-verification fail-closed, Redis outage, audit verify, no-direct-execution static guard, provider invariants
+    ├── test_voltagent_quorum.py ← VoltAgent integration MCC-side (7 tests): evaluator quorum signs only executable decisions over the gateway's authoritative payload; ALLOW→genuine EXECUTED, DENY/ESCALATE quorum-refuses, CONSTRAIN clamped-only, forged receipt not-EXECUTED, replay/tamper rejected (real gateway + quorum). TS tests live under integrations/voltagent/tests/
     ├── test_mcc_client_sdk.py ← Python SDK: real-HTTP integration (four verdicts + audit verify vs gateway.app) + controlled-transport units (fail-closed, unknown verdict, timeout/transport, DENY/ESCALATE never execute, CONSTRAIN authoritative payload, replay, ambiguous exec, no unsafe retry, idempotency/correlation propagation)
     ├── examples/test_egress_credentials_governed.py ← secrets resolved only after authorization + durable audit; never in response/audit
     └── opa_test_vectors.json
