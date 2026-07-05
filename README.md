@@ -529,6 +529,71 @@ ESCALATE→approve→execute path, while the full `ALLOW`/`CONSTRAIN`/consensus
 execution + all fail-closed cases are proven by
 `tests/test_governed_executor_pilot.py`.
 
+## Reference Governed Agent — the framework-neutral reference
+
+The **Framework-Neutral Reference Governed Agent**
+(`examples/reference_governed_agent/`) is the canonical reference AI agent for
+MCC-Core. It reasons about a natural-language request, **proposes** a structured
+action, submits it through the supported SDK, obtains **human approval** when the
+decision escalates, and executes **only** through the governed path — never
+directly — then verifies the external receipt and the audit chain.
+
+It is deliberately **framework-neutral**: no VoltAgent, LangGraph, CrewAI, or
+OpenAI Agents SDK anywhere in the loop. Any of them can integrate later as an
+*adapter* that produces a proposal and hands it to this same SDK boundary.
+
+- **Reasoning is not authority** — the provider only proposes; MCC-Core decides.
+- **Proposal is not permission** — nothing runs without a governance decision.
+- **The agent has no direct execution path** — every side effect flows
+  agent → MCC SDK → gateway → governed executor → external system. A static test
+  enforces the absence of any direct networking/execution route in the agent.
+
+```mermaid
+flowchart TD
+    R[Natural-language request] --> P[ReasoningProvider<br/>proposes — never authority]
+    P -->|ProposedAction| A[ReferenceGovernedAgent]
+    A -->|mcc_client SDK| G[MCC Gateway]
+    G -->|ALLOW / DENY / ESCALATE / CONSTRAIN| A
+    A -.ESCALATE.-> O[Operator approval]
+    O --> A
+    A -->|governed execute<br/>authoritative payload only| GE[Execution Gate → Governed Executor]
+    GE --> X[External system + verified receipt]
+    GE --> AU[Append-only audit chain]
+    A -. DENY / no authorization .-> B[BLOCKED — external system never called]
+```
+
+**Reasoning providers.** `DeterministicProvider` (the default) needs no external
+API key, network, or LLM dependency and is used by every test, the demo, CI, and
+the Docker E2E. `OptionalLLMProvider` is an opt-in extension point with no
+mandatory LLM dependency; a provider failure raises `ProviderError` and can never
+bypass governance — with no proposal there is simply nothing to submit.
+
+**Quick start (local, zero setup)** — the CLI stands up an in-process governed
+stack (real gateway + mock service + receipt-verifying governed executor):
+
+```bash
+export PYTHONPATH="$PWD/src:$PWD:$PWD/sdk/python/src"
+python -m examples.reference_governed_agent.cli --scenario allow
+python -m examples.reference_governed_agent.cli --scenario deny
+python -m examples.reference_governed_agent.cli --scenario constrain
+python -m examples.reference_governed_agent.cli --scenario escalate --operator prompt
+```
+
+**Docker Compose (real containers):**
+
+```bash
+docker compose -f docker-compose.reference-agent.yml up --build \
+    --abort-on-container-exit --exit-code-from reference-agent
+```
+
+This demonstrates `DENY` (blocked, service never called) and the genuine
+`ESCALATE → operator approval → governed execution → verified external receipt →
+EXECUTED → valid audit chain`. `ALLOW`/`CONSTRAIN` genuine execution needs
+consensus authorization material a remote agent does not hold; those flows are
+proven end-to-end by the 20 deterministic tests in
+`tests/test_reference_governed_agent.py`. See
+`examples/reference_governed_agent/README.md` for full detail.
+
 ## Without MCC / With MCC
 
 Mobile-safe comparison:

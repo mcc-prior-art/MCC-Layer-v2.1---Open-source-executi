@@ -1,0 +1,92 @@
+name: Reference Governed Agent E2E (Docker Compose)
+
+# Real Docker Compose end-to-end test for the Framework-Neutral Reference
+# Governed Agent. Builds and starts the full stack (redis + mock notification
+# service + gateway with the receipt-verifying governed executor + the reference
+# agent) and asserts the agent completes the genuine ESCALATE -> operator
+# approval -> governed execution -> verified external receipt -> EXECUTED path and
+# a verified audit chain. A clean exit alone is NOT treated as success — the
+# required markers must be present.
+#
+# This does NOT replace the deterministic tests
+# (tests/test_reference_governed_agent.py) — it is an additional, real-container
+# end-to-end check.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: this workflow only reads the repository.
+permissions:
+  contents: read
+
+jobs:
+  reference-agent-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_FILE: docker-compose.reference-agent.yml
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Show Docker + Compose versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Build and run the reference-agent stack (bounded)
+        id: e2e
+        run: |
+          set -o pipefail
+          # --exit-code-from reference-agent makes `up` exit with the agent's
+          # status; --abort-on-container-exit stops the stack as soon as the agent
+          # (or any required service) exits. A hung/unhealthy dependency is bounded
+          # by the outer timeout (exit 124). depends_on: service_healthy gates
+          # startup, so an unhealthy redis/mock/gateway blocks the agent.
+          set +e
+          timeout 720 docker compose up --build \
+            --abort-on-container-exit --exit-code-from reference-agent 2>&1 | tee compose.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "compose exit code: ${rc}"
+
+          if [ "${rc}" -eq 124 ]; then
+            echo "::error::reference-agent e2e timed out (a service never became healthy or the agent hung)"
+            exit 1
+          fi
+          if [ "${rc}" -ne 0 ]; then
+            echo "::error::reference-agent exited non-zero (${rc})"
+            exit 1
+          fi
+
+          # Assert the genuine governed-execution path, not just a clean exit.
+          grep -q "proposal created" compose.log \
+            || { echo "::error::the agent did not create a proposal"; exit 1; }
+          grep -q "MCC verdict" compose.log \
+            || { echo "::error::no MCC verdict was received"; exit 1; }
+          grep -q "operator approval  : APPROVED" compose.log \
+            || { echo "::error::operator approval was not enforced/granted for ESCALATE"; exit 1; }
+          grep -q "execution result   : EXECUTED" compose.log \
+            || { echo "::error::genuine EXECUTED result was absent (no confirmed receipt)"; exit 1; }
+          grep -q "external receipt" compose.log \
+            || { echo "::error::external service receipt was not reported"; exit 1; }
+          grep -q "audit verification : valid=True" compose.log \
+            || { echo "::error::audit chain did not verify"; exit 1; }
+          grep -q "REFERENCE AGENT PILOT PASSED" compose.log \
+            || { echo "::error::reference agent did not report PASSED"; exit 1; }
+
+          echo "reference-agent e2e passed: ESCALATE -> approve -> execute -> verified receipt -> EXECUTED"
+
+      - name: Diagnostics on failure (compose ps + logs)
+        if: failure()
+        run: |
+          echo "===== docker compose ps ====="
+          docker compose ps -a || true
+          echo "===== docker compose logs ====="
+          docker compose logs --no-color --timestamps || true
+
+      - name: Cleanup (always)
+        if: always()
+        run: docker compose down -v --remove-orphans || true
