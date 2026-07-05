@@ -250,7 +250,15 @@ mcc-layer/
 │   ├── transaction_governance_demo.py ← live E2E: idempotency dedup + cumulative ceiling through gateway+coordinator proxy
 │   ├── governance_http_demo.py ← live E2E HTTP: mandate execute/revoke + ESCALATE approve→single-use over the real gateway
 │   ├── pilot_reference_integration.py ← reference: agent outbound HTTP via real runtime; ALLOW/DENY/ESCALATE/CONSTRAIN-re-consensus; no bypass
-│   └── enforced_egress_agent.py ← reference: outbound HTTP only via the egress proxy; four outcomes + replay/tamper/no-bypass over HTTP
+│   ├── enforced_egress_agent.py ← reference: outbound HTTP only via the egress proxy; four outcomes + replay/tamper/no-bypass over HTTP
+│   └── reference_governed_agent/ ← framework-neutral reference governed agent (SDK-only; no framework, no direct execution route)
+│       ├── agent.py            ← ReferenceGovernedAgent: propose→evaluate→(approve)→governed execute→verify (mcc_client only)
+│       ├── providers.py        ← ReasoningProvider: DeterministicProvider (default, offline) + OptionalLLMProvider (opt-in; failure→ProviderError, never a bypass)
+│       ├── operator.py         ← Operator: ProgrammaticOperator (tests) + CLIOperator (human prompt) — decide only, never executes
+│       ├── authorizers.py      ← ConsensusAuthorizer: obtains N-of-M evaluator votes for executable verdicts (gate still verifies)
+│       ├── actions.py / models.py ← send_notification payload builder + NL parser; typed ProposedAction/AgentRunResult/ProviderError
+│       ├── cli.py / _localstack.py ← CLI demo (four scenarios) + private in-process governed stack harness (not the agent)
+│       └── README.md / Dockerfile ← package doc (invariants, quick-start) + self-contained demo image
 ├── scripts/
 │   ├── generate_signing_key.py ← Ed25519 key generator (PKCS8 PEM, mode 0600)
 │   ├── redis_nonce_smoke.py    ← E2E: two gates share one Redis → cross-instance replay rejected
@@ -329,6 +337,7 @@ mcc-layer/
     ├── test_mcc_agent_no_direct_egress.py ← static guard: no forbidden networking imports in src/mcc_agent (incl. subprocess); no direct-execute surface
     ├── test_pilot_release.py  ← Pilot v0.1 release matrix: version metadata, clean/fail-closed startup, four verdicts, audit-evidence completeness, audit-before-exec, chain verify, no-exec-before-auth, constrained-payload-executed, Redis replay (gated)
     ├── test_governed_executor_pilot.py ← Real Governed Executor Pilot E2E: ALLOW->genuine EXECUTED (confirmed receipt), DENY/ESCALATE(approve)/CONSTRAIN, replay, altered payload, expired, missing-auth, invalid approval, Redis outage, audit-write-failure, mismatched receipt != EXECUTED, no direct bypass (real gateway + gate + audit + receipt)
+    ├── test_reference_governed_agent.py ← Reference Governed Agent (20 tests): four verdict flows→genuine EXECUTED, forged/expired/mismatched approval fail-closed, ESCALATE preserves original payload, CONSTRAIN executes only clamped payload, altered-votes rejected, receipt-verification fail-closed, Redis outage, audit verify, no-direct-execution static guard, provider invariants
     ├── test_mcc_client_sdk.py ← Python SDK: real-HTTP integration (four verdicts + audit verify vs gateway.app) + controlled-transport units (fail-closed, unknown verdict, timeout/transport, DENY/ESCALATE never execute, CONSTRAIN authoritative payload, replay, ambiguous exec, no unsafe retry, idempotency/correlation propagation)
     ├── examples/test_egress_credentials_governed.py ← secrets resolved only after authorization + durable audit; never in response/audit
     └── opa_test_vectors.json

@@ -1,0 +1,27 @@
+# Image for the Framework-Neutral Reference Governed Agent E2E (gateway /
+# mock-notification / reference-agent). Build context is the repository root
+# (the compose file sets it). Reuses the exact governed runtime + gateway +
+# receipt-verifying governed executor + mock service + SDK — no bypass path.
+FROM python:3.11-slim
+
+RUN useradd --create-home --uid 10005 mcc
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Authoritative runtime + gateway + receipt-verifying governed executor + mock
+# notification service + the supported SDK + the reference agent + its runner.
+COPY src /app/src
+COPY gateway /app/gateway
+COPY examples /app/examples
+COPY pilot_notify /app/pilot_notify
+COPY sdk /app/sdk
+COPY deploy/pilot/reference_agent_runner.py /app/reference_agent_runner.py
+
+ENV PYTHONPATH=/app/src:/app:/app/sdk/python/src
+
+RUN mkdir -p /data && chown -R mcc:mcc /data /app
+USER mcc
+
+CMD ["python", "-c", "print('mcc reference agent image')"]
