@@ -1,0 +1,85 @@
+name: Notify Pilot E2E (Docker Compose)
+
+# Real Docker Compose end-to-end smoke test for the Real Governed Executor Pilot.
+# Builds and starts the full stack (redis + mock notification service + gateway
+# with the governed executor + pilot agent) and asserts the pilot agent completes
+# the genuine ESCALATE -> approve -> execute -> verified receipt -> EXECUTED path.
+#
+# This does NOT replace the deterministic integration tests
+# (tests/test_governed_executor_pilot.py) — it is an additional, real-container
+# end-to-end check.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: this workflow only reads the repository.
+permissions:
+  contents: read
+
+jobs:
+  notify-pilot-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_FILE: docker-compose.notify-pilot.yml
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Show Docker + Compose versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Build and run the notify-pilot stack (bounded)
+        id: e2e
+        run: |
+          set -o pipefail
+          # --exit-code-from pilot-agent makes `up` exit with the agent's status;
+          # --abort-on-container-exit stops the stack as soon as the agent (or any
+          # required service) exits. A hung/unhealthy dependency is bounded by the
+          # outer timeout (exit 124). depends_on: service_healthy gates startup, so
+          # an unhealthy redis/mock/gateway blocks the agent -> timeout -> failure.
+          set +e
+          timeout 720 docker compose up --build \
+            --abort-on-container-exit --exit-code-from pilot-agent 2>&1 | tee compose.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "compose exit code: ${rc}"
+
+          if [ "${rc}" -eq 124 ]; then
+            echo "::error::notify-pilot e2e timed out (a service never became healthy or the agent hung)"
+            exit 1
+          fi
+          if [ "${rc}" -ne 0 ]; then
+            echo "::error::pilot-agent exited non-zero (${rc})"
+            exit 1
+          fi
+
+          # Assert the genuine governed-execution path, not just a clean exit.
+          grep -q "operator granted" compose.log \
+            || { echo "::error::ESCALATE approval was not granted by the operator path"; exit 1; }
+          grep -q "execution result   : EXECUTED" compose.log \
+            || { echo "::error::genuine EXECUTED result was absent (no confirmed receipt)"; exit 1; }
+          grep -q "external receipt" compose.log \
+            || { echo "::error::external service receipt was not reported"; exit 1; }
+          grep -q "audit verification : valid=True" compose.log \
+            || { echo "::error::audit chain did not verify"; exit 1; }
+          grep -q "PILOT PASSED" compose.log \
+            || { echo "::error::pilot did not report PASSED"; exit 1; }
+
+          echo "notify-pilot e2e passed: genuine ESCALATE -> approve -> execute -> verified receipt -> EXECUTED"
+
+      - name: Diagnostics on failure (compose ps + logs)
+        if: failure()
+        run: |
+          echo "===== docker compose ps ====="
+          docker compose ps -a || true
+          echo "===== docker compose logs ====="
+          docker compose logs --no-color --timestamps || true
+
+      - name: Cleanup (always)
+        if: always()
+        run: docker compose down -v --remove-orphans || true
