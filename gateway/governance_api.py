@@ -429,7 +429,14 @@ def build_governance_service(
 
     if upstream is None:
         base = env.get("MCC_UPSTREAM_BASE", "").strip()
-        upstream = _httpx_upstream(base) if base else None
+        if base and _env_flag(env, "MCC_UPSTREAM_RECEIPT_VERIFY"):
+            # Opt-in receipt-verifying governed-executor adapter: EXECUTED only
+            # after the external service confirms a receipt matching the executed
+            # payload + correlation id (default behaviour is unchanged).
+            from pilot_notify import receipt_verifying_upstream
+            upstream = receipt_verifying_upstream(base)
+        else:
+            upstream = _httpx_upstream(base) if base else None
 
     return GovernanceService(
         engine=engine, coordinator=coordinator, trust_set=trust_set,

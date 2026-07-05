@@ -28,6 +28,13 @@ PILOT_POLICY: Dict[str, Any] = {
         "agent/ops-bot": [
             {"authority": "infra.read"},
         ],
+        # The notifications agent may send customer notifications, bounded by a
+        # priority cap (clampable -> CONSTRAIN) and an allowed-channel set
+        # (not clampable -> a disallowed channel fails closed to DENY).
+        "agent/notify-bot": [
+            {"authority": "notify.send",
+             "constraints": {"max_priority": 3, "allowed_channel": ["email", "sms"]}},
+        ],
     },
     # ---- What each action requires, and the verdict that follows ------
     #
@@ -48,6 +55,18 @@ PILOT_POLICY: Dict[str, Any] = {
             "action": "read_*",
             "requires": "infra.read",
             "on_mandate": "ALLOW",
+            "without_mandate": "ESCALATE",
+        },
+        {
+            # Send a customer notification (a safe, non-financial pilot action).
+            #   within mandate + priority within cap + allowed channel -> ALLOW
+            #   priority over the cap                                   -> CONSTRAIN (clamp)
+            #   channel not in the allowed set (not clampable)          -> DENY
+            #   no notify.send mandate                                  -> ESCALATE
+            "action": "send_notification",
+            "requires": "notify.send",
+            "on_mandate": "ALLOW",
+            "on_violation": "CONSTRAIN",
             "without_mandate": "ESCALATE",
         },
         {

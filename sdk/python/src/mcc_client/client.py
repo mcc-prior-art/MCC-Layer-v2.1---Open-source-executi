@@ -117,7 +117,8 @@ class MCCClient:
 
         data = self._t.post("/evaluate", body, correlation_id=correlation_id, retry_safe=True)
         decision = Decision.from_response(
-            data, requested_actor=actor_id, requested_action=action, requested_resource=resource)
+            data, requested_actor=actor_id, requested_action=action, requested_resource=resource,
+            requested_payload=dict(payload or {}))
         # Preserve the correlation id used for the round trip if the server did
         # not echo a trace id.
         if not decision.correlation_id:
@@ -198,7 +199,11 @@ class MCCClient:
         self._guard_executable(decision, authorization)
 
         # The authoritative body the verdict authorizes (clamped for CONSTRAIN).
-        context = dict(decision.authorized_payload)
+        # For an approved ESCALATE the verdict carried no authorized body, so the
+        # originally-proposed payload is submitted and the gateway RE-EVALUATES it
+        # under the granted mandate (clamping server-side if needed) — the caller
+        # still cannot substitute an arbitrary body: it is exactly what was proposed.
+        context = dict(decision.authorized_payload or decision.requested_payload)
         base: Dict[str, Any] = {
             "actor": decision.actor_id,
             "action": decision.action,
