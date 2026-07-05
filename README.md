@@ -478,6 +478,57 @@ enforces. The audit chain records. Proposal is not permission.** Install with
 [sdk/python/README.md](sdk/python/README.md); runnable quickstart:
 `python examples/python_sdk_quickstart.py`.
 
+## Real Governed Executor Pilot — genuine EXECUTED
+
+The SDK path is connected to a **real governed executor** so the pilot produces a
+genuine `EXECUTED` result — only after a valid decision, valid authorization,
+audit-before-execution, a real outbound call, and a **confirmed external
+receipt** that matches the executed payload + correlation id.
+
+```
+AI Agent → MCCClient.evaluate() → MCC Gateway → policy / authority / consensus
+        → authorization → MCCClient.execute() → governed HTTPS executor
+        → mock notification service → verified receipt → EXECUTED → audit chain
+```
+
+**Trust boundary.** The agent talks to the gateway only; it never calls the
+external (mock notification) service directly. The governed executor — the
+gateway's coordinator-driven execution path plus a **receipt-verifying adapter**
+(`pilot_notify/governed_upstream.py`) — is the only thing that performs the
+outbound call, and it does so only after the gate verifies the decision token
+(signature, issuer, action/payload hash, actor, resource, policy hash, nonce,
+replay, validity window, authorization scope) and the durable audit-before-
+execution record is written.
+
+**One-command demo** (services: redis, mock-notification, mcc-gateway [governed
+executor embedded], pilot-agent):
+
+```bash
+docker compose -f docker-compose.notify-pilot.yml up --build --abort-on-container-exit
+```
+
+Expected agent output (abridged): each scenario prints the proposed action +
+payload, the MCC verdict, the authorization/approval state, the final executed
+payload, the execution result, the external receipt, and the audit verification —
+`ALLOW`/`CONSTRAIN` executable, `DENY` blocked (executor never called),
+`ESCALATE` blocked until an operator approval then EXECUTED with a confirmed
+receipt, and `audit verification: valid=True`.
+
+**Genuine EXECUTED semantics.** `EXECUTED` is returned **only** after all MCC
+validations pass, authorization is valid, audit-before-execution completes, the
+governed executor sends the request, and the mock service returns a receipt whose
+`correlation_id` and payload hash match the executed payload. A queued, attempted,
+simulated, timed-out, rejected, or unconfirmed request is never `EXECUTED`
+(fail-closed) — the receipt-verifying adapter raises, so the coordinator records a
+non-executed result. `CONSTRAIN` executes only the server-clamped payload (the
+original is never sent). No production security validation is weakened, skipped,
+mocked, or bypassed. **Known limitation:** the governed executor is embedded in
+the gateway (splitting it into a separate service would fragment the single
+enforcement path); the containerized demo shows genuine EXECUTED via the
+ESCALATE→approve→execute path, while the full `ALLOW`/`CONSTRAIN`/consensus
+execution + all fail-closed cases are proven by
+`tests/test_governed_executor_pilot.py`.
+
 ## Without MCC / With MCC
 
 Mobile-safe comparison:

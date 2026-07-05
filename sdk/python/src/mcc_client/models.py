@@ -54,6 +54,7 @@ class Decision:
     action: str
     resource_id: Optional[str]
     authorized_payload: Dict[str, Any]        # server ``forward_context``
+    requested_payload: Dict[str, Any]         # the payload the caller proposed
     applied_constraints: List[str]
     constraints: Dict[str, Any]
     decision_token: Optional[Dict[str, Any]]
@@ -88,7 +89,8 @@ class Decision:
 
     @classmethod
     def from_response(cls, data: Any, *, requested_actor: str, requested_action: str,
-                      requested_resource: Optional[str]) -> "Decision":
+                      requested_resource: Optional[str],
+                      requested_payload: Optional[Dict[str, Any]] = None) -> "Decision":
         """Build (and validate) a Decision from a gateway response.
 
         Fails closed on a malformed body, a missing verdict, an unknown verdict,
@@ -125,6 +127,7 @@ class Decision:
             action=requested_action,
             resource_id=requested_resource,
             authorized_payload=dict(fwd),
+            requested_payload=dict(requested_payload or {}),
             applied_constraints=list(data.get("applied_constraints") or []),
             constraints=dict(data.get("constraints") or {}),
             decision_token=data.get("decision_token"),
