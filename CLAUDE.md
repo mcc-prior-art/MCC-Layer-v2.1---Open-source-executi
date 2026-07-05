@@ -206,6 +206,8 @@ mcc-layer/
 │   ├── governance_service.py  ← wiring (no decision logic): trust→authority→token→coordinator→audit→upstream
 │   └── governance_api.py      ← thin HTTP: /mandates/*, /approvals/*, /trust/*; agent vs operator auth; strict schemas
 │   └── app.py /ready          ← readiness probe: Redis reachable + trust/verifier/signing loaded (fail-closed 503)
+├── sdk/python/                ← supported, independently-installable Python client SDK (package `mcc_client` v0.1.0; pyproject + py.typed + README)
+│   └── src/mcc_client/        ← MCCClient (evaluate→verdict; explicit governed execute), models (Verdict/Decision/…; unknown-enum rejected), transport (httpx; safe-only retries; typed errors), exceptions (full hierarchy). Client not policy engine; no local decisions/signing/bypass/direct-executor
 ├── pilot/                     ← supported pilot runtime package (thin surface; no governance logic)
 │   ├── client.py              ← MCCGatewayClient: typed HTTP SDK (propose→verdict, approvals, consensus; governed /…/execute only)
 │   └── outbound_executor.py   ← OutboundHTTPExecutor: the governed side effect (real POST; refuses unsigned/ungoverned)
@@ -323,6 +325,7 @@ mcc-layer/
     ├── test_mcc_agent.py      ← governed agent E2E: ALLOW/DENY/ESCALATE(+invalid approvals)/CONSTRAIN, replay/nonce/idempotency, Redis fail-closed, SSRF/malformed, audit-before-exec, bypass, real external execution, state-unchanged-after-blocked
     ├── test_mcc_agent_no_direct_egress.py ← static guard: no forbidden networking imports in src/mcc_agent (incl. subprocess); no direct-execute surface
     ├── test_pilot_release.py  ← Pilot v0.1 release matrix: version metadata, clean/fail-closed startup, four verdicts, audit-evidence completeness, audit-before-exec, chain verify, no-exec-before-auth, constrained-payload-executed, Redis replay (gated)
+    ├── test_mcc_client_sdk.py ← Python SDK: real-HTTP integration (four verdicts + audit verify vs gateway.app) + controlled-transport units (fail-closed, unknown verdict, timeout/transport, DENY/ESCALATE never execute, CONSTRAIN authoritative payload, replay, ambiguous exec, no unsafe retry, idempotency/correlation propagation)
     ├── examples/test_egress_credentials_governed.py ← secrets resolved only after authorization + durable audit; never in response/audit
     └── opa_test_vectors.json
 ```

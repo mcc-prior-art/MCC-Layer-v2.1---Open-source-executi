@@ -1,0 +1,12 @@
+pyproject.toml
+src/mcc_client/__init__.py
+src/mcc_client/client.py
+src/mcc_client/exceptions.py
+src/mcc_client/models.py
+src/mcc_client/py.typed
+src/mcc_client/transport.py
+src/mcc_client.egg-info/PKG-INFO
+src/mcc_client.egg-info/SOURCES.txt
+src/mcc_client.egg-info/dependency_links.txt
+src/mcc_client.egg-info/requires.txt
+src/mcc_client.egg-info/top_level.txt

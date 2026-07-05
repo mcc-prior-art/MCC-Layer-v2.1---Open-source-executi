@@ -443,6 +443,41 @@ and verify the audit chain via the gateway's `/export` / audit tooling.
   [release notes](RELEASE_NOTES_v0.1.0-pilot.md), and the reproducible
   [evidence](evidence/governed_agent_pilot/).
 
+## Python Client SDK — the canonical integration path
+
+The supported Python SDK (`mcc_client`) is the canonical way for an external AI
+agent or application to integrate with MCC-Core:
+
+```
+AI Agent
+  → MCC Client SDK            (mcc_client)
+  → MCC Gateway               (POST /evaluate)
+  → Governance Decision       (ALLOW / DENY / ESCALATE / CONSTRAIN)
+  → Execution Gate            (governed /…/execute)
+  → Governed Executor
+  → External System
+```
+
+```python
+from mcc_client import MCCClient
+
+client = MCCClient(base_url="http://localhost:8001", api_key="…")
+decision = client.evaluate(actor_id="agent-01", action="send_payment",
+                           resource="payments", payload={"amount": 1000},
+                           idempotency_key="req-001")
+# Evaluation never executes. Execution is a separate, explicit, governed call:
+# client.execute(decision, authorization)   # DENY/ESCALATE fail closed; CONSTRAIN
+#                                           # executes only the authoritative payload.
+```
+
+The SDK is a client, not a policy engine: it makes no decisions locally, signs
+nothing, bypasses neither the gateway nor the execution gate, and never treats a
+network success as approval. **The model proposes. MCC decides. The gate
+enforces. The audit chain records. Proposal is not permission.** Install with
+`pip install -e sdk/python`; full docs in
+[sdk/python/README.md](sdk/python/README.md); runnable quickstart:
+`python examples/python_sdk_quickstart.py`.
+
 ## Without MCC / With MCC
 
 Mobile-safe comparison:
