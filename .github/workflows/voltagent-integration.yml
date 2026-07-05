@@ -1,0 +1,117 @@
+name: VoltAgent Governed Integration
+
+# Two layers of verification for the Real VoltAgent Governed Integration:
+#   1. ts-tests    — format/lint + strict typecheck + vitest, where the vitest
+#                    suite spawns the REAL MCC governed stack (gateway + evaluator
+#                    quorum + mock notification service) and drives it over HTTP.
+#   2. docker-e2e  — the full multi-container stack (redis + gateway + quorum +
+#                    mock service + the real VoltAgent agent) asserting genuine
+#                    EXECUTED + verified receipts + valid audit.
+#
+# Neither weakens or replaces the existing Python security tests / CI.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ts-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: integrations/voltagent
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MCC runtime deps (for the real spawned gateway)
+        working-directory: .
+        run: pip install -r requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install TypeScript deps (reproducible)
+        run: npm ci --no-audit --no-fund
+
+      - name: Format + lint (Biome)
+        run: npx biome check ./src ./tests
+
+      - name: Type-check (tsc strict)
+        run: npm run typecheck
+
+      - name: Unit + integration tests (vitest; spawns the real MCC stack)
+        env:
+          MCC_PYTHON: python3
+        run: npm test
+
+  docker-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      COMPOSE_FILE: docker-compose.voltagent.yml
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Show Docker + Compose versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Build and run the VoltAgent stack (bounded)
+        id: e2e
+        run: |
+          set -o pipefail
+          set +e
+          timeout 900 docker compose up --build \
+            --abort-on-container-exit --exit-code-from voltagent-agent 2>&1 | tee compose.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "compose exit code: ${rc}"
+
+          if [ "${rc}" -eq 124 ]; then
+            echo "::error::voltagent e2e timed out (a service never became healthy or the agent hung)"
+            exit 1
+          fi
+          if [ "${rc}" -ne 0 ]; then
+            echo "::error::voltagent-agent exited non-zero (${rc})"
+            exit 1
+          fi
+
+          # Assert the governed path — a clean exit alone is not success.
+          grep -q "governance verdict  : DENY" compose.log \
+            || { echo "::error::DENY path not demonstrated"; exit 1; }
+          grep -q "execution status    : EXECUTED" compose.log \
+            || { echo "::error::genuine EXECUTED result absent (no verified receipt)"; exit 1; }
+          grep -q "verified receipt" compose.log \
+            || { echo "::error::external receipt not reported"; exit 1; }
+          grep -q "audit verification  : valid=true" compose.log \
+            || { echo "::error::audit chain did not verify"; exit 1; }
+          grep -q "VOLTAGENT GOVERNED INTEGRATION PASSED" compose.log \
+            || { echo "::error::integration did not report PASSED"; exit 1; }
+
+          echo "voltagent e2e passed: four verdicts + genuine EXECUTED + verified receipts + valid audit"
+
+      - name: Diagnostics on failure (compose ps + logs)
+        if: failure()
+        run: |
+          echo "===== docker compose ps ====="
+          docker compose ps -a || true
+          echo "===== docker compose logs ====="
+          docker compose logs --no-color --timestamps || true
+
+      - name: Cleanup (always)
+        if: always()
+        run: docker compose down -v --remove-orphans || true

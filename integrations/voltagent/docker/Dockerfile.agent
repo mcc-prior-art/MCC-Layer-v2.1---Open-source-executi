@@ -1,0 +1,25 @@
+# VoltAgent agent image: the real VoltAgent TypeScript integration. It talks to
+# the MCC gateway + evaluator quorum only — it has no notification-service client
+# and no operator key. Build context is the repository root.
+FROM node:22-slim
+
+WORKDIR /app/integrations/voltagent
+
+# Install with the committed lockfile for reproducibility. The .npmrc pins
+# legacy-peer-deps so `npm ci` resolves the VoltAgent peer graph the same way the
+# lockfile was generated.
+COPY integrations/voltagent/package.json integrations/voltagent/package-lock.json integrations/voltagent/.npmrc ./
+RUN npm ci --no-audit --no-fund
+
+# Source (runs via tsx; no separate build step needed for the demo/runner).
+COPY integrations/voltagent/tsconfig.json integrations/voltagent/tsconfig.build.json integrations/voltagent/biome.json ./
+COPY integrations/voltagent/src ./src
+
+# Non-root; ensure the runtime user owns the tree (tsx writes a cache).
+RUN chown -R node:node /app
+USER node
+ENV HOME=/home/node
+
+# The end-to-end runner: drives the agent through the four verdicts + genuine
+# EXECUTED and asserts the markers. Deterministic model by default (no API key).
+CMD ["npx", "tsx", "src/e2e-runner.ts"]
