@@ -342,6 +342,31 @@ export class MccClient {
     );
   }
 
+  // ---- readiness (a reachable process is not ready) ------------------------ //
+
+  /** True only when BOTH the gateway and the quorum report ready (HTTP 200). */
+  async ready(): Promise<boolean> {
+    for (const base of [this.gatewayUrl, this.quorumUrl]) {
+      try {
+        const r = await this.fetchImpl(`${base}/ready`, { method: "GET" });
+        if (!r.ok) return false;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Poll until ready or throw after timeout. The agent must not submit before. */
+  async waitUntilReady(timeoutMs = 90_000, intervalMs = 1500): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (await this.ready()) return;
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    throw new MccError("MCC dependencies (gateway + quorum) did not become ready in time");
+  }
+
   // ---- 5. audit ------------------------------------------------------------ //
 
   async verifyAudit(
@@ -397,6 +422,9 @@ export class MccClient {
         reason: decision.reason || "human approval required before execution",
         correlationId,
         appliedConstraints: decision.appliedConstraints,
+        // Surface the ORIGINAL proposed payload so an operator can continue the
+        // exact same action after approval (nothing is mutated in between).
+        finalPayload: { ...proposal.context },
         approvalRequestId: approval.requestId,
       };
     }

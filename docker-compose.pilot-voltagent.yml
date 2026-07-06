@@ -1,0 +1,173 @@
+# Deployable Production Pilot — VoltAgent + MCC-Core.
+#
+# NOTE: the repository already has a different (egress-proxy) pilot at
+# docker-compose.pilot.yml. This file is the VoltAgent pilot, kept separate so
+# neither clobbers the other.
+#
+#   cp .env.pilot.example .env.pilot        # edit secrets/endpoints
+#   docker compose -f docker-compose.pilot-voltagent.yml --env-file .env.pilot up --build
+#
+# (The Makefile wraps these as `make pilot-up`, `make pilot-allow`, …)
+#
+# Services & responsibilities:
+#   redis             fail-closed shared state (nonce / idempotency / velocity /
+#                     approval / challenge). No in-memory fallback in the pilot.
+#   external-service  the controlled external pilot service: a real HTTP endpoint
+#                     that returns a receipt bound to the payload + correlation id.
+#                     Reachable ONLY by the governed executor.
+#   mcc-gateway       MCC-Core: policy + authority + decision tokens + execution
+#                     gate + coordinator + the receipt-verifying governed executor
+#                     + the authoritative cryptographic audit chain. Sole authority.
+#   evaluator-quorum  independent N-of-M evaluators (hold the consensus keys). The
+#                     agent never holds a key.
+#   voltagent-agent   the VoltAgent app: reasoning + tool selection + structured
+#                     proposals. No operator key, no direct route to the external
+#                     service. Long-running; the operator runs scenarios against it.
+#
+# Trust boundary (enforced by networks, not docs):
+#   agent_edge   : voltagent-agent, mcc-gateway, evaluator-quorum
+#   gov_internal : mcc-gateway, evaluator-quorum, redis, external-service
+# The external service is NOT on agent_edge, so the agent has no network path to
+# it — only the governed executor (inside the gateway) can reach it.
+#
+# Persistence: pilot-audit + pilot-config are named volumes that survive
+# `docker compose down` (removed only with `down -v`), so the audit chain and the
+# signing/evaluator keys persist across restarts.
+
+networks:
+  agent_edge:
+  gov_internal:
+
+volumes:
+  pilot-audit:
+  pilot-config:
+  pilot-state:
+  pilot-redis:
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - pilot-redis:/data
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  external-service:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    command: ["uvicorn", "pilot_notify.service:app", "--host", "0.0.0.0", "--port", "9200"]
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9200/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mcc-gateway:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    env_file: [.env.pilot]
+    # Generate a PERSISTENT gateway signing key + evaluator keyset into the config
+    # volume on first start (idempotent; nothing exits early). Then serve.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        # Re-assert 2770 + setgid on the shared state mount (the gateway owns it),
+        # so agent-created files inherit the mcc-shared group. No world access.
+        chmod 2770 /pilot-state 2>/dev/null || true
+        if [ ! -f /config/consensus_trust.json ]; then
+          python -m integrations.voltagent.mcc_side.generate_config \
+            --out /config --evaluators "${MCC_CONSENSUS_THRESHOLD:-3}" --gateway-signing-key
+        fi
+        export MCC_GATEWAY_SIGNING_KEY_PATH=/config/gateway_signing.pem
+        export MCC_CONSENSUS_TRUST_CONFIG=/config/consensus_trust.json
+        exec uvicorn gateway.app:app --host 0.0.0.0 --port 8001
+    environment:
+      MCC_GATEWAY_MODE: "inline"
+      # Redis-backed state — fail closed if Redis is down (no in-memory fallback).
+      MCC_NONCE_BACKEND: "redis"
+      MCC_IDEMPOTENCY_BACKEND: "redis"
+      MCC_VELOCITY_BACKEND: "redis"
+      MCC_APPROVAL_BACKEND: "redis"
+      MCC_CHALLENGE_BACKEND: "redis"
+      MCC_REVOCATION_BACKEND: "redis"
+    volumes:
+      - pilot-config:/config
+      - pilot-audit:/data
+      - pilot-state:/pilot-state
+    networks: [agent_edge, gov_internal]
+    depends_on:
+      redis:
+        condition: service_healthy
+      external-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+
+  evaluator-quorum:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    env_file: [.env.pilot]
+    command:
+      - /bin/sh
+      - -c
+      - |
+        until [ -f /config/evaluator_1.pem ]; do echo "waiting for evaluator keys..."; sleep 1; done
+        exec uvicorn integrations.voltagent.mcc_side.evaluator_quorum:app --host 0.0.0.0 --port 8080
+    environment:
+      MCC_QUORUM_GATEWAY_URL: "http://mcc-gateway:8001"
+      MCC_EVALUATOR_KEYS_DIR: "/config"
+    volumes:
+      - pilot-config:/config:ro
+    networks: [agent_edge, gov_internal]
+    depends_on:
+      mcc-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+
+  voltagent-agent:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.agent
+    env_file: [.env.pilot]
+    # Wait until MCC + quorum are READY (a reachable process is not ready), then
+    # idle. The operator drives scenarios with `docker compose exec` (make targets).
+    # No operator key here; no route to the external service.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "waiting for MCC gateway + evaluator quorum readiness..."
+        until node -e "fetch('http://mcc-gateway:8001/ready').then(function(r){process.exit(r.ok?0:1)}).catch(function(){process.exit(1)})"; do sleep 2; done
+        until node -e "fetch('http://evaluator-quorum:8080/ready').then(function(r){process.exit(r.ok?0:1)}).catch(function(){process.exit(1)})"; do sleep 2; done
+        echo "READY: VoltAgent agent idle; run scenarios via make pilot-allow / pilot-deny / ..."
+        exec tail -f /dev/null
+    volumes:
+      - pilot-state:/pilot-state
+    networks: [agent_edge]
+    depends_on:
+      mcc-gateway:
+        condition: service_healthy
+      evaluator-quorum:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://mcc-gateway:8001/ready').then(function(r){process.exit(r.ok?0:1)}).catch(function(){process.exit(1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 18

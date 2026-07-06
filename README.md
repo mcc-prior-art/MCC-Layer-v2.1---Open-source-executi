@@ -644,6 +644,20 @@ See `integrations/voltagent/README.md` for the full architecture, provider
 configuration, verdict behavior, receipt verification, and tests. Other frameworks
 (LangGraph, CrewAI, …) can integrate later through the same SDK boundary.
 
+**Deployable pilot.** A production-style deployment of this integration —
+persistent cryptographic audit (survives restart), health/readiness gating,
+network-enforced bypass prevention, and one-command operator scenarios — is in
+`docker-compose.pilot-voltagent.yml` + the `make pilot-*` targets, documented in
+`docs/PILOT_VOLTAGENT_DEPLOYMENT.md`:
+
+```bash
+make pilot-up && make pilot-ready
+make pilot-allow   # ALLOW → EXECUTED (verified receipt)
+make pilot-deny    # DENY  → blocked
+make pilot-constrain ; make pilot-escalate ; make pilot-approve
+make pilot-audit-verify ; make pilot-restart-check
+```
+
 ## Without MCC / With MCC
 
 Mobile-safe comparison:
