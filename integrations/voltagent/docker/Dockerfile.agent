@@ -15,8 +15,16 @@ RUN npm ci --no-audit --no-fund
 COPY integrations/voltagent/tsconfig.json integrations/voltagent/tsconfig.build.json integrations/voltagent/biome.json ./
 COPY integrations/voltagent/src ./src
 
-# Non-root; ensure the runtime user owns the tree (tsx writes a cache).
-RUN chown -R node:node /app
+# Non-root; ensure the runtime user owns the tree (tsx writes a cache). Join the
+# shared group (fixed GID 10990) so the agent's `node` user can write the ESCALATE
+# state file to the /pilot-state volume the gateway owns (mcc:mcc-shared, 2770).
+# Initialise the mount 2770 too, in case the agent mounts the volume first.
+RUN groupadd -g 10990 mcc-shared \
+    && usermod -aG mcc-shared node \
+    && chown -R node:node /app \
+    && mkdir -p /pilot-state \
+    && chown node:mcc-shared /pilot-state \
+    && chmod 2770 /pilot-state
 USER node
 ENV HOME=/home/node
 

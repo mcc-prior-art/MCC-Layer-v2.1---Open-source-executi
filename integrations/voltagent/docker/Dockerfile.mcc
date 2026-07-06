@@ -19,8 +19,17 @@ COPY integrations/voltagent/mcc_side /app/integrations/voltagent/mcc_side
 
 ENV PYTHONPATH=/app/src:/app
 
-# The shared config volume must be writable by the mcc user (evaluator keyset).
-RUN mkdir -p /config /data && chown -R mcc:mcc /config /data /app
+# Least-privilege sharing of /pilot-state (the ESCALATE pending-approval file):
+# a fixed shared group (GID 10990) that both the gateway (mcc) and the agent
+# (node, in the agent image) join. The gateway starts first and initialises the
+# volume as mcc:mcc-shared, mode 2770 (group rwx + setgid so files created by the
+# agent inherit the shared group; NO access for unrelated users).
+RUN groupadd -g 10990 mcc-shared \
+    && usermod -aG mcc-shared mcc \
+    && mkdir -p /config /data /pilot-state \
+    && chown -R mcc:mcc /config /data /app \
+    && chown mcc:mcc-shared /pilot-state \
+    && chmod 2770 /pilot-state
 USER mcc
 
 CMD ["python", "-c", "print('mcc voltagent image')"]

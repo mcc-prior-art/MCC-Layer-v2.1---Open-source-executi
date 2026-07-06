@@ -189,6 +189,35 @@ def test_pilot_profile_does_not_disable_governance(compose):
         assert env.get(backend) == "redis", f"{backend} must be redis (fail-closed) in the pilot"
 
 
+DOCKERFILE_MCC = ROOT / "integrations" / "voltagent" / "docker" / "Dockerfile.mcc"
+DOCKERFILE_AGENT = ROOT / "integrations" / "voltagent" / "docker" / "Dockerfile.agent"
+SHARED_GID = "10990"
+
+
+def test_pilot_state_uses_least_privilege_shared_group_not_world_writable():
+    """The shared ESCALATE-state volume must be least-privilege: a fixed shared
+    group both non-root services join, mode 2770 (setgid, group-only) — NEVER
+    world-writable. An unrelated user (not in the shared group) gets no access."""
+    mcc = DOCKERFILE_MCC.read_text(encoding="utf-8")
+    agent = DOCKERFILE_AGENT.read_text(encoding="utf-8")
+
+    # Same fixed shared GID in both images (GIDs, not names, cross containers).
+    for text, who in ((mcc, "gateway"), (agent, "agent")):
+        assert f"groupadd -g {SHARED_GID} mcc-shared" in text, f"{who}: shared group GID missing"
+        assert "chmod 2770 /pilot-state" in text, f"{who}: /pilot-state must be 2770 (setgid, group-only)"
+        # Never world-writable / world-accessible.
+        assert "0777" not in text and "chmod 777" not in text, f"{who}: /pilot-state must not be world-writable"
+        assert "o+w" not in text, f"{who}: /pilot-state must not grant other-write"
+
+    # Each service user is a member of the shared group.
+    assert "usermod -aG mcc-shared mcc" in mcc, "gateway user 'mcc' not in the shared group"
+    assert "usermod -aG mcc-shared node" in agent, "agent user 'node' not in the shared group"
+
+    # 2770 = rwx for owner + group, nothing for others: exactly the two intended
+    # services (in mcc-shared) can access it; an unrelated user cannot.
+    assert oct(0o2770) == "0o2770"
+
+
 def test_env_example_has_no_secrets_and_is_fail_closed():
     text = ENV_EXAMPLE.read_text(encoding="utf-8")
     # The template must not disable governance and must default to the offline model.

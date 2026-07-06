@@ -80,6 +80,9 @@ services:
       - /bin/sh
       - -c
       - |
+        # Re-assert 2770 + setgid on the shared state mount (the gateway owns it),
+        # so agent-created files inherit the mcc-shared group. No world access.
+        chmod 2770 /pilot-state 2>/dev/null || true
         if [ ! -f /config/consensus_trust.json ]; then
           python -m integrations.voltagent.mcc_side.generate_config \
             --out /config --evaluators "${MCC_CONSENSUS_THRESHOLD:-3}" --gateway-signing-key
