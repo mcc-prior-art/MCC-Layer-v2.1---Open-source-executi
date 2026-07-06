@@ -35,6 +35,20 @@ PILOT_POLICY: Dict[str, Any] = {
             {"authority": "notify.send",
              "constraints": {"max_priority": 3, "allowed_channel": ["email", "sms"]}},
         ],
+        # The AXFlow clinic revenue/booking agent (PR #38 business pilot):
+        #   * book/confirm appointments + message/qualify patients  -> ALLOW
+        #   * offer a discount up to 20% (clampable)                -> CONSTRAIN
+        #   * set priority up to 'routine' (level 1, clampable)     -> CONSTRAIN
+        #   * NO refund/complaint authority                         -> ESCALATE
+        #   * NO medical-advice authority                           -> DENY
+        "agent/axflow-clinic": [
+            {"authority": "clinic.book"},
+            {"authority": "clinic.message"},
+            {"authority": "clinic.discount",
+             "constraints": {"max_requested_discount_percent": 20}},
+            {"authority": "clinic.priority",
+             "constraints": {"max_priority_level": 1}},
+        ],
     },
     # ---- What each action requires, and the verdict that follows ------
     #
@@ -69,6 +83,32 @@ PILOT_POLICY: Dict[str, Any] = {
             "on_violation": "CONSTRAIN",
             "without_mandate": "ESCALATE",
         },
+        # ---- AXFlow clinic pilot (PR #38): business-domain governed actions ----
+        # Normal booking/messaging within the clinic mandate -> ALLOW; no mandate
+        # (a different actor) -> ESCALATE.
+        {"action": "appointment_book", "requires": "clinic.book",
+         "on_mandate": "ALLOW", "without_mandate": "ESCALATE"},
+        {"action": "appointment_confirm", "requires": "clinic.book",
+         "on_mandate": "ALLOW", "without_mandate": "ESCALATE"},
+        {"action": "patient_message_send", "requires": "clinic.message",
+         "on_mandate": "ALLOW", "without_mandate": "ESCALATE"},
+        {"action": "lead_qualify", "requires": "clinic.message",
+         "on_mandate": "ALLOW", "without_mandate": "ESCALATE"},
+        # Excessive discount -> clamp to the cap (CONSTRAIN); within cap -> ALLOW.
+        {"action": "discount_offer", "requires": "clinic.discount",
+         "on_mandate": "ALLOW", "on_violation": "CONSTRAIN", "without_mandate": "ESCALATE"},
+        # Unauthorized priority bump -> clamp to routine (CONSTRAIN).
+        {"action": "priority_mark", "requires": "clinic.priority",
+         "on_mandate": "ALLOW", "on_violation": "CONSTRAIN", "without_mandate": "ESCALATE"},
+        # Refunds, complaints, high-risk handling need human clinic approval. The
+        # clinic agent holds no 'clinic.refund' authority -> ESCALATE.
+        {"action": "refund_request", "requires": "clinic.refund",
+         "on_mandate": "ALLOW", "without_mandate": "ESCALATE"},
+        {"action": "complaint_escalate", "requires": "clinic.refund",
+         "on_mandate": "ALLOW", "without_mandate": "ESCALATE"},
+        # Unsafe medical advice / diagnosis / prescription: no authority can
+        # authorize it on the pilot. requires=None -> without_mandate=DENY.
+        {"action": "medical_advice_request", "requires": None, "without_mandate": "DENY"},
         {
             # Irreversible destruction: no mandate can authorize it on the
             # pilot. requires=None routes straight to without_mandate=DENY.

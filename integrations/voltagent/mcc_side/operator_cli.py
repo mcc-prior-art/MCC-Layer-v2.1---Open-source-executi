@@ -41,6 +41,9 @@ def main() -> int:
     state = json.loads(state_path.read_text(encoding="utf-8"))
     request_id = state["requestId"]
     actor, resource, context = state["actor"], state["resource"], state["context"]
+    # The action is recorded by the scenario runner; default to send_notification
+    # for the original VoltAgent pilot (backward-compatible).
+    action = state.get("action", "send_notification")
     agent_h = {"x-api-key": api_key}
     op_h = {"x-api-key": api_key, "x-operator-key": operator_key}
 
@@ -61,7 +64,7 @@ def main() -> int:
         print(f"  approval state      : {granted.get('state')} (operator granted)")
 
         # 2. Continue the governed execution of the ORIGINAL proposed action.
-        body = {"mandate": mandate, "actor": actor, "action": "send_notification",
+        body = {"mandate": mandate, "actor": actor, "action": action,
                 "resource": resource, "context": context}
         r = client.post(f"{gateway}/approvals/{request_id}/execute", json=body, headers=agent_h)
         if r.status_code != 200:

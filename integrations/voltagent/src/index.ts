@@ -61,3 +61,25 @@ export {
   createDeterministicModel,
   parseNotificationRequest,
 } from "./model.js";
+
+// -- AXFlow clinic business pilot (PR #38) ----------------------------------- //
+export {
+  CLINIC_ACTIONS,
+  ClinicArgsSchema,
+  buildClinicProposal,
+} from "./clinic-schemas.js";
+export type {
+  ClinicActionType,
+  ClinicArgs,
+  ClinicIdentity,
+  ClinicProposal,
+} from "./clinic-schemas.js";
+export { createGovernedClinicTool, CLINIC_TOOL_NAME } from "./tools/clinic-action.js";
+export type { ClinicToolConfig } from "./tools/clinic-action.js";
+export { classifyClinicRequest, createClinicModel } from "./clinic-model.js";
+export {
+  createClinicAgent,
+  clinicAgentEnv,
+  buildClinicAgentFromEnv,
+} from "./clinic-agent.js";
+export type { ClinicAgentConfig, ClinicAgentEnv } from "./clinic-agent.js";

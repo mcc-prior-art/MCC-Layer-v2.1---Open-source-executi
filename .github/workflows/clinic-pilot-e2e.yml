@@ -1,0 +1,67 @@
+name: AXFlow Clinic Pilot E2E
+
+# Real end-to-end validation of the AXFlow Clinic Revenue Agent business pilot
+# (PR #38), using only the documented operator `make clinic-pilot-*` targets — the
+# deterministic offline model, no paid API, and no external internet access. It
+# builds the clinic stack, waits for readiness, runs all four governance scenarios
+# (ALLOW / DENY / CONSTRAIN / ESCALATE + operator approval), verifies the
+# cryptographic audit chain, and proves the chain survives a restart.
+#
+# This complements (does not replace) the existing unit/integration/security CI.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clinic-pilot-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Show Docker + Compose versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Build + start the clinic pilot (deterministic model, no external network)
+        run: |
+          make clinic-pilot-up
+          make clinic-pilot-ready
+
+      - name: ALLOW — book a normal appointment executes with a verified receipt
+        run: make clinic-pilot-allow
+
+      - name: DENY — a medical-advice request is blocked (clinic never called)
+        run: make clinic-pilot-deny
+
+      - name: CONSTRAIN — an excessive discount is clamped; only the clamped payload executes
+        run: make clinic-pilot-constrain
+
+      - name: ESCALATE — a refund request pauses for approval (no execution yet)
+        run: make clinic-pilot-escalate
+
+      - name: Operator approval — governed execution completes -> EXECUTED
+        run: make clinic-pilot-approve
+
+      - name: Verify the cryptographic audit chain
+        run: make clinic-pilot-audit-verify
+
+      - name: Audit persistence — survives a gateway restart
+        run: make clinic-pilot-restart-check
+
+      - name: Diagnostics on failure (ps + logs)
+        if: failure()
+        run: |
+          make clinic-pilot-ps || true
+          make clinic-pilot-logs || true
+
+      - name: Cleanup (always) — remove volumes
+        if: always()
+        run: make clinic-pilot-clean || true

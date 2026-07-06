@@ -379,6 +379,20 @@ export class MccClient {
   // ---- orchestration returned to the governed tool ------------------------- //
 
   /**
+   * Governed execution for any action domain (e.g. the AXFlow clinic actions).
+   * The governed path is action-agnostic — the action comes from
+   * ``proposal.action`` — so this is a thin, readable alias of
+   * :meth:`governNotification` for non-notification business actions.
+   */
+  async governAction(
+    proposal: { actor: string; action: string; resource: string; context: Record<string, unknown> },
+    correlationId: string,
+    opts: { idempotencyKey?: string } = {},
+  ): Promise<GovernedOutcome> {
+    return this.governNotification(proposal, correlationId, opts);
+  }
+
+  /**
    * Submit a proposal and drive the governed path to a terminal outcome:
    *  - DENY      -> BLOCKED (no execution, service never called);
    *  - ALLOW     -> governed consensus execution -> EXECUTED iff receipt verified;

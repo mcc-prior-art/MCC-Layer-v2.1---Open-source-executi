@@ -1,0 +1,159 @@
+# AXFlow Clinic Revenue Agent Pilot on MCC-Core (PR #38).
+#
+# The first productized BUSINESS pilot: AXFlow is the business agent, VoltAgent is
+# the framework integration layer, MCC-Core is the execution governance authority.
+# It reuses the PR #37 deployment patterns (persistent audit, readiness gating,
+# no-bypass network model, receipt verification, fail-closed) — only the external
+# service (a mock clinic) and the agent's domain (clinic actions) differ.
+#
+#   cp .env.pilot.example .env.pilot
+#   docker compose -p axflow-clinic -f docker-compose.pilot-clinic-voltagent.yml \
+#       --env-file .env.pilot up --build
+#
+# (The Makefile wraps these as `make clinic-pilot-up`, `make clinic-pilot-allow`, …)
+#
+# Trust boundary (enforced by networks, not docs):
+#   agent_edge   : clinic-agent, mcc-gateway, evaluator-quorum
+#   gov_internal : mcc-gateway, evaluator-quorum, redis, clinic-service
+# The clinic service is NOT on agent_edge, so the agent has no network path to it —
+# only the governed executor (inside the gateway) can reach it.
+
+networks:
+  agent_edge:
+  gov_internal:
+
+volumes:
+  clinic-audit:
+  clinic-config:
+  clinic-state:
+  clinic-redis:
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - clinic-redis:/data
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  clinic-service:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    command: ["uvicorn", "clinic_service.service:app", "--host", "0.0.0.0", "--port", "9300"]
+    networks: [gov_internal]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9300/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mcc-gateway:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    env_file: [.env.pilot]
+    command:
+      - /bin/sh
+      - -c
+      - |
+        chmod 2770 /pilot-state 2>/dev/null || true
+        if [ ! -f /config/consensus_trust.json ]; then
+          python -m integrations.voltagent.mcc_side.generate_config \
+            --out /config --evaluators "${MCC_CONSENSUS_THRESHOLD:-3}" --gateway-signing-key
+        fi
+        export MCC_GATEWAY_SIGNING_KEY_PATH=/config/gateway_signing.pem
+        export MCC_CONSENSUS_TRUST_CONFIG=/config/consensus_trust.json
+        exec uvicorn gateway.app:app --host 0.0.0.0 --port 8001
+    environment:
+      MCC_GATEWAY_MODE: "inline"
+      # The governed executor targets the mock CLINIC service and requires a
+      # confirmed matching receipt before EXECUTED.
+      MCC_UPSTREAM_BASE: "http://clinic-service:9300"
+      MCC_UPSTREAM_RECEIPT_VERIFY: "1"
+      MCC_NONCE_BACKEND: "redis"
+      MCC_IDEMPOTENCY_BACKEND: "redis"
+      MCC_VELOCITY_BACKEND: "redis"
+      MCC_APPROVAL_BACKEND: "redis"
+      MCC_CHALLENGE_BACKEND: "redis"
+      MCC_REVOCATION_BACKEND: "redis"
+    volumes:
+      - clinic-config:/config
+      - clinic-audit:/data
+      - clinic-state:/pilot-state
+    networks: [agent_edge, gov_internal]
+    depends_on:
+      redis:
+        condition: service_healthy
+      clinic-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+
+  evaluator-quorum:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.mcc
+    env_file: [.env.pilot]
+    command:
+      - /bin/sh
+      - -c
+      - |
+        until [ -f /config/evaluator_1.pem ]; do echo "waiting for evaluator keys..."; sleep 1; done
+        exec uvicorn integrations.voltagent.mcc_side.evaluator_quorum:app --host 0.0.0.0 --port 8080
+    environment:
+      MCC_QUORUM_GATEWAY_URL: "http://mcc-gateway:8001"
+      MCC_EVALUATOR_KEYS_DIR: "/config"
+    volumes:
+      - clinic-config:/config:ro
+    networks: [agent_edge, gov_internal]
+    depends_on:
+      mcc-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/ready').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+
+  clinic-agent:
+    build:
+      context: .
+      dockerfile: integrations/voltagent/docker/Dockerfile.agent
+    env_file: [.env.pilot]
+    environment:
+      MCC_CLINIC_ACTOR: "agent/axflow-clinic"
+      MCC_CLINIC_ID: "clinic-1"
+      MCC_VOLTAGENT_MODEL_PROVIDER: "deterministic"
+    # Wait until MCC + quorum are READY, then idle. The operator drives scenarios
+    # with `docker compose exec` (make targets). No operator key; no clinic route.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "waiting for MCC gateway + evaluator quorum readiness..."
+        until node -e "fetch('http://mcc-gateway:8001/ready').then(function(r){process.exit(r.ok?0:1)}).catch(function(){process.exit(1)})"; do sleep 2; done
+        until node -e "fetch('http://evaluator-quorum:8080/ready').then(function(r){process.exit(r.ok?0:1)}).catch(function(){process.exit(1)})"; do sleep 2; done
+        echo "READY: AXFlow clinic agent idle; run scenarios via make clinic-pilot-allow / ..."
+        exec tail -f /dev/null
+    volumes:
+      - clinic-state:/pilot-state
+    networks: [agent_edge]
+    depends_on:
+      mcc-gateway:
+        condition: service_healthy
+      evaluator-quorum:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://mcc-gateway:8001/ready').then(function(r){process.exit(r.ok?0:1)}).catch(function(){process.exit(1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
