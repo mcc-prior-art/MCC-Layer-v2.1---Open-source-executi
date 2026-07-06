@@ -15,6 +15,7 @@ COPY src /app/src
 COPY gateway /app/gateway
 COPY examples /app/examples
 COPY pilot_notify /app/pilot_notify
+COPY clinic_service /app/clinic_service
 COPY integrations/voltagent/mcc_side /app/integrations/voltagent/mcc_side
 
 ENV PYTHONPATH=/app/src:/app

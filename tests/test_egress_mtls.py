@@ -4,12 +4,12 @@ closed on missing/mismatched/invalid material. Deterministic, offline."""
 
 import asyncio
 import glob
+import ssl
 import tempfile
 from pathlib import Path
 
 import httpx
 import pytest
-from fastapi import FastAPI
 
 from egress_proxy.canonical_action import build_canonical_action
 from egress_proxy.credentials import (
@@ -91,7 +91,12 @@ def test_valid_mtls_succeeds_and_preserves_pinning(tmp_path):
 def test_missing_client_cert_fails_closed(tmp_path):
     ctx = _setup(tmp_path)
     ex = _executor(ctx, provider=InMemoryCredentialProvider({}))  # no client identity
-    with pytest.raises(httpx.HTTPError):
+    # The server requires a client cert. Under TLS 1.2 the rejection surfaces at
+    # handshake time wrapped as httpx.HTTPError; under TLS 1.3 client auth is
+    # deferred, so the server's "certificate required" alert arrives during the
+    # response read as a bare ssl.SSLError. Both prove the same fail-closed
+    # outcome — the connection is rejected and nothing executes.
+    with pytest.raises((httpx.HTTPError, ssl.SSLError)):
         run(ex.execute("http.request", _act(ctx["port"]), authorization=AUTH))
     assert ex.count() == 0
 

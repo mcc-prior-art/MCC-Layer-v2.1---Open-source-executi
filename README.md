@@ -658,6 +658,68 @@ make pilot-constrain ; make pilot-escalate ; make pilot-approve
 make pilot-audit-verify ; make pilot-restart-check
 ```
 
+## Productized Business Pilot: AXFlow Clinic Revenue Agent
+
+The **AXFlow Clinic Revenue Agent** (`docker-compose.pilot-clinic-voltagent.yml`,
+`make clinic-pilot-*`) is the first **productized business pilot** on MCC-Core: a
+clinic booking/revenue assistant that turns a patient's natural-language request
+into a structured clinic action, governed end-to-end by MCC-Core.
+
+> **The agent proposes. MCC-Core decides. The gate enforces. The audit chain
+> proves.**
+
+This closes a deliberate progression:
+
+| PR | Layer | What it proved |
+|----|-------|----------------|
+| #35 | Framework-neutral contract | A governed agent proposes; MCC-Core decides/gates/executes/audits. |
+| #36 | Real governed executor | `EXECUTED` only on a confirmed external receipt. |
+| #37 | Deployable framework pilot | VoltAgent, network-enforced no-bypass, persistent audit, operator scenarios. |
+| **#38** | **Productized business pilot** | **AXFlow: a business (clinic revenue) agent on the same governance — a real vertical use case.** |
+
+AXFlow is the **business agent**; VoltAgent is the **framework layer**; MCC-Core is
+the **execution governance authority**. No governance is duplicated and MCC-Core is
+untouched — the clinic domain is expressed entirely as authority-model policy.
+
+```mermaid
+flowchart LR
+    P[Patient NL request] --> A[AXFlow clinic agent<br/>VoltAgent reasoning]
+    A -->|structured proposal| C[MCC client]
+    C -->|/evaluate| G[MCC-Core]
+    G -->|ALLOW / DENY / CONSTRAIN / ESCALATE| C
+    C -.ALLOW/CONSTRAIN.-> Q[Independent evaluator quorum]
+    C -.ESCALATE.-> OP[Clinic operator approval]
+    Q --> GE[Execution gate → governed executor]
+    OP --> GE
+    GE --> CL[Mock clinic service + verified receipt]
+    GE --> AUD[Audit chain]
+    A -.->|NEVER direct| CL
+```
+
+The four verdicts map to real clinic decisions:
+
+- **ALLOW** — book/confirm a normal appointment → governed execution → `EXECUTED` +
+  verified receipt + audit.
+- **DENY** — a request for medical advice / diagnosis / prescription → blocked; the
+  clinic service is never called (AXFlow is **not** a medical device or advisor).
+- **CONSTRAIN** — an excessive discount (90%) or unauthorized priority bump is
+  clamped to policy; only the clamped payload executes and the receipt hash binds
+  the **constrained** payload, not the original.
+- **ESCALATE** — a refund or complaint requires a human clinic operator; nothing
+  executes before approval, and the approval is single-use.
+
+**Run it:**
+
+```bash
+make clinic-pilot-up && make clinic-pilot-ready
+make clinic-pilot-demo    # ALLOW + DENY + CONSTRAIN + ESCALATE(+approve) + audit
+```
+
+The clinic agent holds no operator key and has **no network route** to the clinic
+service — only the governed executor inside the gateway can reach it. See
+`docs/PILOT_AXFLOW_CLINIC.md` for architecture, trust boundaries, verdict walk-throughs,
+audit verification, and limitations.
+
 ## Without MCC / With MCC
 
 Mobile-safe comparison:

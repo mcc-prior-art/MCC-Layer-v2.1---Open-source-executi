@@ -202,9 +202,11 @@ mcc-layer/
 ├── pilot_notify/              ← Real Governed Executor Pilot: mock notification service + receipt-verifying governed-executor adapter (EXECUTED only on a confirmed receipt matching payload+correlation_id; plugs into GovernanceService.upstream — no governance duplicated)
 │   ├── service.py             ← mock external notification service (POST /send_notification -> receipt; /receipts; /health)
 │   └── governed_upstream.py   ← receipt_verifying_upstream adapter (raises unless 2xx + received + correlation + payload-hash match -> fail-closed non-EXECUTED)
+├── clinic_service/            ← AXFlow Clinic pilot (PR #38): mock external CLINIC service the governed executor calls (catch-all POST /{action_type} -> bound receipt; /health; reuses receipt_verifying_upstream — no governance duplicated)
+│   └── service.py             ← records each clinic action, returns receipt (received + correlation_id + payload_sha256 + status); 8 known actions; reset/recorded helpers
 ├── gateway/                   ← the gate as an HTTP service
 │   ├── app.py                 ← POST /evaluate; /verify; /export; mounts governance HTTP routes
-│   ├── pilot_policy.py        ← hardcoded authority + velocity (PILOT_VELOCITY) config for the first pilot client
+│   ├── pilot_policy.py        ← hardcoded authority + velocity (PILOT_VELOCITY) config for the first pilot client; also the AXFlow clinic mandate/policies (clinic.book/message/discount[max 20%]/priority[max 1]; refund/complaint→ESCALATE; medical_advice_request→DENY)
 │   ├── trust.py               ← multi-issuer trust set: Ed25519 public keys, rotation, disable/revoke, fail-closed startup
 │   ├── governance_service.py  ← wiring (no decision logic): trust→authority→token→coordinator→audit→upstream
 │   └── governance_api.py      ← thin HTTP: /mandates/*, /approvals/*, /trust/*; agent vs operator auth; strict schemas
@@ -269,11 +271,14 @@ mcc-layer/
 │       ├── mcc_side/generate_config.py / testserver.py ← evaluator keyset (+ optional persistent gateway signing key) + in-process real stack for the TS tests
 │       ├── mcc_side/operator_cli.py ← pilot ESCALATE operator step (approve+execute in the gateway container; never the agent)
 │       ├── src/pilot-cli.ts   ← pilot scenario runner (readiness-gated; one governed scenario per invocation; records ESCALATE state)
-│       ├── docker/Dockerfile.mcc / Dockerfile.agent ← Python (gateway+quorum+notify+config) + Node (agent) images
+│       ├── src/clinic-schemas.ts / tools/clinic-action.ts ← AXFlow clinic (PR #38): strict zod clinic proposal + trusted-identity binding + the ONE governed clinic tool (delegates to governAction; no direct clinic call)
+│       ├── src/clinic-model.ts / clinic-agent.ts / clinic-cli.ts ← deterministic offline patient-intent classifier + AXFlow clinic Agent + one-scenario runner (allow/deny/constrain/escalate; records ESCALATE state)
+│       ├── docker/Dockerfile.mcc / Dockerfile.agent ← Python (gateway+quorum+notify+clinic+config) + Node (agent) images
 │       └── README.md         ← integration doc: VoltAgent vs MCC boundary, verdicts, receipt verification, bypass prevention, diagram
 ├── docker-compose.voltagent.yml ← one-command VoltAgent stack (config-init → redis + mock-notification + gateway[consensus+receipt] + quorum + agent)
 ├── docker-compose.pilot-voltagent.yml ← deployable VoltAgent pilot (persistent audit+config volumes, persistent gateway signing key, network-isolated agent) — distinct from the egress docker-compose.pilot.yml
-├── Makefile                  ← operator pilot commands (pilot-up/ready/allow/deny/constrain/escalate/approve/audit-verify/restart-check/down)
+├── docker-compose.pilot-clinic-voltagent.yml ← AXFlow Clinic business pilot (PR #38): reuses the VoltAgent pilot patterns; mock clinic-service as the governed upstream; isolated project `axflow-clinic` + clinic-* volumes; agent has no network path to clinic-service
+├── Makefile                  ← operator pilot commands (pilot-* + clinic-pilot-* : up/ready/allow/deny/constrain/escalate/approve/audit-verify/restart-check/demo/down)
 ├── .env.pilot.example        ← pilot config template (git-ignored .env.pilot; no secrets; fail-closed defaults)
 ├── scripts/
 │   ├── generate_signing_key.py ← Ed25519 key generator (PKCS8 PEM, mode 0600)
@@ -302,6 +307,8 @@ mcc-layer/
 │   ├── OBSERVABILITY.md       ← operational readiness: correlation model, error-code taxonomy, bounded metrics reference, liveness/readiness semantics, safe-logging rules, OTel config, alert install, incident response, evidence collection, preserved security invariants
 │   ├── MIGRATION_NOTES.md     ← backward-compatibility + migration notes for the governance layers
 │   ├── CI_MAINTENANCE.md      ← CI hygiene: GitHub Actions Node 20→24 migration, action version table, runner requirements, workflow least-privilege/persist-credentials, diagnosing deprecated-action warnings
+│   ├── PILOT_VOLTAGENT_DEPLOYMENT.md ← deployable VoltAgent pilot: architecture, trust boundaries, config, scenarios, audit persistence, fail-closed, demo script
+│   ├── PILOT_AXFLOW_CLINIC.md ← AXFlow Clinic Revenue Agent (PR #38): first productized BUSINESS pilot; PR#35→38 progression, clinic schema, four verdicts as clinic decisions, no-bypass, run/audit, NOT medical-advice/device/production-certified disclaimer
 │   └── exhibits/              ← NIW exhibits (protected)
 ├── proof/
 └── tests/
@@ -356,6 +363,7 @@ mcc-layer/
     ├── test_reference_governed_agent.py ← Reference Governed Agent (20 tests): four verdict flows→genuine EXECUTED, forged/expired/mismatched approval fail-closed, ESCALATE preserves original payload, CONSTRAIN executes only clamped payload, altered-votes rejected, receipt-verification fail-closed, Redis outage, audit verify, no-direct-execution static guard, provider invariants
     ├── test_voltagent_quorum.py ← VoltAgent integration MCC-side (7 tests): evaluator quorum signs only executable decisions over the gateway's authoritative payload; ALLOW→genuine EXECUTED, DENY/ESCALATE quorum-refuses, CONSTRAIN clamped-only, forged receipt not-EXECUTED, replay/tamper rejected (real gateway + quorum). TS tests live under integrations/voltagent/tests/
     ├── test_pilot_deployment.py ← VoltAgent pilot deployment (9 tests): fail-closed WITHOUT valid execution authority (no/forged votes, forged approval mandate, untrusted external mandate) + bypass topology (agent has no network path to the external service, holds no operator key; only the gateway bridges the two networks; inline+redis fail-closed). Documents why MCC_ENV=pilot mandate-trust is N/A (consensus + gateway-minted approvals instead)
+    ├── test_axflow_clinic_pilot.py ← AXFlow Clinic business pilot (PR #38, 9 tests): four verdicts through the REAL gateway+quorum+receipt-verifying executor→mock clinic (ALLOW book→EXECUTED, DENY medical advice, CONSTRAIN discount 90→20 + priority 3→1 with receipt bound to clamped payload, ESCALATE refund single-use+replay/complaint), direct-bypass-without-authority denied, forged receipt never EXECUTED, compose topology proves agent has no path to clinic-service
     ├── test_mcc_client_sdk.py ← Python SDK: real-HTTP integration (four verdicts + audit verify vs gateway.app) + controlled-transport units (fail-closed, unknown verdict, timeout/transport, DENY/ESCALATE never execute, CONSTRAIN authoritative payload, replay, ambiguous exec, no unsafe retry, idempotency/correlation propagation)
     ├── examples/test_egress_credentials_governed.py ← secrets resolved only after authorization + durable audit; never in response/audit
     └── opa_test_vectors.json
