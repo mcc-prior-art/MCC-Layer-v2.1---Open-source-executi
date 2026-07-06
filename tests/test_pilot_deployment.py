@@ -26,6 +26,7 @@ this file adds the pilot-specific deployment assertions without duplicating them
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -216,6 +217,78 @@ def test_pilot_state_uses_least_privilege_shared_group_not_world_writable():
     # 2770 = rwx for owner + group, nothing for others: exactly the two intended
     # services (in mcc-shared) can access it; an unrelated user cannot.
     assert oct(0o2770) == "0o2770"
+
+
+def _fork_as(uid: int, gids: list, action) -> int:
+    """Run ``action()`` in a child process dropped to (uid, primary gid=gids[0],
+    supplementary=gids). Returns the child exit code: 0 ok, 3 PermissionError,
+    4 other error. Requires root (to switch uid/gid)."""
+    pid = os.fork()
+    if pid == 0:  # child
+        try:
+            os.setgroups(gids)
+            os.setgid(gids[0])
+            os.setuid(uid)
+            action()
+            os._exit(0)
+        except PermissionError:
+            os._exit(3)
+        except Exception:  # noqa: BLE001
+            os._exit(4)
+    _, status = os.waitpid(pid, 0)
+    return os.waitstatus_to_exitcode(status)
+
+
+@pytest.mark.skipif(os.geteuid() != 0, reason="needs root to exercise multi-user access")
+def test_pilot_state_shared_group_runtime_access():
+    """Prove the 2770 setgid shared-group model at runtime: only members of the
+    shared group can create/read/unlink escalation.json; an unrelated user cannot
+    write — matching the gateway (mcc) + agent (node) + operator (mcc) topology."""
+    import shutil
+    import stat as _stat
+    import tempfile
+
+    shared, unrelated = 10990, 10991
+    member_agent, member_operator, outsider = 4002, 4003, 4001
+    # A base under /tmp (world-traversable), made o+x so the dropped-privilege
+    # children can traverse INTO it — but NOT o+w — so the test isolates the
+    # /pilot-state group permissions rather than the parent chain.
+    base = tempfile.mkdtemp(dir="/tmp", prefix="pilot-state-perm-")
+    os.chmod(base, 0o755)
+    try:
+        d = os.path.join(base, "pilot-state")
+        os.mkdir(d)
+        os.chown(d, 0, shared)          # root:mcc-shared, like the gateway-owned volume
+        os.chmod(d, 0o2770)             # setgid + group rwx, NOTHING for others
+        mode = _stat.S_IMODE(os.stat(d).st_mode)
+        assert mode & 0o007 == 0 and mode & _stat.S_ISGID  # no world access; setgid
+
+        state = os.path.join(d, "escalation.json")
+
+        def _write():
+            with open(state, "w") as fh:
+                fh.write("{}")
+
+        # (2) An unrelated user (not in the shared group) CANNOT write.
+        assert _fork_as(outsider, [unrelated], _write) == 3
+        assert not os.path.exists(state)
+
+        # (1a) The agent (a shared-group member) CAN create the state file, and
+        # setgid makes it inherit the shared group so the operator can act on it.
+        assert _fork_as(member_agent, [shared], _write) == 0
+        assert os.stat(state).st_gid == shared
+
+        # (1b) The operator (another shared-group member) can read AND unlink it
+        # (consume-on-approve), without anyone being granted world access.
+        def _read_and_unlink():
+            with open(state) as fh:
+                fh.read()
+            os.unlink(state)
+
+        assert _fork_as(member_operator, [shared], _read_and_unlink) == 0
+        assert not os.path.exists(state)
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
 
 
 def test_env_example_has_no_secrets_and_is_fail_closed():
