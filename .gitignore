@@ -11,6 +11,9 @@ htmlcov/
 
 # Environments
 .env
+# Pilot env holds real keys/endpoints; the .example template IS committed.
+.env.pilot
+!.env.pilot.example
 .venv/
 venv/
 

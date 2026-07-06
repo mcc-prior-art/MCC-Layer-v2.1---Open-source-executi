@@ -1,0 +1,66 @@
+name: VoltAgent Pilot Deployment E2E
+
+# Real end-to-end validation of the deployable VoltAgent + MCC-Core pilot, using
+# only the documented operator `make` targets — the deterministic offline model,
+# no paid API, and no external internet access. It builds the pilot stack, waits
+# for readiness, runs all four governance scenarios (+ operator approval), verifies
+# the cryptographic audit chain, and proves the chain survives a restart.
+#
+# This complements (does not replace) the existing unit/integration/security CI.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pilot-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Show Docker + Compose versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Build + start the pilot (deterministic model, no external network)
+        run: |
+          make pilot-up
+          make pilot-ready
+
+      - name: ALLOW — compliant request executes with a verified receipt
+        run: make pilot-allow
+
+      - name: DENY — prohibited request is blocked (service never called)
+        run: make pilot-deny
+
+      - name: CONSTRAIN — only the clamped payload is executed
+        run: make pilot-constrain
+
+      - name: ESCALATE — proposal pauses for approval (no execution yet)
+        run: make pilot-escalate
+
+      - name: Operator approval — governed execution completes -> EXECUTED
+        run: make pilot-approve
+
+      - name: Verify the cryptographic audit chain
+        run: make pilot-audit-verify
+
+      - name: Audit persistence — survives a gateway restart
+        run: make pilot-restart-check
+
+      - name: Diagnostics on failure (ps + logs)
+        if: failure()
+        run: |
+          make pilot-ps || true
+          make pilot-logs || true
+
+      - name: Cleanup (always) — remove volumes
+        if: always()
+        run: make pilot-clean || true
