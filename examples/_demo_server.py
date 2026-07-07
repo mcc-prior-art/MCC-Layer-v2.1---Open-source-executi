@@ -35,13 +35,46 @@ backstop thread) instead of hanging CI forever — the primary mechanism is alwa
 
 from __future__ import annotations
 
+import socket
 import threading
 import time
 from typing import List
 
 import uvicorn
 
-__all__ = ["DemoServer", "DemoServers"]
+__all__ = ["DemoServer", "DemoServers", "free_port"]
+
+# Ports already handed out by free_port() in this process. A demo typically asks
+# for two or three ports in a row (gateway/proxy/upstream); the kernel can return
+# the same just-closed ephemeral port twice, which would make the second
+# server's bind clash. Remembering issued ports and skipping repeats keeps every
+# port distinct without holding sockets open.
+_issued_ports: set[int] = set()
+_issued_lock = threading.Lock()
+
+
+def free_port(host: str = "127.0.0.1") -> int:
+    """Return a distinct OS-assigned free TCP port on ``host``.
+
+    Binding to port 0 lets the kernel pick a currently-unused port; we read it
+    back and release the socket immediately so the caller can bind it. Using a
+    fresh ephemeral port per demo run (instead of a hardcoded one) is what keeps
+    repeated/back-to-back runs — locally and in the smoke stress harness — from
+    colliding on a port a previous run has not fully released yet. Ports already
+    returned in this process are never handed out again.
+    """
+    with _issued_lock:
+        for _ in range(100):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.bind((host, 0))
+                port = s.getsockname()[1]
+            finally:
+                s.close()
+            if port not in _issued_ports:
+                _issued_ports.add(port)
+                return port
+        raise RuntimeError("could not obtain a distinct free port after 100 tries")
 
 
 class DemoServer:

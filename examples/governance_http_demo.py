@@ -25,11 +25,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from examples._demo_server import DemoServers  # noqa: E402
+from examples._demo_server import DemoServers, free_port  # noqa: E402
 
 from mcc_core import SigningKey, issue_mandate  # noqa: E402
 
-GATEWAY_PORT, UPSTREAM_PORT = 8011, 9011
+# Ephemeral ports (never hardcoded). The upstream port is resolved here, before
+# the gateway import below, because it is baked into MCC_UPSTREAM_BASE.
+GATEWAY_PORT, UPSTREAM_PORT = free_port(), free_port()
 FUTURE, PAST = 4_000_000_000, 1
 
 # --- issuer key + pilot trust config (written before importing the gateway) ---
