@@ -1,0 +1,87 @@
+name: Packaging & Public API
+
+# Validates the `mcc-core` distribution and the stable `mcc` public facade
+# (PR #40): a clean install exposes `from mcc import MCCClient`, the wheel/sdist
+# build and are installable, and the facade re-exports the mcc-client SDK without
+# adding governance logic. No governance behavior is exercised here — that is
+# covered by the runtime CI. Deterministic, no external services, no Docker.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  import-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Editable install (mcc-client + mcc-core in one command)
+        run: pip install -e ./sdk/python -e ".[dev]"
+
+      - name: Import validation — `from mcc import MCCClient`
+        run: |
+          python - <<'PY'
+          import mcc, mcc_client
+          from mcc import MCCClient, Verdict, Decision, MCCError  # noqa: F401
+          assert MCCClient is mcc_client.MCCClient, "facade must re-export the same class"
+          assert Verdict is mcc_client.Verdict
+          assert mcc.client_version == mcc_client.__version__
+          print("import OK:", mcc.__version__, "| client", mcc.client_version)
+          PY
+
+      - name: Public API + facade contract tests
+        run: pytest tests/test_mcc_facade.py -v
+
+  packaging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tooling
+        run: pip install build
+
+      - name: Build sdist + wheel for mcc-core
+        run: python -m build --outdir dist
+
+      - name: Wheel contains only the `mcc` facade (no mcc_client duplication)
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          whl = glob.glob("dist/mcc_core-*.whl")[0]
+          names = zipfile.ZipFile(whl).namelist()
+          top = {n.split("/", 1)[0] for n in names if not n.endswith(".dist-info") and "/" in n}
+          assert "mcc" in top, top
+          assert "mcc_client" not in top, f"wheel must not vendor mcc_client: {top}"
+          assert "mcc/py.typed" in names, "py.typed must ship in the wheel"
+          print("wheel contents OK:", sorted(top))
+          PY
+
+      - name: Install the built wheel into a clean venv and import
+        run: |
+          python -m venv /tmp/v
+          /tmp/v/bin/pip install dist/mcc_core-*.whl ./sdk/python
+          /tmp/v/bin/python - <<'PY'
+          from mcc import MCCClient
+          import mcc_client
+          assert MCCClient is mcc_client.MCCClient
+          print("clean-venv wheel install OK:", MCCClient)
+          PY
+
+      - name: Build the mcc-client distribution too (kept installable)
+        run: python -m build --outdir dist/client ./sdk/python
