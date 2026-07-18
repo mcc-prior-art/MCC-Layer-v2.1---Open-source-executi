@@ -29,3 +29,8 @@ mcc_signing_key.pem
 
 # OS
 .DS_Store
+
+# Python build artifacts (PR #40 packaging)
+build/
+dist/
+/mcc_core.egg-info/

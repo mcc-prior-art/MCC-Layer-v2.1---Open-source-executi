@@ -1,0 +1,77 @@
+# Root distribution for MCC-Core: `mcc-core`.
+#
+# This packages ONLY the thin, stable public facade `mcc` (see mcc/__init__.py),
+# which re-exports the supported `mcc_client` SDK unchanged. It deliberately does
+# NOT vendor or duplicate `mcc_client`, the gateway, the runtime, or any
+# governance logic — `mcc-core` depends on `mcc-client`, which remains its own
+# independently-installable distribution under sdk/python/.
+#
+# Install (end users, once published):   pip install mcc-core
+# Install (this monorepo, editable):      pip install -e ./sdk/python -e .
+#   (the second `-e .` alone also works once `mcc-client` is already installed)
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcc-core"
+version = "0.1.0"
+description = "MCC-Core — execution governance for autonomous AI systems. Stable public `mcc` facade over the supported mcc-client SDK (Agent → MCC Gateway → decision → execution gate → governed executor → audit)."
+readme = "docs/PACKAGING_AND_SDK.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary — AXLOGIQ Inc." }
+authors = [{ name = "AXLOGIQ Inc." }]
+keywords = ["mcc-core", "governance", "ai-agents", "execution-gate", "authorization", "audit"]
+dependencies = [
+    # The facade re-exports this supported client; no governance logic is
+    # duplicated here. Pinned to the 0.1.x line it was validated against.
+    "mcc-client>=0.1,<0.2",
+]
+
+[project.optional-dependencies]
+# Running the MCC Gateway service locally (the governance authority). Justified:
+# `from mcc import MCCClient` talks to a gateway; these run one.
+gateway = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "cryptography>=42",
+]
+dev = [
+    "pytest>=8.0",
+    "mypy>=1.8",
+    "ruff>=0.4",
+    "build>=1.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/mcc-prior-art/mcc-layer"
+Documentation = "https://github.com/mcc-prior-art/mcc-layer/blob/main/docs/PACKAGING_AND_SDK.md"
+
+# Package ONLY the facade. `mcc_client` is a dependency, not part of this wheel,
+# so `mcc-core` and `mcc-client` never both provide the same import namespace.
+[tool.setuptools]
+packages = ["mcc"]
+
+[tool.setuptools.package-data]
+mcc = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+files = ["mcc"]
+# The facade re-exports the typed `mcc_client` (src layout under sdk/python).
+# Point mypy at it so strict resolution finds its py.typed types.
+mypy_path = "sdk/python/src"
+
+# `mcc_client` is a dependency with its own type-check gate; this package's mypy
+# run validates the facade against its types but does not re-audit (and report)
+# the dependency's own internals.
+[[tool.mypy.overrides]]
+module = "mcc_client.*"
+follow_imports = "silent"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
