@@ -159,7 +159,8 @@ mcc-layer/
 ├── CLAUDE.md                                           ← this file
 ├── README.md                                           ← primary public prior art document
 ├── pyproject.toml           ← root distribution `mcc-core` (PR #40): packages ONLY the `mcc` facade; depends on `mcc-client`; optional groups [gateway]/[dev]; no governance logic
-├── mcc/                     ← stable public import namespace (PR #40): thin facade re-exporting mcc_client unchanged (from mcc import MCCClient); no local decisions/transport/signing; py.typed
+├── mcc/                     ← stable public import namespace (PR #40): thin facade re-exporting mcc_client unchanged (from mcc import MCCClient); no local decisions/transport/signing; py.typed; _version.py = single-source version (PR #41, pyproject dynamic attr)
+├── RELEASING.md             ← PR #41 release runbook: Trusted Publishing (OIDC, no tokens), version bump, preflight, TestPyPI/PyPI, emergency yank, failed-release recovery
 ├── MCC-Core_Decision_Boundary_Doctrine_2026-06-02.md   ← doctrine (protected)
 ├── MCC-Core_Doctrine_Lines_v1_0_2026-06-02.md          ← doctrine (protected)
 ├── MCC-Core_Non-Post-Execution_Principle_2026-06-02.md ← doctrine (protected)
@@ -284,6 +285,7 @@ mcc-layer/
 ├── .env.pilot.example        ← pilot config template (git-ignored .env.pilot; no secrets; fail-closed defaults)
 ├── scripts/
 │   ├── generate_signing_key.py ← Ed25519 key generator (PKCS8 PEM, mode 0600)
+│   ├── release_checks.py       ← PR #41 release engineering (testable, no publish): inspect/validate wheel+sdist content contract, PEP 503 name normalize, PEP 440 check, PyPI/TestPyPI duplicate-version guard (200/404), manual-release input confirmation; CLI for CI
 │   ├── redis_nonce_smoke.py    ← E2E: two gates share one Redis → cross-instance replay rejected
 │   ├── redis_governance_smoke.py ← E2E: cross-instance idempotency dedup + aggregate ceiling on real Redis
 │   ├── redis_mandate_smoke.py  ← E2E: cross-instance mandate revocation on real Redis
@@ -368,6 +370,9 @@ mcc-layer/
     ├── test_pilot_deployment.py ← VoltAgent pilot deployment (9 tests): fail-closed WITHOUT valid execution authority (no/forged votes, forged approval mandate, untrusted external mandate) + bypass topology (agent has no network path to the external service, holds no operator key; only the gateway bridges the two networks; inline+redis fail-closed). Documents why MCC_ENV=pilot mandate-trust is N/A (consensus + gateway-minted approvals instead)
     ├── test_axflow_clinic_pilot.py ← AXFlow Clinic business pilot (PR #38, 9 tests): four verdicts through the REAL gateway+quorum+receipt-verifying executor→mock clinic (ALLOW book→EXECUTED, DENY medical advice, CONSTRAIN discount 90→20 + priority 3→1 with receipt bound to clamped payload, ESCALATE refund single-use+replay/complaint), direct-bypass-without-authority denied, forged receipt never EXECUTED, compose topology proves agent has no path to clinic-service
     ├── test_mcc_facade.py     ← PR #40 public API contract: `mcc` re-exports mcc_client identically, __all__ parity, facade defines no logic of its own, no misleading local authorize/MCC API, client surface unchanged
+    ├── test_version_contract.py ← PR #41: mcc.__version__ == importlib.metadata.version("mcc-core"), PEP 440 valid, single source = mcc._version, client_version distinct = mcc_client version
+    ├── test_release_guard.py  ← PR #41: duplicate-version index guard (200 exists / 404 absent / 500 propagates), release input+version confirmation, PEP 440/503, wheel+sdist content validators fail closed (vendored client, missing py.typed, shipped tests/secrets, version mismatch)
+    ├── test_artifact_contract.py ← PR #41: build real sdist+wheel, exactly-one-each, content contract, wheel ships only mcc+py.typed, genuine clean install of the built wheel OUTSIDE the checkout (mcc.__file__ in venv, identical MCCClient, runtime==metadata version)
     ├── test_mcc_client_sdk.py ← Python SDK: real-HTTP integration (four verdicts + audit verify vs gateway.app) + controlled-transport units (fail-closed, unknown verdict, timeout/transport, DENY/ESCALATE never execute, CONSTRAIN authoritative payload, replay, ambiguous exec, no unsafe retry, idempotency/correlation propagation)
     ├── examples/test_egress_credentials_governed.py ← secrets resolved only after authorization + durable audit; never in response/audit
     └── opa_test_vectors.json
