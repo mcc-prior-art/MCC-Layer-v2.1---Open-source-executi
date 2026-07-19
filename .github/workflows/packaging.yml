@@ -44,7 +44,7 @@ jobs:
           PY
 
       - name: Facade + version + release-guard contract tests
-        run: pytest tests/test_mcc_facade.py tests/test_version_contract.py tests/test_release_guard.py -v
+        run: python -m pytest tests/test_mcc_facade.py tests/test_version_contract.py tests/test_release_guard.py -v
 
   packaging:
     runs-on: ubuntu-latest
@@ -101,7 +101,12 @@ jobs:
           PY
 
       - name: Built-artifact + clean-install pytest contract
-        run: pip install -e ./sdk/python && pytest tests/test_artifact_contract.py -v
+        run: |
+          set -euo pipefail
+          # Install the test runner (and mcc-core, so importlib.metadata resolves
+          # the authoritative version) into THIS job, then invoke via python -m.
+          pip install -e ./sdk/python -e ".[dev]"
+          python -m pytest tests/test_artifact_contract.py -v
 
       - name: Upload validated distribution artifacts
         uses: actions/upload-artifact@v4
