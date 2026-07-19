@@ -16,7 +16,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcc-core"
-version = "0.1.0"
+# Single-source version: the authoritative string lives in mcc/_version.py and
+# the metadata is generated from that attribute (see [tool.setuptools.dynamic]).
+# This keeps mcc.__version__ == importlib.metadata.version("mcc-core").
+dynamic = ["version"]
 description = "MCC-Core — execution governance for autonomous AI systems. Stable public `mcc` facade over the supported mcc-client SDK (Agent → MCC Gateway → decision → execution gate → governed executor → audit)."
 readme = "docs/PACKAGING_AND_SDK.md"
 requires-python = ">=3.9"
@@ -43,6 +46,14 @@ dev = [
     "ruff>=0.4",
     "build>=1.2",
 ]
+# Release engineering: build + validate distributions (never publishing creds).
+# packaging>=24.2 recognizes Metadata 2.4 License-File so `twine check --strict`
+# accepts the built wheel's license metadata.
+release = [
+    "build>=1.2",
+    "twine>=5.1",
+    "packaging>=24.2",
+]
 
 [project.urls]
 Homepage = "https://github.com/mcc-prior-art/mcc-layer"
@@ -52,6 +63,9 @@ Documentation = "https://github.com/mcc-prior-art/mcc-layer/blob/main/docs/PACKA
 # so `mcc-core` and `mcc-client` never both provide the same import namespace.
 [tool.setuptools]
 packages = ["mcc"]
+
+[tool.setuptools.dynamic]
+version = { attr = "mcc._version.__version__" }
 
 [tool.setuptools.package-data]
 mcc = ["py.typed"]

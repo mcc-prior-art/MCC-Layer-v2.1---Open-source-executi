@@ -27,6 +27,8 @@ governance gateway**, never locally by this client — there is deliberately no
 from __future__ import annotations
 
 from mcc_client import __version__ as client_version
+
+from ._version import __version__ as __version__
 from mcc_client import (
     Approval,
     ApprovalAuthorization,
@@ -52,9 +54,10 @@ from mcc_client import (
     Verdict,
 )
 
-#: Version of the ``mcc-core`` facade distribution. The underlying client
-#: version is available as :data:`client_version`.
-__version__ = "0.1.0"
+#: ``__version__`` (the ``mcc-core`` distribution version) is the single source
+#: in :mod:`mcc._version`, from which the wheel/sdist metadata is generated — so
+#: ``mcc.__version__ == importlib.metadata.version("mcc-core")``. The underlying
+#: client version is available separately as :data:`client_version`.
 
 __all__ = [
     "__version__",
