@@ -1,10 +1,11 @@
 name: Packaging & Public API
 
 # Validates the `mcc-core` distribution and the stable `mcc` public facade
-# (PR #40): a clean install exposes `from mcc import MCCClient`, the wheel/sdist
-# build and are installable, and the facade re-exports the mcc-client SDK without
-# adding governance logic. No governance behavior is exercised here — that is
-# covered by the runtime CI. Deterministic, no external services, no Docker.
+# WITHOUT publishing anything (PR #40 + PR #41). It builds sdist+wheel in an
+# isolated environment, runs `twine check --strict`, enforces the artifact
+# content contract, proves a genuine clean install of the built wheel, checks the
+# version contract, and uploads the validated dist/ as an artifact. It never
+# requests OIDC and never publishes. Deterministic, no external services, no Docker.
 
 on:
   pull_request:
@@ -30,21 +31,24 @@ jobs:
 
       - name: Import validation — `from mcc import MCCClient`
         run: |
+          set -euo pipefail
           python - <<'PY'
+          import importlib.metadata as im
           import mcc, mcc_client
           from mcc import MCCClient, Verdict, Decision, MCCError  # noqa: F401
           assert MCCClient is mcc_client.MCCClient, "facade must re-export the same class"
           assert Verdict is mcc_client.Verdict
           assert mcc.client_version == mcc_client.__version__
+          assert mcc.__version__ == im.version("mcc-core"), "runtime != metadata version"
           print("import OK:", mcc.__version__, "| client", mcc.client_version)
           PY
 
-      - name: Public API + facade contract tests
-        run: pytest tests/test_mcc_facade.py -v
+      - name: Facade + version + release-guard contract tests
+        run: pytest tests/test_mcc_facade.py tests/test_version_contract.py tests/test_release_guard.py -v
 
   packaging:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
@@ -53,35 +57,55 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install build tooling
-        run: pip install build
+      - name: Install pinned build + validation tooling
+        run: pip install "build~=1.2" "twine>=5.1" "packaging>=24.2"
 
-      - name: Build sdist + wheel for mcc-core
-        run: python -m build --outdir dist
-
-      - name: Wheel contains only the `mcc` facade (no mcc_client duplication)
+      - name: Build sdist + wheel in an isolated environment
         run: |
-          python - <<'PY'
-          import glob, zipfile
-          whl = glob.glob("dist/mcc_core-*.whl")[0]
-          names = zipfile.ZipFile(whl).namelist()
-          top = {n.split("/", 1)[0] for n in names if not n.endswith(".dist-info") and "/" in n}
-          assert "mcc" in top, top
-          assert "mcc_client" not in top, f"wheel must not vendor mcc_client: {top}"
-          assert "mcc/py.typed" in names, "py.typed must ship in the wheel"
-          print("wheel contents OK:", sorted(top))
-          PY
+          set -euo pipefail
+          rm -rf dist
+          python -m build --outdir dist
 
-      - name: Install the built wheel into a clean venv and import
+      - name: Exactly one sdist and one wheel
         run: |
+          set -euo pipefail
+          test "$(ls dist/*.whl | wc -l)" = "1"
+          test "$(ls dist/*.tar.gz | wc -l)" = "1"
+
+      - name: twine check --strict
+        run: twine check --strict dist/*
+
+      - name: Artifact content contract (wheel + sdist)
+        run: |
+          set -euo pipefail
+          VERSION="$(python -c 'import glob; from scripts.release_checks import wheel_filename_version as v; print(v(glob.glob("dist/*.whl")[0]))')"
+          echo "authoritative version: $VERSION"
+          python -m scripts.release_checks inspect-wheel "$(ls dist/*.whl)" --version "$VERSION"
+          python -m scripts.release_checks inspect-sdist "$(ls dist/*.tar.gz)" --version "$VERSION"
+
+      - name: Genuine clean install of the built wheel (outside the checkout)
+        run: |
+          set -euo pipefail
           python -m venv /tmp/v
-          /tmp/v/bin/pip install dist/mcc_core-*.whl ./sdk/python
+          /tmp/v/bin/pip install "$(ls dist/*.whl)" ./sdk/python
+          cd /tmp
           /tmp/v/bin/python - <<'PY'
+          import importlib.metadata as im, pathlib, mcc, mcc_client
+          mf = pathlib.Path(mcc.__file__).resolve()
+          assert "/tmp/v/" in str(mf), f"mcc not imported from the venv: {mf}"
           from mcc import MCCClient
-          import mcc_client
-          assert MCCClient is mcc_client.MCCClient
-          print("clean-venv wheel install OK:", MCCClient)
+          from mcc_client import MCCClient as Orig
+          assert MCCClient is Orig, "facade must re-export the identical class"
+          assert mcc.__version__ == im.version("mcc-core"), "runtime != metadata"
+          print("CLEAN-INSTALL OK", mcc.__version__, mf)
           PY
 
-      - name: Build the mcc-client distribution too (kept installable)
-        run: python -m build --outdir dist/client ./sdk/python
+      - name: Built-artifact + clean-install pytest contract
+        run: pip install -e ./sdk/python && pytest tests/test_artifact_contract.py -v
+
+      - name: Upload validated distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcc-core-dist
+          path: dist/*
+          if-no-files-found: error
