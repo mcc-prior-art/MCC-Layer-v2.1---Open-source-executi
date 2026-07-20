@@ -1,0 +1,169 @@
+name: Release (manual, Trusted Publishing)
+
+# MANUAL publishing of `mcc-core` to TestPyPI or PyPI via GitHub OIDC Trusted
+# Publishing (no long-lived tokens). Never runs on push / pull_request / merge /
+# tag — only workflow_dispatch. Build and publish are separate jobs; the publish
+# job uploads the EXACT artifact built earlier (never rebuilds). Production
+# publishing goes through the protected `pypi` GitHub Environment.
+#
+# One-time setup (repository owner) is documented in RELEASING.md:
+#   * PyPI + TestPyPI Trusted Publisher registration for this repo/workflow;
+#   * GitHub Environments `testpypi` and `pypi`, with required reviewers on `pypi`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Publish target index"
+        required: true
+        type: choice
+        options: ["testpypi", "pypi"]
+      version_confirmation:
+        description: "Type the exact version to publish (must match the built artifact)"
+        required: true
+        type: string
+      dry_run:
+        description: "Validate only: build, check, guard — do NOT publish"
+        required: false
+        type: boolean
+        default: false
+
+# Default to least privilege; jobs opt into what they need.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & validate artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned build + validation tooling
+        run: pip install "build~=1.2" "twine>=5.1" "packaging>=24.2"
+
+      - name: Build sdist + wheel (isolated)
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          python -m build --outdir dist
+
+      - name: Resolve authoritative artifact version
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION="$(python -c 'import glob; from scripts.release_checks import wheel_filename_version as v; print(v(glob.glob("dist/*.whl")[0]))')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Built version: $VERSION"
+
+      - name: Confirm the typed version matches the built artifact
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from scripts.release_checks import confirm_release_inputs
+          confirm_release_inputs(
+              os.environ["TARGET"], os.environ["CONFIRM"], os.environ["VERSION"])
+          print("release inputs confirmed")
+          PY
+        env:
+          TARGET: ${{ github.event.inputs.target }}
+          CONFIRM: ${{ github.event.inputs.version_confirmation }}
+          VERSION: ${{ steps.ver.outputs.version }}
+
+      - name: Exactly one sdist and one wheel
+        run: |
+          set -euo pipefail
+          test "$(ls dist/*.whl | wc -l)" = "1"
+          test "$(ls dist/*.tar.gz | wc -l)" = "1"
+
+      - name: twine check --strict
+        run: twine check --strict dist/*
+
+      - name: Artifact content contract
+        run: |
+          set -euo pipefail
+          python -m scripts.release_checks inspect-wheel "$(ls dist/*.whl)" --version "${{ steps.ver.outputs.version }}"
+          python -m scripts.release_checks inspect-sdist "$(ls dist/*.tar.gz)" --version "${{ steps.ver.outputs.version }}"
+
+      - name: Duplicate-version / immutability guard
+        run: |
+          set -euo pipefail
+          python -m scripts.release_checks index-check \
+            --name mcc-core --version "${{ steps.ver.outputs.version }}" \
+            --index "${{ github.event.inputs.target }}"
+
+      - name: Upload immutable dist artifact for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcc-core-dist
+          path: dist/*
+          if-no-files-found: error
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    if: ${{ github.event.inputs.target == 'testpypi' && github.event.inputs.dry_run == 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/mcc-core/
+    permissions:
+      id-token: write   # ONLY the publish job gets OIDC
+    steps:
+      - name: Download the exact built artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcc-core-dist
+          path: dist
+      - name: Publish (Trusted Publishing → TestPyPI)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist
+          print-hash: true
+
+  publish-pypi:
+    name: Publish to PyPI (protected)
+    needs: build
+    if: ${{ github.event.inputs.target == 'pypi' && github.event.inputs.dry_run == 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: pypi
+      url: https://pypi.org/project/mcc-core/
+    permissions:
+      id-token: write   # ONLY the publish job gets OIDC
+    steps:
+      - name: Guard — production publishes only from the canonical default branch
+        run: |
+          set -euo pipefail
+          if [ "${{ github.ref }}" != "refs/heads/${{ github.event.repository.default_branch }}" ]; then
+            echo "Refusing production publish from ${{ github.ref }}; use the default branch." >&2
+            exit 1
+          fi
+      - name: Download the exact built artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcc-core-dist
+          path: dist
+      - name: Publish (Trusted Publishing → PyPI)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          print-hash: true
