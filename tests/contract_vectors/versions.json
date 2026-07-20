@@ -1,0 +1,50 @@
+[
+  {
+    "id": "version-supported-exact",
+    "mutation": "the exact contract version this build implements",
+    "input": "1.0",
+    "expected": {"compatible": true, "newer_minor": false, "error_code": null}
+  },
+  {
+    "id": "version-supported-older-minor",
+    "mutation": "same major, a lower minor — backward compatible",
+    "input": "1.0",
+    "expected": {"compatible": true, "newer_minor": false, "error_code": null}
+  },
+  {
+    "id": "version-supported-newer-minor",
+    "mutation": "same major, a higher minor — compatible but additive fields may be unknown",
+    "input": "1.7",
+    "expected": {"compatible": true, "newer_minor": true, "error_code": null}
+  },
+  {
+    "id": "version-unsupported-major",
+    "mutation": "a future incompatible major must fail closed",
+    "input": "2.0",
+    "expected": {"compatible": false, "error_code": "CONTRACT_VERSION_UNSUPPORTED"}
+  },
+  {
+    "id": "version-unsupported-major-zero",
+    "mutation": "an unknown major (0) must fail closed, not be silently downgraded",
+    "input": "0.9",
+    "expected": {"compatible": false, "error_code": "CONTRACT_VERSION_UNSUPPORTED"}
+  },
+  {
+    "id": "version-malformed-single",
+    "mutation": "not a MAJOR.MINOR string",
+    "input": "1",
+    "expected": {"compatible": false, "error_code": "CONTRACT_VERSION_MALFORMED"}
+  },
+  {
+    "id": "version-malformed-nonnumeric",
+    "mutation": "non-numeric components",
+    "input": "1.x",
+    "expected": {"compatible": false, "error_code": "CONTRACT_VERSION_MALFORMED"}
+  },
+  {
+    "id": "version-malformed-empty",
+    "mutation": "empty string",
+    "input": "",
+    "expected": {"compatible": false, "error_code": "CONTRACT_VERSION_MALFORMED"}
+  }
+]

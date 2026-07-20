@@ -1,0 +1,144 @@
+{
+  "authorization_artifacts": [
+    "ConsensusAuthorization",
+    "MandateAuthorization",
+    "ApprovalAuthorization"
+  ],
+  "canonical_models": {
+    "approval": "mcc_client.Approval",
+    "decision": "mcc_client.Decision",
+    "execution_result": "mcc_client.ExecutionResult",
+    "verdict": "mcc_client.Verdict"
+  },
+  "certifies_any_adapter": false,
+  "contract_identifier": "mcc-integration-contract",
+  "contract_version": "1.0",
+  "error_categories": [
+    "CONTRACT",
+    "VERSION",
+    "CAPABILITY",
+    "AUTHENTICATION",
+    "DECISION",
+    "VERIFICATION",
+    "CONSTRAINT",
+    "GATE",
+    "AUDIT",
+    "EXECUTION",
+    "TRANSPORT",
+    "INTERNAL"
+  ],
+  "error_codes": [
+    {
+      "category": "VERSION",
+      "code": "CONTRACT_VERSION_MALFORMED",
+      "retryable": false
+    },
+    {
+      "category": "VERSION",
+      "code": "CONTRACT_VERSION_UNSUPPORTED",
+      "retryable": false
+    },
+    {
+      "category": "CONTRACT",
+      "code": "CONTRACT_FIELD_MISSING",
+      "retryable": false
+    },
+    {
+      "category": "CONTRACT",
+      "code": "CONTRACT_FIELD_INVALID",
+      "retryable": false
+    },
+    {
+      "category": "AUTHENTICATION",
+      "code": "AUTHENTICATION_FAILED",
+      "retryable": false
+    },
+    {
+      "category": "DECISION",
+      "code": "VERDICT_DENY",
+      "retryable": false
+    },
+    {
+      "category": "DECISION",
+      "code": "VERDICT_ESCALATE_REQUIRED",
+      "retryable": false
+    },
+    {
+      "category": "VERIFICATION",
+      "code": "DECISION_BINDING_MISMATCH",
+      "retryable": false
+    },
+    {
+      "category": "VERIFICATION",
+      "code": "NONCE_REPLAYED",
+      "retryable": false
+    },
+    {
+      "category": "GATE",
+      "code": "GATE_REJECTED",
+      "retryable": false
+    },
+    {
+      "category": "EXECUTION",
+      "code": "EXECUTION_FAILED",
+      "retryable": false
+    },
+    {
+      "category": "EXECUTION",
+      "code": "EXECUTION_AMBIGUOUS",
+      "retryable": false
+    },
+    {
+      "category": "TRANSPORT",
+      "code": "TRANSPORT_TIMEOUT",
+      "retryable": true
+    },
+    {
+      "category": "TRANSPORT",
+      "code": "TRANSPORT_UNAVAILABLE",
+      "retryable": true
+    },
+    {
+      "category": "INTERNAL",
+      "code": "INTERNAL_ERROR",
+      "retryable": false
+    }
+  ],
+  "framework_neutral": true,
+  "golden_vectors": "tests/contract_vectors/",
+  "normative_specification": "docs/INTEGRATION_CONTRACT.md",
+  "public_validation_entry_points": [
+    "mcc_client.contract.check_version_compatibility",
+    "mcc_client.contract.error_code_for_exception",
+    "mcc_client.contract.category_of",
+    "mcc_client.contract.is_retryable",
+    "mcc_client.contract.conformance_manifest",
+    "mcc_client.Verdict.parse",
+    "mcc_client.Decision.from_response"
+  ],
+  "required_security_invariants": [
+    "signature_verified",
+    "decision_authority_valid",
+    "verdict_authorizes",
+    "scope_matches",
+    "actor_matches",
+    "resource_matches",
+    "action_hash_matches",
+    "nonce_matches",
+    "nonce_not_replayed",
+    "within_validity_window",
+    "not_revoked",
+    "policy_hash_matches",
+    "durably_recorded_before_enforce"
+  ],
+  "supported_majors": [
+    1
+  ],
+  "supported_verdicts": [
+    "ALLOW",
+    "DENY",
+    "ESCALATE",
+    "CONSTRAIN"
+  ],
+  "transport_neutral": true
+}
