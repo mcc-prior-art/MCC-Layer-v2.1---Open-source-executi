@@ -1,0 +1,157 @@
+[
+  {
+    "id": "allow-decision",
+    "mutation": "canonical ALLOW response bound to the requested action",
+    "request": {
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "resource": "notifications",
+      "payload": {"message": "confirmed", "channel": "email"}
+    },
+    "response": {
+      "decision": "ALLOW",
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "forward_context": {"message": "confirmed", "channel": "email"},
+      "reason": "policy permits",
+      "audit_id": "audit-allow-1",
+      "policy_ref": "sha256:policy",
+      "trace_id": "trace-allow-1"
+    },
+    "expected": {"outcome": "valid", "verdict": "ALLOW", "executable": true}
+  },
+  {
+    "id": "deny-decision",
+    "mutation": "DENY carries no authorized payload; nothing executes",
+    "request": {
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "resource": "notifications",
+      "payload": {"message": "x", "channel": "pager"}
+    },
+    "response": {
+      "decision": "DENY",
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "reason": "channel not permitted",
+      "audit_id": "audit-deny-1",
+      "policy_ref": "sha256:policy",
+      "trace_id": "trace-deny-1"
+    },
+    "expected": {"outcome": "valid", "verdict": "DENY", "executable": false}
+  },
+  {
+    "id": "escalate-decision",
+    "mutation": "ESCALATE requires approval before any execution",
+    "request": {
+      "actor_id": "agent/notify-bot",
+      "action": "issue_refund",
+      "resource": "payments",
+      "payload": {"amount": 100}
+    },
+    "response": {
+      "decision": "ESCALATE",
+      "actor_id": "agent/notify-bot",
+      "action": "issue_refund",
+      "reason": "human authorization required",
+      "authority_required": "operator",
+      "audit_id": "audit-escalate-1",
+      "policy_ref": "sha256:policy",
+      "trace_id": "trace-escalate-1"
+    },
+    "expected": {"outcome": "valid", "verdict": "ESCALATE", "executable": false}
+  },
+  {
+    "id": "constrain-decision",
+    "mutation": "CONSTRAIN authorizes only the server-clamped payload",
+    "request": {
+      "actor_id": "agent/clinic-bot",
+      "action": "apply_discount",
+      "resource": "bookings",
+      "payload": {"discount_pct": 90, "priority": 3}
+    },
+    "response": {
+      "decision": "CONSTRAIN",
+      "actor_id": "agent/clinic-bot",
+      "action": "apply_discount",
+      "forward_context": {"discount_pct": 20, "priority": 1},
+      "applied_constraints": ["discount_pct<=20", "priority<=1"],
+      "constraints": {"discount_pct": 20, "priority": 1},
+      "reason": "clamped to policy bounds",
+      "audit_id": "audit-constrain-1",
+      "policy_ref": "sha256:policy",
+      "trace_id": "trace-constrain-1"
+    },
+    "expected": {
+      "outcome": "valid", "verdict": "CONSTRAIN", "executable": true,
+      "authorized_payload": {"discount_pct": 20, "priority": 1}
+    }
+  },
+  {
+    "id": "unknown-verdict",
+    "mutation": "an unrecognized verdict must fail closed, never default to allow",
+    "request": {
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "resource": "notifications",
+      "payload": {"message": "x"}
+    },
+    "response": {
+      "decision": "MAYBE",
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "reason": "n/a"
+    },
+    "expected": {"outcome": "invalid", "error": "MCCProtocolError"}
+  },
+  {
+    "id": "missing-decision-field",
+    "mutation": "a response without a decision field must fail closed",
+    "request": {
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "resource": "notifications",
+      "payload": {"message": "x"}
+    },
+    "response": {
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "reason": "n/a"
+    },
+    "expected": {"outcome": "invalid", "error": "MCCProtocolError"}
+  },
+  {
+    "id": "actor-mismatch",
+    "mutation": "a decision echoing a different actor must not be re-bound",
+    "request": {
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "resource": "notifications",
+      "payload": {"message": "x"}
+    },
+    "response": {
+      "decision": "ALLOW",
+      "actor_id": "agent/someone-else",
+      "action": "send_notification",
+      "forward_context": {"message": "x"}
+    },
+    "expected": {"outcome": "invalid", "error": "MCCProtocolError"}
+  },
+  {
+    "id": "action-mismatch",
+    "mutation": "a decision echoing a different action must not be re-bound",
+    "request": {
+      "actor_id": "agent/notify-bot",
+      "action": "send_notification",
+      "resource": "notifications",
+      "payload": {"message": "x"}
+    },
+    "response": {
+      "decision": "ALLOW",
+      "actor_id": "agent/notify-bot",
+      "action": "delete_everything",
+      "forward_context": {"message": "x"}
+    },
+    "expected": {"outcome": "invalid", "error": "MCCProtocolError"}
+  }
+]

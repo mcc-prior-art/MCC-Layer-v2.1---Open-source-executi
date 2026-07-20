@@ -1,0 +1,68 @@
+[
+  {
+    "id": "transport-timeout",
+    "mutation": "a request timeout is transport, retryable, never authorization",
+    "exception": "MCCTimeoutError",
+    "expected": {"code": "TRANSPORT_TIMEOUT", "category": "TRANSPORT", "retryable": true}
+  },
+  {
+    "id": "transport-unavailable",
+    "mutation": "a connection/DNS/TLS failure is transport, retryable",
+    "exception": "MCCTransportError",
+    "expected": {"code": "TRANSPORT_UNAVAILABLE", "category": "TRANSPORT", "retryable": true}
+  },
+  {
+    "id": "authentication-failed",
+    "mutation": "gateway rejected the API/operator key",
+    "exception": "MCCAuthenticationError",
+    "expected": {"code": "AUTHENTICATION_FAILED", "category": "AUTHENTICATION", "retryable": false}
+  },
+  {
+    "id": "verdict-deny",
+    "mutation": "a DENY is a governance decision, not a retryable transport error",
+    "exception": "MCCDeniedError",
+    "expected": {"code": "VERDICT_DENY", "category": "DECISION", "retryable": false}
+  },
+  {
+    "id": "verdict-escalate-required",
+    "mutation": "execution attempted on ESCALATE without approval",
+    "exception": "MCCApprovalRequiredError",
+    "expected": {"code": "VERDICT_ESCALATE_REQUIRED", "category": "DECISION", "retryable": false}
+  },
+  {
+    "id": "decision-binding-mismatch",
+    "mutation": "decision cannot be bound to the requested action / altered binding",
+    "exception": "MCCInvalidDecisionError",
+    "expected": {"code": "DECISION_BINDING_MISMATCH", "category": "VERIFICATION", "retryable": false}
+  },
+  {
+    "id": "nonce-replayed",
+    "mutation": "a replayed / already-consumed decision or nonce",
+    "exception": "MCCReplayError",
+    "expected": {"code": "NONCE_REPLAYED", "category": "VERIFICATION", "retryable": false}
+  },
+  {
+    "id": "execution-ambiguous",
+    "mutation": "outcome unknown — must be reconciled via audit, not retried",
+    "exception": "MCCAmbiguousExecutionError",
+    "expected": {"code": "EXECUTION_AMBIGUOUS", "category": "EXECUTION", "retryable": false}
+  },
+  {
+    "id": "execution-failed",
+    "mutation": "gate BLOCKED or executor EXECUTION_FAILED",
+    "exception": "MCCExecutionError",
+    "expected": {"code": "EXECUTION_FAILED", "category": "EXECUTION", "retryable": false}
+  },
+  {
+    "id": "contract-field-invalid",
+    "mutation": "malformed response / unknown verdict / missing decision material",
+    "exception": "MCCProtocolError",
+    "expected": {"code": "CONTRACT_FIELD_INVALID", "category": "CONTRACT", "retryable": false}
+  },
+  {
+    "id": "internal-error-failclosed",
+    "mutation": "an unmapped base error fails closed to INTERNAL_ERROR",
+    "exception": "MCCError",
+    "expected": {"code": "INTERNAL_ERROR", "category": "INTERNAL", "retryable": false}
+  }
+]
