@@ -20,6 +20,7 @@ from __future__ import annotations
 from .actions import ACTION, RESOURCE, build_notification_payload, parse_request
 from .agent import ReferenceGovernedAgent
 from .authorizers import ConsensusAuthorizer, ExecutionAuthorizer
+from .evidence import agent_evidence, export_agent_evidence
 from .models import AgentRunResult, ProposedAction, ProviderError
 from .operator import (
     ApprovalRequest,
@@ -49,6 +50,9 @@ __all__ = [
     # authorization material
     "ExecutionAuthorizer",
     "ConsensusAuthorizer",
+    # audit evidence (PR #42 bundle) — the contract's Audit -> portable evidence step
+    "agent_evidence",
+    "export_agent_evidence",
     # models + actions
     "ProposedAction",
     "AgentRunResult",

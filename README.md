@@ -1429,6 +1429,29 @@ operational limitations.
 
 ---
 
+## Official Integration Contract
+
+Any external AI agent — VoltAgent, LangGraph, CrewAI, OpenAI Agents, AutoGen,
+Semantic Kernel, ADK, or a hand-written loop — integrates with MCC-Core the same
+framework-neutral way: it produces a **proposal** and hands it to the supported
+client; MCC-Core decides, verifies, gates, executes, and audits. No
+framework-specific abstraction appears in the public surface, and integrations
+never add a second execution path.
+
+```
+Agent → Action Proposal → MCC Client → Governance Decision → Execution Gate
+      → Authorized Tool Execution → Immutable Audit Evidence
+```
+
+The canonical implementation already ships: the `mcc_client` SDK and the
+framework-neutral reference governed agent (`examples/reference_governed_agent/`),
+which executes **only** through the governed path and never directly. See
+[`docs/INTEGRATION_CONTRACT.md`](docs/INTEGRATION_CONTRACT.md) for the contract
+stages, sequence diagram, integration steps, trust boundaries, failure modes, and
+security guarantees.
+
+---
+
 ## Accurate Positioning
 
 Correct descriptions:
