@@ -1414,6 +1414,21 @@ Recommended reading path:
 
 ---
 
+## Governance Evidence Bundle
+
+MCC-Core can export a portable, deterministic **Governance Evidence Bundle** for a
+completed governance path and **verify it offline** — recomputing digests,
+cross-checking the signed decision token, re-verifying the audit-chain linkage,
+and (with a trusted issuer key) checking the Ed25519 signature — with no running
+MCC service and no network. The evidence layer is observational and downstream of
+decision, gate and audit: it creates no authority and authorizes no execution.
+
+See [`docs/GOVERNANCE_EVIDENCE_BUNDLE.md`](docs/GOVERNANCE_EVIDENCE_BUNDLE.md) for
+the format, ALLOW/DENY evidence, tamper detection, trust assumptions, and
+operational limitations.
+
+---
+
 ## Accurate Positioning
 
 Correct descriptions:

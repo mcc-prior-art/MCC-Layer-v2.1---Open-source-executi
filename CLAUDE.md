@@ -273,6 +273,11 @@ mcc-layer/
 │       ├── policy.py          ← PolicyBundle with hash verification
 │       ├── authority.py       ← config mandate registry + action→authority→verdict (the formula in code)
 │       └── signing.py         ← Ed25519 token signing/verification
+│   └── mcc_evidence/          ← Governance Evidence Bundle Core (PR #42): observational, downstream of decision/gate/audit; NO executor/gate/nonce/actuator/transport imports. Reuses mcc_core.signing (canonical/sha/verify_token) + audit-linkage recompute
+│       ├── schema.py          ← versioned bundle schema (mcc-evidence/1) + structured VerificationResult (integrity_valid/signer_verified/signer_trusted/authority_evidence_verified/overall_status) + EvidenceStatus (VERIFIED/DENIAL_VERIFIED/INTACT_UNTRUSTED_SIGNER/INVALID/UNSUPPORTED_SCHEMA)
+│       ├── export.py          ← export_bundle: fail-closed, deterministic dir or .tar.gz; ALLOW carries signed token+receipt, DENY never fabricates a receipt; refuses inconsistent evidence
+│       ├── verify.py          ← verify_bundle: offline; digests + manifest↔token bindings + audit-chain recompute + signature (trusted key) + exec/denial consistency; never mutates/executes
+│       └── cli.py / __main__.py ← python -m mcc_evidence verify <bundle> (JSON + human; exit 0 VERIFIED/DENIAL_VERIFIED, 1 INTACT_UNTRUSTED_SIGNER, 2 INVALID, 3 UNSUPPORTED_SCHEMA); read-only, no network. NOT in the mcc-core wheel (PR #41 contract intact); extraction seam for a future standalone mcc-evidence dist
 │   └── mcc_agent/             ← governed agent pilot (proposes only; no executor/signing key/outbound HTTP)
 │       ├── agent.py           ← GovernedAgent: goal→planner→submit→[ESCALATE approve]→AgentResult
 │       ├── planner.py         ← DeterministicPlanner: goal→ActionProposal (credential-free; pilot goals)
@@ -382,6 +387,7 @@ mcc-layer/
 │   ├── INFRA_PROFILE.md       ← non-payment (infrastructure) profile: domain neutrality demonstrated
 │   ├── ROBOTICS_PROFILE.md    ← robotics profile: domain neutrality demonstrated a second time
 │   ├── GOVERNANCE_HTTP_API.md ← HTTP API reference, trust config, rotation/revocation, auth boundary, threat model
+│   ├── GOVERNANCE_EVIDENCE_BUNDLE.md ← PR #42: portable offline-verifiable evidence bundle — what it proves/does-not-prove, trust assumptions, structured status, ALLOW/DENY evidence, tamper detection, sensitive-data/retention, schema compatibility, operational limitations (NOT independently installable yet)
 │   ├── MULTI_CONTEXT_CONSENSUS.md ← N-of-M signed evaluator consensus: votes, policy, /consensus HTTP, deployment
 │   ├── CONSENSUS_CHALLENGE.md ← gateway-issued one-time nonce: challenge handshake, single-use consume, binding/rejection table, MCC_REQUIRE_CHALLENGE
 │   ├── unified-governance-runtime.md ← one runtime: architecture + state-machine + 3 sequence diagrams, path table, modified-payload→new-consensus invariant
