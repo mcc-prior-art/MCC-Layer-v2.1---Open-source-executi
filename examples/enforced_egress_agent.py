@@ -24,11 +24,10 @@ from __future__ import annotations
 
 import json
 import os
-import socket
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import httpx
 from fastapi import FastAPI, Request
@@ -37,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from examples._demo_server import DemoServers  # noqa: E402
+from examples._demo_server import DemoServers, free_port as _free_port  # noqa: E402
 
 from mcc_core import SigningKey, issue_vote  # noqa: E402
 
@@ -49,10 +48,6 @@ from egress_proxy.runtime import _policy_hash  # noqa: E402
 
 FAR_FUTURE = 4_000_000_000
 SEEN: List[Dict[str, Any]] = []
-
-
-def _free_port() -> int:
-    s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
 
 
 def main() -> int:

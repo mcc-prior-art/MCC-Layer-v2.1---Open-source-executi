@@ -105,7 +105,10 @@ services:
       - ./secrets:/secrets:ro
       - mcc-audit:/data
     ports:
-      - "8001:8001"
+      # Host port is env-overridable so this pilot can run alongside the dev
+      # stack (which also uses 8000/8181) without a fixed-port clash; the
+      # in-container port is unchanged.
+      - "${MCC_GATEWAY_HOST_PORT:-8001}:8001"
     depends_on:
       redis:
         condition: service_healthy
@@ -153,7 +156,8 @@ services:
     volumes:
       - mcc-egress-audit:/data
     ports:
-      - "8090:8090"
+      # Env-overridable host port (see the gateway note above); container port unchanged.
+      - "${MCC_EGRESS_HOST_PORT:-8090}:8090"
     depends_on:
       redis:
         condition: service_healthy

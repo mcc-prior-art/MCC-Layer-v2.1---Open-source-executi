@@ -152,6 +152,86 @@ When editing docs or code, treat this repo as a **legal and commercial artifact*
 
 -----
 
+## Forward Architecture Rules
+
+Mandatory invariants for work that has **not** landed yet. They exist so future
+extensions widen the system through the correct layer instead of bypassing the
+governance boundary. Do not violate these even if a task seems to ask for it —
+flag the conflict to AX first.
+
+### 1. MCP Adapter Boundary
+
+MCP (Model Context Protocol) may be added later **only** as an ingress adapter /
+ecosystem entrypoint. It is a client surface, not an authority.
+
+- MCP must **not** become an execution authority.
+- MCP must **not** introduce its own executor.
+- MCP must **not** call external upstream services directly.
+- Any future `integrations/mcp/` code must reach execution **only** through
+  `MccClient` / the MCC Gateway / the governed contract — the same boundary the
+  VoltAgent and reference-agent integrations already use.
+
+```
+MCP Client / Tool Call
+        ↓
+MCP Adapter (ingress only)
+        ↓
+MCC Gateway / governed contract
+        ↓
+Policy / Authority / Decision
+        ↓
+Execution Gate
+        ↓
+Governed Executor
+        ↓
+Receipt + Audit
+```
+
+- `integrations/mcp/` must ship with a **static CI guard** modeled on
+  `tests/test_mcc_agent_no_direct_egress.py`. The guard must fail on:
+  - imports of `egress_proxy.executor`
+  - use of `HTTPEgressExecutor`
+  - direct HTTP clients used for upstream execution
+  - any direct upstream-execute method that bypasses the MCC Gateway
+
+### 2. Real-Clinic / PHI Compliance Gate
+
+Mock clinic workflows (the AXFlow pilot) are **not** real-clinic production
+workflows. Introducing a real clinic, real patient data, or PHI is a **separate
+milestone gated on compliance**, never an ordinary product PR.
+
+- Before any real clinic / real patient data / PHI is introduced, MCC-Core must
+  pass a dedicated compliance gate covering: PHI, GDPR/HIPAA-like handling,
+  consent, retention, deletion / right to erasure, legal responsibility, and
+  clear production disclaimers.
+- Clinical or diagnostic requests remain **denied by design**.
+- Raw `patient_request`, raw payload, or PHI must **not** be written directly
+  into the append-only audit hash-chain. (Append-only immutability conflicts
+  with GDPR-style erasure rights if raw PHI is recorded directly.)
+- Required future architecture **before** any PHI:
+  - the audit chain stores only hash / token / redacted fields;
+  - raw patient data lives in separate, deletable storage;
+  - consent and retention rules govern that storage;
+  - the audit proves *what* happened without exposing *who* it happened to.
+- Until that gate passes, AXFlow is presented only as a clinic revenue / booking
+  **workflow simulator** — not medical advice, not a medical device, not
+  production-certified.
+
+### 3. G7 / NIW Evidence Track Separation
+
+G7 evidence is a **legal / NIW evidence track**, not an engineering PR track.
+
+- The engineering roadmap answers *what the system can do*; G7 evidence answers
+  *how the system is proven for NIW / USCIS*. Keep them synchronized but never
+  merged into one PR scope.
+- Do not mix G7 / NIW evidence artifacts into product or engineering PR scope
+  unless AX explicitly asks for it.
+- PR titles, descriptions, and milestone wording used in NIW / expert materials
+  must stay synchronized with the **actual** GitHub PR titles and contents — a
+  mismatch between an exhibit and the real PR is a reviewable discrepancy.
+
+-----
+
 ## Repository File Map
 
 ```
@@ -250,7 +330,7 @@ mcc-layer/
 ├── server/
 │   └── app.py                 ← DEPRECATED legacy runtime (no decision tokens)
 ├── examples/                  ← demo scripts and execution profiles
-│   ├── _demo_server.py        ← deterministic embedded-uvicorn lifecycle (DemoServer/DemoServers): server.started readiness + should_exit + bounded join + verify-not-alive; prevents the interpreter-finalization SIGSEGV (exit 139); daemon-thread termination never relied upon
+│   ├── _demo_server.py        ← deterministic embedded-uvicorn lifecycle (DemoServer/DemoServers): server.started readiness + should_exit + bounded join + verify-not-alive; prevents the interpreter-finalization SIGSEGV (exit 139); daemon-thread termination never relied upon; free_port() (distinct ephemeral ports — no hardcoded demo ports → no smoke port-race)
 │   ├── egress_proxy_demo.py   ← live E2E: agent → proxy → upstream (ALLOW reaches, DENY blocked)
 │   ├── transaction_governance_demo.py ← live E2E: idempotency dedup + cumulative ceiling through gateway+coordinator proxy
 │   ├── governance_http_demo.py ← live E2E HTTP: mandate execute/revoke + ESCALATE approve→single-use over the real gateway
@@ -361,6 +441,7 @@ mcc-layer/
     ├── test_egress_mtls.py    ← optional mTLS via refs: valid; missing/mismatched cert+key; invalid CA; server-trust/SSRF still enforced; temp cleanup
     ├── test_egress_observability.py ← correlation generate/validate/reject, redaction, bounded metric labels, telemetry-failure isolation, liveness≠readiness, correlation→header/audit, secret never in metrics/logs/response/ready/audit, audit-before-execution
     ├── test_demo_server.py    ← demo-server lifecycle: shutdown requested + thread joined + none survive, cleanup on exception, startup-failure reported, shutdown-timeout fails explicitly, no thread leak, success→exit 0, failure→non-zero
+    ├── test_smoke_ports.py    ← PR #39 port-race guard: free_port() returns distinct bindable ports; the 5 smoke demos use free_port and hardcode no fixed listen port (regression guard for the smoke_stress flake)
     ├── test_mcc_agent.py      ← governed agent E2E: ALLOW/DENY/ESCALATE(+invalid approvals)/CONSTRAIN, replay/nonce/idempotency, Redis fail-closed, SSRF/malformed, audit-before-exec, bypass, real external execution, state-unchanged-after-blocked
     ├── test_mcc_agent_no_direct_egress.py ← static guard: no forbidden networking imports in src/mcc_agent (incl. subprocess); no direct-execute surface
     ├── test_pilot_release.py  ← Pilot v0.1 release matrix: version metadata, clean/fail-closed startup, four verdicts, audit-evidence completeness, audit-before-exec, chain verify, no-exec-before-auth, constrained-payload-executed, Redis replay (gated)

@@ -36,21 +36,21 @@ import asyncio
 import sys
 from pathlib import Path
 
-import httpx
 from fastapi import FastAPI, Request
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from examples._demo_server import DemoServers  # noqa: E402
+from examples._demo_server import DemoServers, free_port  # noqa: E402
 
 from examples.governed_agent.agent import Agent  # noqa: E402
 from examples.governed_agent.consensus_support import EvaluatorPool  # noqa: E402
 from examples.governed_agent.mcc_client import GovernedMCCClient  # noqa: E402
 from pilot.outbound_executor import OutboundHTTPExecutor, UnauthorizedExecution  # noqa: E402
 
-UPSTREAM_PORT = 9019
+# Ephemeral port (never hardcoded) so repeated/back-to-back runs never collide.
+UPSTREAM_PORT = free_port()
 
 # The external service the agent is trying to reach. It records every call it
 # actually sees (with the body) so we can prove what really left the process.

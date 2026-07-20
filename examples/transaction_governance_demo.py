@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from examples._demo_server import DemoServers  # noqa: E402
+from examples._demo_server import DemoServers, free_port  # noqa: E402
 
 os.environ["MCC_GATEWAY_MODE"] = "inline"
 os.environ["MCC_GATEWAY_AUDIT_LOG_PATH"] = os.path.join(
@@ -44,7 +44,10 @@ from interceptors.egress_proxy import (  # noqa: E402
     build_proxy_app,
 )
 
-GATEWAY_PORT, PROXY_PORT, UPSTREAM_PORT = 8001, 8080, 9009
+# Ephemeral ports (never hardcoded): this demo and egress_proxy_demo.py both ran
+# on the same fixed 8001/8080/9009 and are launched back-to-back by the smoke
+# stress harness, which is exactly what caused the intermittent port-race flake.
+GATEWAY_PORT, PROXY_PORT, UPSTREAM_PORT = free_port(), free_port(), free_port()
 
 upstream = FastAPI()
 SEEN: list[dict] = []

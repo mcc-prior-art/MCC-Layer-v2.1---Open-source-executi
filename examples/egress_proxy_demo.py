@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-from examples._demo_server import DemoServers  # noqa: E402
+from examples._demo_server import DemoServers, free_port  # noqa: E402
 
 # Gateway settings must be set before importing the gateway module.
 os.environ["MCC_GATEWAY_MODE"] = "inline"
@@ -46,9 +46,12 @@ from interceptors.egress_proxy import (  # noqa: E402
     build_proxy_app,
 )
 
-GATEWAY_PORT = 8001
-PROXY_PORT = 8080
-UPSTREAM_PORT = 9009
+# Ephemeral ports (never hardcoded) so back-to-back demo runs — including the
+# smoke stress harness that runs several demos in sequence — cannot collide on a
+# port a prior run has not fully released.
+GATEWAY_PORT = free_port()
+PROXY_PORT = free_port()
+UPSTREAM_PORT = free_port()
 
 # Upstream the agent wants to reach. It records every call it actually sees,
 # including the body — so we can prove CONSTRAIN rewrote it before it arrived.
