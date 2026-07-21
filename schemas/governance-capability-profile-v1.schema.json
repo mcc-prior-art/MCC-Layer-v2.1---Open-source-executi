@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcc-prior-art/schemas/governance-capability-profile-v1.schema.json",
+  "title": "MCC-Core Governance Capability Profile",
+  "description": "Framework-neutral, versioned, declarative statement of the MCC-Core governance capabilities an adapter supports. It does NOT grant execution authority, replace runtime authorization, or weaken fail-closed enforcement. The pure-Python semantic validator (mcc_compliance.capability_profile.validate_profile) is authoritative and additionally enforces cross-field invariants this schema cannot express (supported/unsupported disjointness, mandatory baseline coverage, self-declaration-only certification).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile_version", "adapter", "integration_contract", "runtime_capabilities"],
+  "properties": {
+    "profile_version": {
+      "description": "Capability-profile format version.",
+      "type": "string",
+      "enum": ["1"]
+    },
+    "adapter": {
+      "description": "Adapter identity. framework is descriptive metadata only, never normative.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "implementation_id"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "implementation_id": {"type": "string", "minLength": 1},
+        "framework": {"type": ["string", "null"]}
+      }
+    },
+    "integration_contract": {
+      "description": "Integration Contract version the adapter implements.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": {
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"}
+      }
+    },
+    "compliance": {
+      "description": "Compliance suite / vector-set the adapter has been tested against.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "suite_version": {"type": "string"},
+        "vector_set_version": {"type": "string"}
+      }
+    },
+    "certification": {
+      "description": "Adapter-declared certification. A raw profile may only self-declare; trusted VALIDATED/CERTIFIED status is produced by the Certified Adapter Program, never by the adapter.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimed_status": {"type": "string", "enum": ["SELF_DECLARED", "VALIDATED", "CERTIFIED"]},
+        "evidence_digest": {"type": ["string", "null"]}
+      }
+    },
+    "runtime_capabilities": {
+      "description": "Supported baseline (mandatory) and/or optional governance capabilities. All baseline capabilities must appear here.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/capability"}
+    },
+    "optional_capabilities": {
+      "description": "Supported optional capabilities (subset of the optional registry).",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/optional_capability"}
+    },
+    "unsupported_capabilities": {
+      "description": "Explicitly unsupported optional capabilities. Must not overlap supported, and must not include a baseline capability.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/optional_capability"}
+    },
+    "constraints": {
+      "description": "Structured, per-capability constraints. Keys must be supported capabilities; values are structured objects (no opaque prose as the sole machine input).",
+      "type": "object",
+      "additionalProperties": {"type": "object"}
+    },
+    "metadata": {
+      "description": "Open forward-compatibility namespace for non-normative descriptive data.",
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "string",
+      "enum": [
+        "signature_verified",
+        "decision_authority_valid",
+        "verdict_authorizes",
+        "scope_matches",
+        "actor_matches",
+        "resource_matches",
+        "action_hash_matches",
+        "nonce_matches",
+        "nonce_not_replayed",
+        "within_validity_window",
+        "not_revoked",
+        "policy_hash_matches",
+        "durably_recorded_before_enforce",
+        "human_in_the_loop_escalation",
+        "constraint_enforcement",
+        "tamper_evident_audit_evidence"
+      ]
+    },
+    "optional_capability": {
+      "type": "string",
+      "enum": [
+        "human_in_the_loop_escalation",
+        "constraint_enforcement",
+        "tamper_evident_audit_evidence"
+      ]
+    }
+  }
+}

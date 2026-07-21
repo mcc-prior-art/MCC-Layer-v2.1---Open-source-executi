@@ -1,0 +1,46 @@
+{
+  "profile_version": "1",
+  "adapter": {
+    "name": "voltagent",
+    "version": "0.1.0",
+    "implementation_id": "integrations/voltagent",
+    "framework": "voltagent"
+  },
+  "integration_contract": {
+    "version": "1.0"
+  },
+  "compliance": {
+    "suite_version": "1.0.0",
+    "vector_set_version": "1"
+  },
+  "certification": {
+    "claimed_status": "SELF_DECLARED",
+    "evidence_digest": null
+  },
+  "runtime_capabilities": [
+    "signature_verified",
+    "decision_authority_valid",
+    "verdict_authorizes",
+    "scope_matches",
+    "actor_matches",
+    "resource_matches",
+    "action_hash_matches",
+    "nonce_matches",
+    "nonce_not_replayed",
+    "within_validity_window",
+    "not_revoked",
+    "policy_hash_matches",
+    "durably_recorded_before_enforce",
+    "human_in_the_loop_escalation",
+    "constraint_enforcement"
+  ],
+  "optional_capabilities": [
+    "human_in_the_loop_escalation",
+    "constraint_enforcement"
+  ],
+  "unsupported_capabilities": [],
+  "constraints": {},
+  "metadata": {
+    "note": "Reference integration example \u2014 non-normative."
+  }
+}
