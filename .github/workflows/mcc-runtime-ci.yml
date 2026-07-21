@@ -64,6 +64,9 @@ jobs:
       - name: Compliance suite unit + integration tests
         run: pytest tests/test_compliance_suite.py -v
 
+      - name: Certified Adapter Program tests
+        run: pytest tests/test_certified_adapter_program.py -v
+
       - name: Certify the reference adapter (must be CERTIFIED)
         run: |
           python -m mcc_compliance certify --adapter reference \
@@ -74,6 +77,13 @@ jobs:
         run: |
           python -m mcc_compliance certify --adapter voltagent \
             --contract-version 1.0 --output-dir artifacts/compliance
+
+      - name: Verify the committed certification manifest is not stale or tampered
+        run: |
+          # Regenerates certification from real evidence and compares it to the
+          # committed certifications/manifest.json. Fails (non-zero) if any official
+          # adapter no longer conforms, or a digest/status/count was hand-edited.
+          python -m mcc_compliance verify-manifest
 
       - name: A deliberately non-compliant adapter must FAIL certification
         run: |

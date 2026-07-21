@@ -1463,6 +1463,11 @@ boundary — VoltAgent is a conforming reference *integration*, not the referenc
 --contract-version 1.0`; see [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) and
 [`docs/CERTIFICATION.md`](docs/CERTIFICATION.md).
 
+The **Certified Adapter Program** records the repository's certified adapters in a
+version-controlled manifest (`certifications/manifest.json`) bound to a deterministic
+evidence digest; CI regenerates it from real evidence and fails on any stale,
+tampered, or regressed entry (`python -m mcc_compliance verify-manifest`).
+
 ---
 
 ## Accurate Positioning

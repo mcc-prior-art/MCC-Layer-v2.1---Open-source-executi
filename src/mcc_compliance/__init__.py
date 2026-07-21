@@ -52,6 +52,20 @@ from .reporting import (
     write_reports,
 )
 from .runner import ComplianceReport, run_compliance
+from .program import (
+    CERTIFICATION_NOTE,
+    MANIFEST_PATH,
+    OFFICIAL_ADAPTERS,
+    CertificationResult,
+    ManifestVerification,
+    ProgramStatus,
+    ScenarioOutcome,
+    build_manifest,
+    certify,
+    certify_report,
+    verify_manifest,
+    write_manifest,
+)
 
 # Register the built-in conforming adapters (reference + VoltAgent).
 from . import adapters as _adapters  # noqa: E402,F401
@@ -70,4 +84,8 @@ __all__ = [
     "run_compliance", "ComplianceReport",
     "certification_fingerprint", "decide_certification",
     "report_to_json", "report_to_markdown", "certification_manifest", "write_reports",
+    # Certified Adapter Program (PR #46)
+    "ProgramStatus", "ScenarioOutcome", "CertificationResult", "ManifestVerification",
+    "certify", "certify_report", "build_manifest", "write_manifest", "verify_manifest",
+    "OFFICIAL_ADAPTERS", "MANIFEST_PATH", "CERTIFICATION_NOTE",
 ]
