@@ -46,6 +46,16 @@ def _build_parser() -> argparse.ArgumentParser:
                          help="print the full JSON report to stdout")
 
     sub.add_parser("list-adapters", help="list registered adapters")
+
+    # Certified Adapter Program (PR #46).
+    bm = sub.add_parser("build-manifest",
+                        help="regenerate the repository certification manifest from real evidence")
+    bm.add_argument("--contract-version", required=True, help="e.g. 1.0")
+
+    vm = sub.add_parser("verify-manifest",
+                        help="verify the committed manifest against freshly regenerated evidence")
+    vm.add_argument("--contract-version", default=None,
+                    help="override the manifest's own contract_version")
     return parser
 
 
@@ -62,6 +72,37 @@ def main(argv: Optional[List[str]] = None) -> int:
         for name in available_adapters():
             print(name)
         return 0
+
+    if args.command == "build-manifest":
+        from .program import MANIFEST_PATH, write_manifest
+        try:
+            manifest = write_manifest(contract_version=_normalize_version(args.contract_version))
+        except ComplianceError as exc:
+            print(f"ERROR: {exc.code.value}: {exc.message}", file=sys.stderr)
+            return 2
+        n = len(manifest["certifications"])
+        print(f"wrote {MANIFEST_PATH} ({n} certified adapter(s))")
+        for e in manifest["certifications"]:
+            print(f"  - {e['adapter_key']}: {e['adapter']} v{e['adapter_version']} "
+                  f"[{e['status']}] {e['evidence_digest']}")
+        return 0
+
+    if args.command == "verify-manifest":
+        from .program import verify_manifest
+        try:
+            res = verify_manifest(
+                contract_version=(_normalize_version(args.contract_version)
+                                  if args.contract_version else None))
+        except ComplianceError as exc:
+            print(f"ERROR: {exc.code.value}: {exc.message}", file=sys.stderr)
+            return 2
+        if res.ok:
+            print("MANIFEST OK: committed certifications match regenerated evidence")
+            return 0
+        print("MANIFEST MISMATCH:", file=sys.stderr)
+        for d in res.differences:
+            print(f"  - {d}", file=sys.stderr)
+        return 1
 
     # certify
     try:

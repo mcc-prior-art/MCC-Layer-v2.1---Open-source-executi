@@ -1,0 +1,66 @@
+{
+  "certifications": [
+    {
+      "adapter": "reference-governed-agent",
+      "adapter_key": "reference",
+      "adapter_version": "1.0.0",
+      "compliance_suite_version": "1.0.0",
+      "contract_version": "1.0",
+      "covered_invariants": [
+        "action_hash_matches",
+        "actor_matches",
+        "durably_recorded_before_enforce",
+        "nonce_not_replayed",
+        "not_revoked",
+        "policy_hash_matches",
+        "resource_matches",
+        "signature_verified",
+        "verdict_authorizes",
+        "within_validity_window"
+      ],
+      "digest_algorithm": "sha256",
+      "evidence_digest": "sha256:f70d53981800c286e14a63bb7670f190d3720cce266c24b6ddaa3ff27b733ee9",
+      "framework": null,
+      "implementation_id": "examples/reference_governed_agent",
+      "report_id": "sha256:f70d53981800c286e14a63bb7670f190d3720cce266c24b6ddaa3ff27b733ee9",
+      "scenarios_failed": 0,
+      "scenarios_passed": 18,
+      "scenarios_total": 18,
+      "status": "CERTIFIED",
+      "vector_manifest_digest": "sha256:37b72e12c060f3cb082bfde4abffb0c8a3442e56bcb5e57f9b85caa29740c377"
+    },
+    {
+      "adapter": "voltagent",
+      "adapter_key": "voltagent",
+      "adapter_version": "0.1.0",
+      "compliance_suite_version": "1.0.0",
+      "contract_version": "1.0",
+      "covered_invariants": [
+        "action_hash_matches",
+        "actor_matches",
+        "durably_recorded_before_enforce",
+        "nonce_not_replayed",
+        "not_revoked",
+        "policy_hash_matches",
+        "resource_matches",
+        "signature_verified",
+        "verdict_authorizes",
+        "within_validity_window"
+      ],
+      "digest_algorithm": "sha256",
+      "evidence_digest": "sha256:9b8d0cf170a8d5c351308943910ab4252ed2d4d8c977d11ecd5353ca685a745e",
+      "framework": "voltagent",
+      "implementation_id": "integrations/voltagent",
+      "report_id": "sha256:9b8d0cf170a8d5c351308943910ab4252ed2d4d8c977d11ecd5353ca685a745e",
+      "scenarios_failed": 0,
+      "scenarios_passed": 18,
+      "scenarios_total": 18,
+      "status": "CERTIFIED",
+      "vector_manifest_digest": "sha256:37b72e12c060f3cb082bfde4abffb0c8a3442e56bcb5e57f9b85caa29740c377"
+    }
+  ],
+  "compliance_suite_version": "1.0.0",
+  "contract_version": "1.0",
+  "manifest_schema_version": "1",
+  "note": "Certified by the MCC-Core repository's official compliance suite for the stated contract and vector-set versions. This is a repository-local integrity statement, not a public, third-party, or legal accreditation, and it grants no execution authority."
+}
