@@ -1,0 +1,4 @@
+# Isolated optional dependency for the 48b LangGraph interoperability adapter.
+# Installed only by the dedicated `interop-langgraph` CI job — NOT part of the
+# framework-neutral MCC-Core runtime or the base test requirements.
+langgraph==1.2.9
