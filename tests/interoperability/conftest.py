@@ -22,7 +22,17 @@ from tests.interoperability.harness import SharedGovernedGateway  # noqa: E402
 
 # The adapter matrix. 48a ships the framework-neutral HTTP integration; the real
 # framework adapters (VoltAgent / LangGraph / CrewAI / AutoGen) are added in 48b–e.
+# A framework adapter is registered only when its optional framework distribution is
+# installed, so the base interoperability job (no heavy framework deps) still runs the
+# framework-neutral proof; a dedicated CI job installs the framework and asserts it is
+# exercised (a required adapter is never silently skipped there).
 ADAPTERS = [GenericHttpAdapter()]
+
+try:  # 48b — real LangGraph (optional dependency: langgraph)
+    from tests.interoperability.adapters.langgraph_adapter import LangGraphAdapter
+    ADAPTERS.append(LangGraphAdapter())
+except ImportError:
+    pass
 
 
 # Package scope (not session): the shared Gateway subprocess + the in-process mock

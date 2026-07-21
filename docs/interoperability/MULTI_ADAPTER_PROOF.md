@@ -1,10 +1,10 @@
 # Multi-Adapter Interoperability Proof
 
-**Status: 48a — reusable foundation + framework-neutral HTTP integration (adapter
-5/5).** The four real-framework adapters (VoltAgent, LangGraph, CrewAI, AutoGen)
-are added in follow-ups 48b–e, each with its own isolated dependency install. This
-document describes the foundation and what it proves today; it does **not** yet
-claim the full five-adapter / four-framework matrix.
+**Status: 48b — foundation + framework-neutral HTTP (5/5) + real LangGraph (2/5).**
+The remaining real-framework adapters (VoltAgent, CrewAI, AutoGen) are added in
+follow-ups 48c–e, each with its own isolated dependency install. This document
+describes what is proven today; it does **not** yet claim the full five-adapter /
+four-framework matrix.
 
 ## Objective
 
@@ -21,16 +21,24 @@ reference *integration*, not the reference *specification*.
 
 | # | Adapter | Classification | Status |
 |---|---------|----------------|--------|
-| 1 | VoltAgent | REAL FRAMEWORK INTEGRATION | pending 48b–e |
-| 2 | LangGraph | REAL FRAMEWORK INTEGRATION | pending 48b–e |
-| 3 | CrewAI | REAL FRAMEWORK INTEGRATION | pending 48b–e |
-| 4 | AutoGen | REAL FRAMEWORK INTEGRATION | pending 48b–e |
+| 1 | VoltAgent | REAL FRAMEWORK INTEGRATION | pending 48c–e |
+| 2 | **LangGraph** | **REAL FRAMEWORK INTEGRATION** | **✔ 48b** (langgraph 1.2.9) |
+| 3 | CrewAI | REAL FRAMEWORK INTEGRATION | pending 48c–e |
+| 4 | AutoGen | REAL FRAMEWORK INTEGRATION | pending 48c–e |
 | 5 | **Generic HTTP** | **FRAMEWORK-NEUTRAL HTTP INTEGRATION** | **✔ 48a** |
 
-48a delivers adapter 5/5 (Generic HTTP) end-to-end plus the reusable harness the
-framework adapters plug into. A feasibility probe confirmed all four frameworks
-install and run in this environment (LangGraph/AutoGen light; CrewAI heavy but
-resolvable; VoltAgent via Node 22) — so 48b–e are unblocked.
+48a delivered adapter 5/5 (Generic HTTP) end-to-end plus the reusable harness the
+framework adapters plug into. **48b adds the first real framework adapter,
+LangGraph:** it builds and invokes a native `langgraph.graph.StateGraph`
+(`CompiledStateGraph`) offline, extracts the node's emitted proposal, normalizes it
+to the canonical contract, and runs the same seven scenarios through the same shared
+Gateway — total now **2 adapters × 7 = 14 end-to-end scenario results**, one of them
+a real framework ecosystem. LangGraph is an isolated optional test dependency
+(`tests/interoperability/requirements-langgraph.txt`), installed only by the
+dedicated `interop-langgraph` CI job, which fails if the official package is absent
+or not genuinely exercised. A feasibility probe confirmed the remaining frameworks
+install here (AutoGen light; CrewAI heavy but resolvable; VoltAgent via Node 22) —
+48c–e are unblocked.
 
 ## What 48a proves (executable, offline)
 
