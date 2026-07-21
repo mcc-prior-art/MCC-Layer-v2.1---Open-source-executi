@@ -225,6 +225,49 @@ def certify(adapter: ComplianceAdapter, *, contract_version: str) -> Certificati
     return certify_report(report)
 
 
+def link_capability_profile(result: CertificationResult,
+                            profile: Dict[str, Any]) -> Dict[str, Any]:
+    """Attach a Governance Capability Profile (PR #47) to a certification result.
+
+    The linkage is produced by the program from a *validated* profile — never by
+    the adapter — so it distinguishes ``self_declared`` (adapter) from the trusted
+    status recorded here. It fails closed: an invalid profile, or one whose adapter
+    identity does not match the certification, is ``REJECTED``. This linkage is
+    carried in the certification *report*, not the committed manifest, so existing
+    certification artifacts remain byte-for-byte backward compatible."""
+    from .capability_profile import PROFILE_VERSION, profile_digest, validate_profile
+
+    validation = validate_profile(profile)
+    errors = [e.to_dict() for e in validation.errors]
+    identity_ok = False
+    if validation.valid:
+        a = profile.get("adapter", {})
+        identity_ok = (
+            a.get("name") == result.adapter_name
+            and a.get("version") == result.adapter_version
+            and a.get("implementation_id") == result.implementation_id
+        )
+        if not identity_ok:
+            errors.append({"code": "ADAPTER_IDENTITY_MISMATCH",
+                           "message": "profile adapter identity does not match the certification"})
+
+    if not validation.valid or not identity_ok:
+        status = "REJECTED"
+    elif result.status is ProgramStatus.CERTIFIED:
+        status = "CERTIFIED"
+    else:
+        status = "VALIDATED"
+
+    return {
+        "profile_version": profile.get("profile_version", PROFILE_VERSION),
+        "profile_digest": profile_digest(profile) if isinstance(profile, dict) else None,
+        # Trust ladder — declared < validated < certified. Never conflate them.
+        "self_declared": False,
+        "validation_status": status,
+        "errors": errors,
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Repository certification manifest.                                          #
 # --------------------------------------------------------------------------- #
@@ -309,7 +352,7 @@ def verify_manifest(*, contract_version: Optional[str] = None,
 
 __all__ = [
     "ProgramStatus", "ScenarioOutcome", "CertificationResult",
-    "certify", "certify_report",
+    "certify", "certify_report", "link_capability_profile",
     "build_manifest", "write_manifest", "verify_manifest", "ManifestVerification",
     "OFFICIAL_ADAPTERS", "MANIFEST_PATH", "MANIFEST_SCHEMA_VERSION",
     "CERT_REPORT_SCHEMA_VERSION", "DIGEST_ALGORITHM", "CERTIFICATION_NOTE",

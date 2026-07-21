@@ -52,6 +52,19 @@ from .reporting import (
     write_reports,
 )
 from .runner import ComplianceReport, run_compliance
+from .capability_profile import (
+    BASELINE_CAPABILITIES,
+    KNOWN_CAPABILITIES,
+    OPTIONAL_CAPABILITIES,
+    PROFILE_VERSION,
+    ProfileError,
+    ProfileErrorCode,
+    ProfileValidation,
+    canonicalize_profile,
+    capability_registry,
+    profile_digest,
+    validate_profile,
+)
 from .program import (
     CERTIFICATION_NOTE,
     MANIFEST_PATH,
@@ -63,6 +76,7 @@ from .program import (
     build_manifest,
     certify,
     certify_report,
+    link_capability_profile,
     verify_manifest,
     write_manifest,
 )
@@ -88,4 +102,9 @@ __all__ = [
     "ProgramStatus", "ScenarioOutcome", "CertificationResult", "ManifestVerification",
     "certify", "certify_report", "build_manifest", "write_manifest", "verify_manifest",
     "OFFICIAL_ADAPTERS", "MANIFEST_PATH", "CERTIFICATION_NOTE",
+    # Governance Capability Profile (PR #47)
+    "validate_profile", "canonicalize_profile", "profile_digest", "capability_registry",
+    "ProfileValidation", "ProfileError", "ProfileErrorCode", "PROFILE_VERSION",
+    "BASELINE_CAPABILITIES", "OPTIONAL_CAPABILITIES", "KNOWN_CAPABILITIES",
+    "link_capability_profile",
 ]
