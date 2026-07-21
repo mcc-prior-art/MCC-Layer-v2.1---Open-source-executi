@@ -1474,6 +1474,13 @@ mcc_compliance validate-capabilities profile.json`) — a declarative statement 
 grants no execution authority and never weakens fail-closed enforcement. See
 [`docs/GOVERNANCE_CAPABILITY_PROFILE.md`](docs/GOVERNANCE_CAPABILITY_PROFILE.md).
 
+The **Multi-Adapter Interoperability Proof** exercises distinct adapter ingress
+implementations against one shared out-of-process MCC Gateway over a real HTTP
+boundary, through the same seven governance scenarios and one authorization path
+(foundation + the framework-neutral HTTP integration land first; the real framework
+adapters follow). See
+[`docs/interoperability/MULTI_ADAPTER_PROOF.md`](docs/interoperability/MULTI_ADAPTER_PROOF.md).
+
 ---
 
 ## Accurate Positioning

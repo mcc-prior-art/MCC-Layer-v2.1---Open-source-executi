@@ -34,3 +34,6 @@ mcc_signing_key.pem
 build/
 dist/
 /mcc_core.egg-info/
+
+# Generated evidence bundles (compliance + interoperability); regenerated in CI
+/artifacts/

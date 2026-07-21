@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcc-prior-art/schemas/multi-adapter-matrix-v1.schema.json",
+  "title": "MCC-Core Multi-Adapter Interoperability Matrix",
+  "description": "Deterministic evidence that distinct adapter ingress implementations operate through one shared MCC Gateway and one governance path. The pure-Python validator (tests.interoperability.evidence.validate_matrix) is authoritative for cross-field checks.",
+  "type": "object",
+  "required": ["proof_format_version", "generation_method", "shared_gateway", "adapters", "totals", "audit_chain_verification", "overall", "run_id"],
+  "properties": {
+    "proof_format_version": {"type": "string"},
+    "generation_method": {"type": "string"},
+    "run_id": {"type": "string"},
+    "overall": {"type": "string", "enum": ["PASS", "FAIL"]},
+    "shared_gateway": {"$ref": "#/$defs/gateway"},
+    "totals": {
+      "type": "object",
+      "required": ["adapters", "real_framework_ecosystems", "framework_neutral_http", "scenarios_per_adapter"],
+      "properties": {
+        "adapters": {"type": "integer"},
+        "real_framework_ecosystems": {"type": "integer"},
+        "framework_neutral_http": {"type": "boolean"},
+        "scenarios_per_adapter": {"type": "integer"},
+        "scenario_results": {"type": "integer"}
+      }
+    },
+    "audit_chain_verification": {
+      "type": "object",
+      "required": ["verified"],
+      "properties": {"verified": {"type": "boolean"}}
+    },
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "adapters": {"type": "array", "items": {"$ref": "#/$defs/adapter"}}
+  },
+  "$defs": {
+    "gateway": {
+      "type": "object",
+      "required": ["gateway_impl", "gate_impl", "audit_impl", "deployment_id", "endpoint", "policy_hash", "trust_set_id", "nonce_registry_impl"],
+      "properties": {
+        "gateway_impl": {"type": "string"},
+        "gate_impl": {"type": "string"},
+        "audit_impl": {"type": "string"},
+        "deployment_id": {"type": "string"},
+        "endpoint": {"type": "string"},
+        "policy_hash": {"type": "string"},
+        "signing_kid": {"type": "string"},
+        "trust_set_id": {"type": "string"},
+        "nonce_registry_impl": {"type": "string"}
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "required": ["adapter", "classification", "adapter_module", "adapter_version", "framework_provenance", "integration_contract_version", "capability_profile_version", "shared_gateway", "scenarios", "capability_evidence_map", "result"],
+      "properties": {
+        "adapter": {"type": "string"},
+        "classification": {"type": "string", "enum": ["REAL FRAMEWORK INTEGRATION", "FRAMEWORK-NEUTRAL HTTP INTEGRATION"]},
+        "adapter_module": {"type": "string"},
+        "adapter_version": {"type": "string"},
+        "framework_provenance": {"type": "object"},
+        "integration_contract_version": {"type": "string"},
+        "capability_profile_version": {"type": ["string", "null"]},
+        "shared_gateway": {"$ref": "#/$defs/gateway"},
+        "scenarios": {"type": "array", "items": {"$ref": "#/$defs/scenario"}},
+        "capability_evidence_map": {"type": "object"},
+        "result": {"type": "string", "enum": ["PASS", "FAIL"]}
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "required": ["scenario", "status", "executed"],
+      "properties": {
+        "scenario": {"type": "string"},
+        "status": {"type": "string", "enum": ["PASS", "FAIL"]},
+        "executed": {"type": "boolean"},
+        "verdict": {"type": ["string", "null"]},
+        "decision_id": {"type": ["string", "null"]},
+        "audit_ref": {"type": ["string", "null"]},
+        "audit_chain_valid": {"type": ["boolean", "null"]},
+        "proposal_hash": {"type": ["string", "null"]},
+        "detail": {"type": "string"}
+      }
+    }
+  }
+}
