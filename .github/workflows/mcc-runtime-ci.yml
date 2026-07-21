@@ -167,6 +167,49 @@ jobs:
           path: artifacts/interoperability/
           if-no-files-found: warn
 
+  interop-langgraph:
+    # 48b — real LangGraph adapter (2/5) through the SAME shared Gateway. Installs
+    # the official langgraph distribution as an isolated optional dependency and
+    # asserts it is genuinely present and exercised (a native CompiledStateGraph is
+    # built and invoked). A missing/absent framework fails the job — it is never
+    # silently skipped here. Offline, no LLM, no external API keys.
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated langgraph)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-langgraph.txt
+
+      - name: Show resolved framework version
+        run: python -c "import importlib.metadata as m; print('langgraph', m.version('langgraph'))"
+
+      - name: Assert the official LangGraph package is really importable
+        run: python -c "import langgraph; from langgraph.graph import StateGraph; from langgraph.graph.state import CompiledStateGraph; print('langgraph native API present')"
+
+      - name: Interoperability proof WITH the real LangGraph adapter
+        # test_framework_provenance is NOT skipped here (langgraph installed): it
+        # fails if the adapter is missing or not a genuine native integration.
+        run: pytest tests/interoperability/ -v
+
+      - name: Upload interoperability evidence bundle (with LangGraph)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-evidence-48b-langgraph
+          path: artifacts/interoperability/
+          if-no-files-found: warn
+
   smoke:
     runs-on: ubuntu-latest
     steps:
