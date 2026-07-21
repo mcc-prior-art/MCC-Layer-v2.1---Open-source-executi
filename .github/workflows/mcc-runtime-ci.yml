@@ -132,6 +132,41 @@ jobs:
           path: artifacts/compliance/
           if-no-files-found: warn
 
+  interoperability:
+    # Multi-Adapter Interoperability Proof — 48a foundation.
+    # Boots ONE real out-of-process MCC Gateway and drives the framework-neutral
+    # HTTP adapter (5/5) through the seven common governance scenarios over a real
+    # HTTP boundary, with static bypass guards and a deterministic evidence bundle.
+    # The four real-framework adapters (VoltAgent/LangGraph/CrewAI/AutoGen) are
+    # added in 48b–e with their own isolated dependency installs. Offline, no LLM.
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Interoperability proof (shared out-of-process Gateway, real HTTP)
+        run: pytest tests/interoperability/ -v
+
+      - name: Upload interoperability evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-evidence-48a
+          path: artifacts/interoperability/
+          if-no-files-found: warn
+
   smoke:
     runs-on: ubuntu-latest
     steps:
