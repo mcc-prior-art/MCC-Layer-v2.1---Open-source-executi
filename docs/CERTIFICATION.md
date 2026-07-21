@@ -99,3 +99,112 @@ change-control policy in [INTEGRATION_CONTRACT.md](INTEGRATION_CONTRACT.md);
 released golden vectors for a contract version are immutable except for documented
 defect corrections, and a semantic change requires a new contract (and vector)
 version.
+
+---
+
+# Certified Adapter Program
+
+A narrow, repository-native layer (`mcc_compliance.program`) that turns an official
+compliance result into a deterministic, machine-readable **certification** and
+records the repository's certified adapters in a version-controlled manifest that
+CI regenerates and verifies.
+
+## What repository certification means — and does not
+
+- **Means:** for the stated contract and vector-set versions, this exact adapter
+  version passed the repository's official compliance suite, and the evidence
+  hashes to the recorded digest.
+- **Does not mean:** any public, third-party, or legal accreditation; any assurance
+  about downstream application code; any grant of execution authority. Certification
+  changes no MCC-Core governance decision, Gate semantics, or the verified
+  execution path.
+
+## Normative vs informative
+
+- **Normative:** the Integration Contract and the golden vectors (mapped to
+  invariants).
+- **Informative:** adapters, compliance reports, **and certifications/manifest**.
+  A certification is a *representation* of compliance evidence — it never defines
+  required behavior.
+
+## The chain (and how each link binds)
+
+```
+Integration Contract  → golden vectors → compliance result → certification → manifest
+   (normative)           (normative)      (run_compliance)     (derived)     (recorded)
+```
+
+`certify(adapter, contract_version=…)` runs `run_compliance` (real governed stack,
+ground-truth cross-check, **no wall-clock time**) and derives a `CertificationResult`.
+Certification is `CERTIFIED` only when the compliance result is `CERTIFIED`, the
+adapter's claimed contract version matches the target, and metadata is complete —
+otherwise `NOT_CERTIFIED` (fail-closed).
+
+## Version binding
+
+A certification is bound to the exact **contract version** and the exact
+**compliance-suite / vector-set version** (and the vector-manifest digest). A
+mismatch or unsupported version fails closed and never certifies.
+
+## Deterministic evidence digest
+
+`evidence_digest` is a SHA-256 over the canonical serialization of the semantic
+evidence: adapter identity + version, contract version, compliance/vector-set
+version, vector-manifest digest, ordered scenario outcomes, invariant coverage, and
+the overall status. It excludes the timestamp (certification carries **no**
+wall-clock time), filesystem paths, and object repr, so the same inputs always
+produce the same digest. It is an **integrity fingerprint, not a signature** — no
+PKI, no trust roots, no remote verification.
+
+## Certify an adapter locally
+
+```bash
+# One adapter → JSON/Markdown/certification.json under the output dir
+python -m mcc_compliance certify --adapter voltagent --contract-version 1.0 \
+  --output-dir artifacts/compliance
+
+# Regenerate the repository manifest of certified adapters
+python -m mcc_compliance build-manifest --contract-version 1.0
+
+# Verify the committed manifest against freshly regenerated evidence
+python -m mcc_compliance verify-manifest      # exit 0 == OK, 1 == mismatch
+```
+
+Python API: `from mcc_compliance import certify, build_manifest, verify_manifest`.
+
+## The repository manifest
+
+`certifications/manifest.json` records only adapters the official suite genuinely
+certifies (currently the **reference** adapter and **VoltAgent**). Each entry binds
+adapter identity + version, contract version, compliance-suite/vector-set version,
+vector-manifest digest, status, scenario counts, covered invariants, and the
+evidence digest (also the stable `report_id`). It is deterministically ordered and
+schema-versioned.
+
+## How CI verifies it
+
+CI runs `verify-manifest`, which **regenerates** certification from real evidence
+and compares it canonically to the committed file. It fails if:
+
+- an official adapter no longer conforms (regression);
+- a digest, status, or count was hand-edited (tamper);
+- an entry is stale, or a non-certified adapter was slipped in as `CERTIFIED`.
+
+A developer therefore cannot flip an entry to `CERTIFIED` without CI detecting that
+the actual compliance evidence does not match.
+
+## Adding a future adapter
+
+1. Implement the framework-neutral `ComplianceAdapter` boundary and register it.
+2. Confirm it certifies: `python -m mcc_compliance certify --adapter <name> …`.
+3. Add its registry key to `OFFICIAL_ADAPTERS`, run `build-manifest`, and commit the
+   updated `certifications/manifest.json`. CI's `verify-manifest` will hold it to
+   real evidence from then on.
+
+## Invalidation
+
+Any change to the adapter (version/behavior), the contract version, or the vector
+set changes the evidence digest and therefore the certification. A regression drops
+the adapter from the regenerated manifest, and CI fails until the committed manifest
+is corrected. VoltAgent remains a **conforming reference integration, not the
+reference specification**.
