@@ -16,6 +16,7 @@ import pytest
 from tests.interoperability.conftest import ADAPTERS
 
 langgraph_installed = importlib.util.find_spec("langgraph") is not None
+autogen_installed = importlib.util.find_spec("autogen_core") is not None
 
 
 def _adapter(name: str):
@@ -57,3 +58,36 @@ def test_langgraph_adapter_is_registered_in_the_matrix():
     names = {a.adapter_name for a in ADAPTERS}
     assert "langgraph" in names
     assert "generic-http" in names
+
+
+@pytest.mark.skipif(not autogen_installed, reason="autogen not installed (base job)")
+def test_autogen_is_a_real_native_integration():
+    a = _adapter("autogen")
+    assert a is not None, "AutoGen adapter not registered though autogen-core is installed"
+    assert a.adapter_classification == "REAL FRAMEWORK INTEGRATION"
+
+    prov = a.framework_provenance()
+    import importlib.metadata
+    assert prov["framework_distribution"] == "autogen-agentchat"
+    assert prov["framework_version"] == importlib.metadata.version("autogen-agentchat")
+    assert prov["autogen_core_version"] == importlib.metadata.version("autogen-core")
+    assert prov["framework_ecosystem"] == "pypi"
+    assert "AutoGen v0.4+" in prov["api_generation"]
+    assert prov["native_object_type"].startswith("autogen_core.RoutedAgent")
+
+    # The adapter's agent really subclasses the native RoutedAgent, and the proposal
+    # genuinely originates from running it on the native runtime.
+    from autogen_core import RoutedAgent
+    from tests.interoperability.adapters.autogen_adapter import _NotifyAgent
+    assert issubclass(_NotifyAgent, RoutedAgent)
+    prop = a.proposal_for("ALLOW")
+    assert prop.action == "send_notification"
+    assert prop.payload["recipient"] == "customer-123"
+    assert prop.payload["channel"] == "email"
+    assert a.proposal_for("DENY").payload["channel"] == "pager"
+
+
+@pytest.mark.skipif(not autogen_installed, reason="autogen not installed (base job)")
+def test_autogen_adapter_is_registered_in_the_matrix():
+    names = {a.adapter_name for a in ADAPTERS}
+    assert "autogen" in names and "generic-http" in names
