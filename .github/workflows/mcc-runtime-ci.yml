@@ -67,6 +67,21 @@ jobs:
       - name: Certified Adapter Program tests
         run: pytest tests/test_certified_adapter_program.py -v
 
+      - name: Governance Capability Profile tests
+        run: pytest tests/test_capability_profile.py -v
+
+      - name: Validate the reference capability profiles (schema + semantics)
+        run: |
+          for f in minimal-valid full-capable unsupported-optional voltagent-reference-example; do
+            python -m mcc_compliance validate-capabilities "tests/capability_profiles/$f.json"
+          done
+          # A deliberately invalid profile must be rejected (non-zero).
+          if python -m mcc_compliance validate-capabilities \
+               tests/capability_profiles/invalid-overlap.json; then
+            echo "::error::an invalid capability profile was accepted"; exit 1
+          fi
+          echo "OK: valid profiles accepted, invalid profile rejected"
+
       - name: Certify the reference adapter (must be CERTIFIED)
         run: |
           python -m mcc_compliance certify --adapter reference \

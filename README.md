@@ -1468,6 +1468,12 @@ version-controlled manifest (`certifications/manifest.json`) bound to a determin
 evidence digest; CI regenerates it from real evidence and fails on any stale,
 tampered, or regressed entry (`python -m mcc_compliance verify-manifest`).
 
+Adapters declare which governance capabilities they support with a framework-neutral
+**Governance Capability Profile** (schema + semantic validator; `python -m
+mcc_compliance validate-capabilities profile.json`) — a declarative statement that
+grants no execution authority and never weakens fail-closed enforcement. See
+[`docs/GOVERNANCE_CAPABILITY_PROFILE.md`](docs/GOVERNANCE_CAPABILITY_PROFILE.md).
+
 ---
 
 ## Accurate Positioning

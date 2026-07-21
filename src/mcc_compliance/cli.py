@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 from .models import CertificationStatus, ComplianceError
@@ -56,6 +57,12 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="verify the committed manifest against freshly regenerated evidence")
     vm.add_argument("--contract-version", default=None,
                     help="override the manifest's own contract_version")
+
+    # Governance Capability Profile (PR #47).
+    vc = sub.add_parser("validate-capabilities",
+                        help="schema + semantic validation of a Governance Capability Profile")
+    vc.add_argument("profile", help="path to a capability profile JSON file")
+    vc.add_argument("--json", action="store_true", help="print the structured result as JSON")
     return parser
 
 
@@ -103,6 +110,25 @@ def main(argv: Optional[List[str]] = None) -> int:
         for d in res.differences:
             print(f"  - {d}", file=sys.stderr)
         return 1
+
+    if args.command == "validate-capabilities":
+        from .capability_profile import validate_profile
+        try:
+            profile = json.loads(Path(args.profile).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"ERROR: could not read profile: {exc}", file=sys.stderr)
+            return 2
+        result = validate_profile(profile)
+        if args.json:
+            print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        elif result.valid:
+            print("VALID: capability profile is well-formed and consistent")
+            print(f"  profile digest: {result.digest}")
+        else:
+            print("INVALID: capability profile rejected", file=sys.stderr)
+            for e in result.errors:
+                print(f"  - {e.code.value}: {e.message}", file=sys.stderr)
+        return 0 if result.valid else 1
 
     # certify
     try:
