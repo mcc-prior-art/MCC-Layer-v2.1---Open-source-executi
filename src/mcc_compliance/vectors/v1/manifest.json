@@ -1,0 +1,188 @@
+{
+  "contract_identifier": "mcc-integration-contract",
+  "contract_version": "1.0",
+  "vector_schema_version": "1",
+  "description": "Golden compliance vectors for MCC-Core Integration Contract v1.0. Framework-neutral, deterministic, offline. Every vector maps to a normative requirement/invariant in docs/INTEGRATION_CONTRACT.md. Vector IDs are immutable once released.",
+  "vectors": [
+    {
+      "id": "IC-V1-ALLOW-001",
+      "category": "authorized",
+      "requirement": "verdict_authorizes",
+      "invariant": "verdict_authorizes",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "valid", "request": "normal"},
+      "expected": {"executed": true, "verdict": "ALLOW", "audit_valid": true}
+    },
+    {
+      "id": "IC-V1-DENY-001",
+      "category": "denied",
+      "requirement": "verdict_authorizes",
+      "invariant": "verdict_authorizes",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "deny", "authorization": "valid", "request": "normal"},
+      "expected": {"executed": false, "verdict": "DENY"}
+    },
+    {
+      "id": "IC-V1-CONSTRAIN-001",
+      "category": "constrained",
+      "requirement": "constraints_enforced",
+      "invariant": "policy_hash_matches",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "constrain", "authorization": "valid", "request": "normal"},
+      "expected": {"executed": true, "verdict": "CONSTRAIN", "min_constraints": 1}
+    },
+    {
+      "id": "IC-V1-ESCALATE-001",
+      "category": "escalation",
+      "requirement": "escalation_requires_approval",
+      "invariant": "verdict_authorizes",
+      "mandatory": true,
+      "capability": "escalation",
+      "scenario": {"driver": "escalate", "operator": "reject", "request": "normal"},
+      "expected": {"executed": false, "verdict": "ESCALATE"}
+    },
+    {
+      "id": "IC-V1-ESCALATE-002",
+      "category": "escalation",
+      "requirement": "escalation_single_use_approval",
+      "invariant": "not_revoked",
+      "mandatory": true,
+      "capability": "escalation",
+      "scenario": {"driver": "escalate", "operator": "approve", "request": "normal"},
+      "expected": {"executed": true, "verdict": "ESCALATE", "audit_valid": true}
+    },
+    {
+      "id": "IC-V1-MALFORMED-001",
+      "category": "malformed",
+      "requirement": "fail_closed_on_malformed",
+      "invariant": "verdict_authorizes",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "valid", "request": "malformed"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-NOAUTH-001",
+      "category": "no_authority",
+      "requirement": "no_execution_without_authority",
+      "invariant": "signature_verified",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "none", "request": "normal"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-EXPIRED-001",
+      "category": "authorization_material",
+      "requirement": "expired_authorization_rejected",
+      "invariant": "within_validity_window",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "expired", "request": "normal"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-REPLAY-001",
+      "category": "replay",
+      "requirement": "single_use_challenge",
+      "invariant": "nonce_not_replayed",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "replay", "request": "normal"},
+      "expected": {"executed": true, "verdict": "ALLOW", "replay_blocked": true}
+    },
+    {
+      "id": "IC-V1-SCOPE-001",
+      "category": "binding",
+      "requirement": "resource_binding",
+      "invariant": "resource_matches",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "scope", "request": "normal"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-ACTOR-001",
+      "category": "binding",
+      "requirement": "actor_binding",
+      "invariant": "actor_matches",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "actor", "request": "normal"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-POLICYHASH-001",
+      "category": "binding",
+      "requirement": "policy_binding",
+      "invariant": "policy_hash_matches",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "policy_hash", "request": "normal"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-SIGNATURE-001",
+      "category": "signature",
+      "requirement": "signature_verification",
+      "invariant": "signature_verified",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "signature", "request": "normal"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-TAMPER-001",
+      "category": "binding",
+      "requirement": "action_payload_binding",
+      "invariant": "action_hash_matches",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "tamper", "request": "normal"},
+      "expected": {"executed": false}
+    },
+    {
+      "id": "IC-V1-BYPASS-001",
+      "category": "bypass",
+      "requirement": "no_bypass_of_gate",
+      "invariant": "verdict_authorizes",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "deny", "authorization": "valid", "request": "normal"},
+      "expected": {"executed": false, "verdict": "DENY"}
+    },
+    {
+      "id": "IC-V1-AUDIT-001",
+      "category": "audit",
+      "requirement": "audit_before_actuation",
+      "invariant": "durably_recorded_before_enforce",
+      "mandatory": true,
+      "capability": "audit_linkage",
+      "scenario": {"driver": "allow", "authorization": "valid", "request": "normal"},
+      "expected": {"executed": true, "verdict": "ALLOW", "audit_valid": true}
+    },
+    {
+      "id": "IC-V1-UNKNOWNVERDICT-001",
+      "category": "unknown_verdict",
+      "requirement": "known_verdict_only",
+      "invariant": "verdict_authorizes",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "valid", "request": "normal"},
+      "expected": {"executed": true, "verdict": "ALLOW"}
+    },
+    {
+      "id": "IC-V1-ADAPTERERROR-001",
+      "category": "adapter_error",
+      "requirement": "adapter_exception_never_certifies",
+      "invariant": "verdict_authorizes",
+      "mandatory": true,
+      "capability": "core",
+      "scenario": {"driver": "allow", "authorization": "valid", "request": "normal"},
+      "expected": {"executed": true, "verdict": "ALLOW"}
+    }
+  ]
+}

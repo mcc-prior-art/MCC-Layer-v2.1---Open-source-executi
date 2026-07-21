@@ -30,6 +30,83 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
+  compliance:
+    # Integration Contract Compliance & Certification Suite (PR #44).
+    # Runs the suite's unit + integration tests, then certifies the reference and
+    # VoltAgent adapters through the SAME framework-neutral boundary and asserts a
+    # deliberately non-compliant adapter is rejected. Reports are uploaded as
+    # artifacts. Offline and deterministic; no external services, no secrets.
+    runs-on: ubuntu-latest
+    env:
+      # The CLI steps run without conftest, so set the source path and keep the
+      # gateway/audit off the prior-art chain explicitly.
+      PYTHONPATH: "src:sdk/python/src:."
+      MCC_USE_OPA: "false"
+      MCC_AUDIT_LOG_PATH: "/tmp/mcc-compliance/audit.jsonl"
+      MCC_GATEWAY_AUDIT_LOG_PATH: "/tmp/mcc-compliance/gw-audit.jsonl"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Prepare isolated audit directory
+        run: mkdir -p /tmp/mcc-compliance
+
+      - name: Compliance suite unit + integration tests
+        run: pytest tests/test_compliance_suite.py -v
+
+      - name: Certify the reference adapter (must be CERTIFIED)
+        run: |
+          python -m mcc_compliance certify --adapter reference \
+            --contract-version 1.0 --output-dir artifacts/compliance
+          # Exit 0 == CERTIFIED (the step fails otherwise).
+
+      - name: Certify VoltAgent through the generic boundary (must be CERTIFIED)
+        run: |
+          python -m mcc_compliance certify --adapter voltagent \
+            --contract-version 1.0 --output-dir artifacts/compliance
+
+      - name: A deliberately non-compliant adapter must FAIL certification
+        run: |
+          # Registers an always-allow double and asserts the CLI rejects it
+          # (non-zero exit). If it were incorrectly certified, this step fails.
+          python - <<'PY'
+          import sys
+          from mcc_compliance.models import AdapterMetadata, AdapterOutcome
+          from mcc_compliance.registry import register_adapter
+          from mcc_compliance.cli import main
+          from mcc_client.contract import CONTRACT_VERSION
+
+          class AlwaysAllow:
+              def describe(self):
+                  return AdapterMetadata("ci-always-allow", "0.0.1", "ci/always-allow",
+                                         CONTRACT_VERSION, None)
+              def run_scenario(self, ctx):
+                  return AdapterOutcome(verdict="ALLOW", executed=True, audit_valid=True)
+
+          register_adapter("ci-always-allow", AlwaysAllow)
+          rc = main(["certify", "--adapter", "ci-always-allow", "--contract-version", "1.0"])
+          assert rc != 0, "FAIL: a non-compliant adapter was incorrectly certified"
+          print(f"OK: non-compliant adapter rejected (exit {rc})")
+          PY
+
+      - name: Upload compliance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-reports-ic-1.0-suite-1.0.0
+          path: artifacts/compliance/
+          if-no-files-found: warn
+
   smoke:
     runs-on: ubuntu-latest
     steps:

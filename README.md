@@ -1450,6 +1450,19 @@ which executes **only** through the governed path and never directly. See
 stages, sequence diagram, integration steps, trust boundaries, failure modes, and
 security guarantees.
 
+### Compliance & Certification
+
+An adapter's conformance to a specific contract version is verified by the
+**Integration Contract Compliance & Certification Suite** (`mcc_compliance`): it
+runs an adapter through the same framework-neutral boundary against a real,
+in-process governed stack, cross-checks every claim against ground truth, and
+issues a fail-closed, version-specific certification with a deterministic
+fingerprint. The reference agent and VoltAgent both certify through that same
+boundary — VoltAgent is a conforming reference *integration*, not the reference
+*specification*. Run `python -m mcc_compliance certify --adapter voltagent
+--contract-version 1.0`; see [`docs/COMPLIANCE.md`](docs/COMPLIANCE.md) and
+[`docs/CERTIFICATION.md`](docs/CERTIFICATION.md).
+
 ---
 
 ## Accurate Positioning
