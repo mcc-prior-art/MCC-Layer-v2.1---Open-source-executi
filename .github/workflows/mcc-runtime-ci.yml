@@ -210,6 +210,47 @@ jobs:
           path: artifacts/interoperability/
           if-no-files-found: warn
 
+  interop-autogen:
+    # 48c — real AutoGen adapter (3/5) through the SAME shared Gateway. Installs the
+    # official Microsoft AutoGen v0.4+ distributions (autogen-agentchat + autogen-core)
+    # as isolated optional dependencies and asserts they are genuinely present and
+    # exercised (a native RoutedAgent runs on a SingleThreadedAgentRuntime). A
+    # missing/absent framework fails the job — never silently skipped. Offline, no LLM.
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated autogen)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-autogen.txt
+
+      - name: Show resolved framework versions
+        run: python -c "import importlib.metadata as m; print('autogen-agentchat', m.version('autogen-agentchat'), '| autogen-core', m.version('autogen-core'))"
+
+      - name: Assert the official AutoGen packages are really importable
+        run: python -c "import autogen_core; from autogen_core import RoutedAgent, SingleThreadedAgentRuntime; print('autogen native API present')"
+
+      - name: Interoperability proof WITH the real AutoGen adapter
+        run: pytest tests/interoperability/ -v
+
+      - name: Upload interoperability evidence bundle (with AutoGen)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-evidence-48c-autogen
+          path: artifacts/interoperability/
+          if-no-files-found: warn
+
   smoke:
     runs-on: ubuntu-latest
     steps:

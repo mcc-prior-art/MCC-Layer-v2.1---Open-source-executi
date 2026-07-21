@@ -1,0 +1,5 @@
+# Isolated optional dependencies for the 48c AutoGen interoperability adapter.
+# Microsoft AutoGen v0.4+ line. Installed only by the dedicated `interop-autogen`
+# CI job — NOT part of the framework-neutral MCC-Core runtime or base test reqs.
+autogen-agentchat==0.7.5
+autogen-core==0.7.5

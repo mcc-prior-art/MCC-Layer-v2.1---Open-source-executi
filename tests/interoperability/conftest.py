@@ -34,6 +34,12 @@ try:  # 48b — real LangGraph (optional dependency: langgraph)
 except ImportError:
     pass
 
+try:  # 48c — real AutoGen (optional dependencies: autogen-agentchat + autogen-core)
+    from tests.interoperability.adapters.autogen_adapter import AutoGenAdapter
+    ADAPTERS.append(AutoGenAdapter())
+except ImportError:
+    pass
+
 
 # Package scope (not session): the shared Gateway subprocess + the in-process mock
 # upstream server are torn down as soon as the interoperability package finishes, so
