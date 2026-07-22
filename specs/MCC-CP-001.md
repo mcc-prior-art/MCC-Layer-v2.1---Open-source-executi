@@ -746,3 +746,115 @@ Normative requirements SHALL be versioned.
 CONF-007
 
 Certification decisions SHALL be derived only from evaluated normative requirements.
+
+---
+
+# 11. Capability Profiles
+
+## 11.1 Purpose
+
+Capability Profiles define the normative functional capabilities that MAY be claimed by a Certification Subject.
+
+Capability Profiles provide a standardized mechanism for evaluating implementation capabilities independently of implementation technology.
+
+Capability Profiles SHALL remain framework-neutral.
+
+---
+
+## 11.2 Capability Profile Identifier
+
+Each Capability Profile SHALL have a globally unique identifier.
+
+Each profile SHALL define:
+
+- profile identifier;
+- profile name;
+- specification version;
+- capability set;
+- applicability conditions.
+
+Capability Profile identifiers SHALL remain stable within a published specification version.
+
+---
+
+## 11.3 Capability Definition
+
+Each capability SHALL define:
+
+- capability identifier;
+- capability description;
+- normative requirements;
+- verification method;
+- expected outcome.
+
+Capabilities SHALL reference only normative MCC requirements.
+
+---
+
+## 11.4 Capability Evaluation
+
+Each declared capability SHALL be evaluated independently.
+
+Capability evaluation SHALL produce one of the following outcomes:
+
+- PASS
+- FAIL
+- NOT APPLICABLE
+
+Capability evaluation SHALL be reproducible.
+
+---
+
+## 11.5 Capability Dependencies
+
+A Capability Profile MAY depend upon one or more additional capabilities.
+
+Dependent capabilities SHALL be evaluated before the capability that references them.
+
+Circular capability dependencies SHALL NOT be permitted.
+
+---
+
+## 11.6 Capability Claims
+
+Certification Subjects MAY claim support for one or more Capability Profiles.
+
+Capability claims SHALL be verified during certification.
+
+Unverified capability claims SHALL NOT appear within Certification Manifests or Technical Certificates.
+
+---
+
+## 11.7 Capability Profile Invariants
+
+CAP-001
+
+Capability Profiles SHALL remain framework-neutral.
+
+CAP-002
+
+Capability evaluation SHALL remain implementation-independent.
+
+CAP-003
+
+Capability claims SHALL be reproducible.
+
+CAP-004
+
+Capability claims SHALL be independently verifiable.
+
+CAP-005
+
+Capability identifiers SHALL be versioned.
+
+CAP-006
+
+Capabilities SHALL reference normative requirements only.
+
+CAP-007
+
+Capability dependencies SHALL be acyclic.
+
+CAP-008
+
+Only verified capabilities MAY be certified.
