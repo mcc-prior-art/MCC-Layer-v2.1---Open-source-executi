@@ -30,6 +30,45 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
+  protocol:
+    # Canonical Governance Protocol & Canonical Ingress Pipeline (PR #49).
+    # Offline unit tests + architecture/reconciliation guards prove one normative
+    # wire contract (reconciled with PR #43), CanonicalProposal/GovernanceDecision,
+    # the mandatory in-process ingress pipeline, version negotiation (fail-closed),
+    # and that adapters cannot bypass the pipeline/gateway/audit or authorize
+    # locally. Then generates the reproducible ingress evidence (every registered
+    # adapter -> CanonicalProposal -> pipeline -> real gateway -> GovernanceDecision).
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Protocol unit tests + architecture/reconciliation guards
+        run: pytest tests/protocol/ -v
+
+      - name: Canonical Ingress evidence (proposal -> pipeline -> real gateway)
+        run: pytest tests/interoperability/test_canonical_ingress.py -v
+
+      - name: Upload canonical ingress evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-ingress-evidence
+          path: artifacts/protocol/
+          if-no-files-found: warn
+
   compliance:
     # Integration Contract Compliance & Certification Suite (PR #44).
     # Runs the suite's unit + integration tests, then certifies the reference and
