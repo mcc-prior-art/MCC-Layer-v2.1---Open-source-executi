@@ -1216,3 +1216,91 @@ Certification Manifests SHALL declare specification versions.
 MAN-007
 
 Certification Manifests SHALL remain immutable after publication.
+
+---
+
+# 16. Technical Certificate Requirements
+
+## 16.1 Purpose
+
+Technical Certificate Requirements define the normative properties of Technical Certificates issued by the MCC Certification Program.
+
+A Technical Certificate SHALL represent the authoritative certification outcome for a Certification Subject.
+
+Technical Certificates SHALL be derived only from successful certification.
+
+---
+
+## 16.2 Certificate Contents
+
+Every Technical Certificate SHALL include:
+
+- certificate identifier;
+- Certification Subject identifier;
+- specification version;
+- certification result;
+- certified capability profiles;
+- Certification Manifest reference;
+- Evidence Bundle reference;
+- issuance timestamp.
+
+---
+
+## 16.3 Certificate Issuance
+
+Technical Certificates SHALL be issued only after successful completion of certification.
+
+Certificates SHALL NOT be issued for unsuccessful certification.
+
+---
+
+## 16.4 Certificate Integrity
+
+Technical Certificates SHALL accurately represent certification results.
+
+Certificates SHALL NOT contain unverifiable claims.
+
+Certificate integrity SHALL be preserved after issuance.
+
+---
+
+## 16.5 Certificate Traceability
+
+Every Technical Certificate SHALL be traceable to:
+
+- the Certification Subject;
+- the applicable specification version;
+- the Certification Manifest;
+- the Evidence Bundle.
+
+---
+
+## 16.6 Certificate Invariants
+
+CERT-001
+
+Technical Certificates SHALL be authoritative.
+
+CERT-002
+
+Technical Certificates SHALL remain framework-neutral.
+
+CERT-003
+
+Technical Certificates SHALL remain implementation-independent.
+
+CERT-004
+
+Technical Certificates SHALL reference Certification Manifests.
+
+CERT-005
+
+Technical Certificates SHALL reference Evidence Bundles.
+
+CERT-006
+
+Technical Certificates SHALL declare specification versions.
+
+CERT-007
+
+Technical Certificates SHALL remain immutable after issuance.
