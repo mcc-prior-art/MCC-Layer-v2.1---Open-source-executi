@@ -1664,3 +1664,62 @@ Certification SHALL NOT skip mandatory states.
 STATE-007
 
 State history SHALL remain immutable.
+
+---
+
+# Appendix B — Certification Decision Matrix
+
+## B.1 Overview
+
+This appendix defines the normative decision outcomes for certification.
+
+Certification decisions SHALL be derived exclusively from evaluated normative requirements.
+
+## B.2 Decision Outcomes
+
+The certification authority MAY produce only one of the following outcomes:
+
+- Certified
+- Certified with Conditions
+- Rejected
+- Revoked
+
+No additional certification outcomes SHALL be defined unless introduced by a future specification revision.
+
+## B.3 Decision Rules
+
+Certification SHALL be granted only when all REQUIRED normative requirements have been satisfied.
+
+OPTIONAL requirements SHALL NOT determine certification status.
+
+CONDITIONAL requirements SHALL be evaluated only when their applicability conditions are satisfied.
+
+## B.4 Decision Invariants
+
+DEC-001
+
+Certification decisions SHALL be evidence-based.
+
+DEC-002
+
+Certification decisions SHALL remain reproducible.
+
+DEC-003
+
+Certification decisions SHALL remain independently verifiable.
+
+DEC-004
+
+Certification decisions SHALL reference the applicable specification version.
+
+DEC-005
+
+Certification decisions SHALL reference the Certification Manifest.
+
+DEC-006
+
+Certification decisions SHALL reference the Evidence Bundle.
+
+DEC-007
+
+Certification decisions SHALL reference the Technical Certificate when certification is granted.
