@@ -305,3 +305,121 @@ Normative requirements SHALL be versioned.
 CI-010
 
 Certification SHALL remain implementation-independent.
+
+---
+
+# 8. Certification Lifecycle
+
+The MCC Certification Program defines a single normative certification lifecycle.
+
+Every certification SHALL progress through the following lifecycle.
+
+---
+
+## 8.1 Registration
+
+The Certification Subject SHALL be registered for evaluation.
+
+Registration SHALL record:
+
+- implementation identifier;
+- specification version;
+- certification profile;
+- capability profile;
+- certification configuration.
+
+---
+
+## 8.2 Preparation
+
+The certification environment SHALL be prepared.
+
+Preparation SHALL verify:
+
+- specification version compatibility;
+- required certification artifacts;
+- required tooling;
+- normative test vectors;
+- environment integrity.
+
+Certification SHALL NOT continue if preparation fails.
+
+---
+
+## 8.3 Evaluation
+
+The Certification Subject SHALL be evaluated against the applicable MCC specifications.
+
+Evaluation SHALL execute all mandatory certification requirements.
+
+Optional requirements SHALL NOT affect mandatory conformance.
+
+---
+
+## 8.4 Evidence Collection
+
+Certification SHALL collect all required evidence.
+
+Evidence SHALL be reproducible.
+
+Evidence SHALL be associated with the evaluated specification version.
+
+---
+
+## 8.5 Conformance Assessment
+
+Collected evidence SHALL be evaluated against normative requirements.
+
+Each requirement SHALL produce one of the following outcomes:
+
+- PASS
+- FAIL
+- NOT APPLICABLE
+
+Conformance SHALL be determined only from normative requirements.
+
+---
+
+## 8.6 Certification Decision
+
+Certification SHALL issue exactly one certification decision.
+
+Possible decisions are:
+
+- CERTIFIED
+- NOT CERTIFIED
+
+Certification decisions SHALL be reproducible.
+
+---
+
+## 8.7 Technical Certificate Issuance
+
+A Technical Certificate SHALL only be issued after successful certification.
+
+Technical Certificates SHALL reference:
+
+- specification version;
+- Certification Manifest;
+- Evidence Bundle;
+- certification result.
+
+---
+
+## 8.8 Publication
+
+Certification outputs MAY be published.
+
+Publication SHALL NOT modify certification results.
+
+Published artifacts SHALL remain reproducible.
+
+---
+
+## 8.9 Revalidation
+
+Certification MAY be repeated.
+
+Every revalidation SHALL reference the applicable specification version.
+
+Revalidation SHALL produce a new certification result.
