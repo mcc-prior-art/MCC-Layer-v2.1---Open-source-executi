@@ -1432,3 +1432,59 @@ Certification SHALL preserve certificate integrity.
 SEC-007
 
 Certification SHALL preserve specification traceability.
+
+---
+
+# 19. Registry Considerations
+
+## 19.1 Purpose
+
+This section defines registry requirements for MCC Certification Program artifacts.
+
+Registries SHALL support reproducibility, traceability, and long-term interoperability.
+
+## 19.2 Registry Scope
+
+Registries MAY contain specification identifiers, certification identifiers, evidence identifiers, manifest identifiers, certificate identifiers, and capability identifiers.
+
+Registry contents SHALL remain implementation-independent.
+
+## 19.3 Registry Requirements
+
+Registry entries SHALL be uniquely identifiable.
+
+Registry entries SHALL be immutable after publication.
+
+Registry entries SHALL remain traceable.
+
+Registry entries SHALL reference applicable specification versions.
+
+## 19.4 Registry Invariants
+
+REG-001
+
+Registry identifiers SHALL be globally unique.
+
+REG-002
+
+Registry entries SHALL remain immutable.
+
+REG-003
+
+Registry entries SHALL remain framework-neutral.
+
+REG-004
+
+Registry entries SHALL remain implementation-independent.
+
+REG-005
+
+Registry entries SHALL support independent verification.
+
+REG-006
+
+Registry entries SHALL preserve version traceability.
+
+REG-007
+
+Registry entries SHALL remain reproducible.
