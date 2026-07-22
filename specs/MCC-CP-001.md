@@ -576,3 +576,75 @@ Pipeline SHALL remain framework-neutral.
 CP-PIPE-007
 
 Pipeline SHALL remain implementation-independent.
+
+---
+
+# Document Roadmap
+
+The following sections define the complete structure of MCC-CP-001.
+
+This roadmap is normative for document organization.
+
+Future revisions MAY extend this structure but SHALL preserve numbering compatibility whenever practical.
+
+Completed Sections
+
+1. Scope
+
+2. Goals
+
+3. Non-Goals
+
+4. Terminology
+
+5. Normative Language
+
+6. Architectural Principles
+
+7. Certification Model
+
+8. Certification Lifecycle
+
+9. Certification Pipeline
+
+Planned Normative Sections
+
+10. Conformance Model
+
+11. Conformance Profiles
+
+12. Capability Profiles
+
+13. Certification Requirements
+
+14. Requirement Classification
+
+15. Evidence Requirements
+
+16. Certification Manifest Requirements
+
+17. Technical Certificate Requirements
+
+18. Versioning
+
+19. Security Considerations
+
+20. Registry Considerations
+
+21. Conformance Statement
+
+22. References
+
+Appendix A — Certification State Machine
+
+Appendix B — Certification Decision Matrix
+
+Appendix C — Requirement Identifier Registry
+
+Appendix D — Revision History
+
+Appendix E — Example Certification Flow
+
+Appendix F — Future Extensions
+
+The remaining sections SHALL be developed according to this roadmap unless superseded by a later approved specification revision.
