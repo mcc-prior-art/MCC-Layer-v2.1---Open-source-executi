@@ -1538,3 +1538,64 @@ Conformance SHALL reference normative specification versions.
 CONF-007
 
 Conformance claims SHALL remain traceable.
+
+---
+
+# 21. References
+
+## 21.1 Purpose
+
+This section defines the normative and informative references for the MCC Certification Program specification.
+
+Normative references define mandatory requirements.
+
+Informative references provide additional context.
+
+## 21.2 Normative References
+
+The following specifications SHALL be considered normative when referenced by this document:
+
+- MCC-CP-001
+- MCC-EB-001
+- MCC-CM-001
+- MCC-TC-001
+
+Future normative specifications MAY be added through approved specification revisions.
+
+## 21.3 Informative References
+
+Reference implementations MAY be informative.
+
+Example certification artifacts MAY be informative.
+
+Informative material SHALL NOT introduce normative requirements.
+
+## 21.4 Reference Invariants
+
+REF-001
+
+Normative references SHALL identify normative specifications.
+
+REF-002
+
+Informative references SHALL NOT define normative behavior.
+
+REF-003
+
+References SHALL remain versioned.
+
+REF-004
+
+References SHALL remain traceable.
+
+REF-005
+
+References SHALL remain implementation-independent.
+
+REF-006
+
+References SHALL remain framework-neutral.
+
+REF-007
+
+References SHALL support reproducible certification.
