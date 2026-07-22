@@ -48,6 +48,14 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("list-adapters", help="list registered adapters")
 
+    # Adapter-SDK certification ingress (PR #51) — the canonical certification path.
+    cs = sub.add_parser("certify-sdk",
+                        help="certify the reference Adapter-SDK adapter (SDK ingress)")
+    cs.add_argument("--contract-version", required=True, help="e.g. 1.0")
+    cs.add_argument("--output-dir", default=None,
+                    help="write certification.json / evidence.json / certification-report.md here")
+    cs.add_argument("--json", action="store_true", help="print the certification JSON to stdout")
+
     # Certified Adapter Program (PR #46).
     bm = sub.add_parser("build-manifest",
                         help="regenerate the repository certification manifest from real evidence")
@@ -129,6 +137,40 @@ def main(argv: Optional[List[str]] = None) -> int:
             for e in result.errors:
                 print(f"  - {e.code.value}: {e.message}", file=sys.stderr)
         return 0 if result.valid else 1
+
+    if args.command == "certify-sdk":
+        from .program import ProgramStatus
+        from .sdk_certification import (
+            certification_document,
+            run_sdk_certification,
+            write_certification,
+        )
+        from .sdk_reference_adapter import SdkReferenceAdapter
+        contract_version = _normalize_version(args.contract_version)
+        try:
+            result, _ = run_sdk_certification(SdkReferenceAdapter(),
+                                              contract_version=contract_version)
+        except ComplianceError as exc:
+            print(f"ERROR: {exc.code.value}: {exc.message}", file=sys.stderr)
+            return 2
+        if args.json:
+            print(json.dumps(certification_document(result), indent=2, sort_keys=True))
+        else:
+            print(f"Adapter          : {result.adapter_name} v{result.adapter_version}")
+            print(f"Ingress          : adapter-sdk")
+            print(f"Contract version : {result.contract_version}")
+            print(f"Vectors          : {result.scenarios_total} total | "
+                  f"{result.scenarios_passed} passed | {result.scenarios_failed} failed")
+            print(f"Evidence digest  : {result.evidence_digest}")
+            print(f"STATUS           : {result.status.value}")
+        if args.output_dir:
+            paths = write_certification(SdkReferenceAdapter(),
+                                        contract_version=contract_version,
+                                        out_dir=args.output_dir)
+            if not args.json:
+                print(f"\nwrote: {paths['certification']}\n       {paths['evidence']}\n"
+                      f"       {paths['report']}")
+        return 0 if result.status is ProgramStatus.CERTIFIED else 1
 
     # certify
     try:

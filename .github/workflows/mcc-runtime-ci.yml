@@ -230,12 +230,40 @@ jobs:
           print(f"OK: non-compliant adapter rejected (exit {rc})")
           PY
 
+      - name: Adapter-SDK certification tests (PR #51 — SDK is the canonical ingress)
+        run: pytest tests/test_sdk_certification.py -v
+
+      - name: Certify the reference adapter THROUGH the Adapter SDK (must be CERTIFIED)
+        run: |
+          python -m mcc_compliance certify-sdk --contract-version 1.0 \
+            --output-dir artifacts/certification
+          # Exit 0 == CERTIFIED (the step fails otherwise).
+
+      - name: Certification outputs are reproducible (generate twice, compare)
+        run: |
+          python -m mcc_compliance certify-sdk --contract-version 1.0 \
+            --output-dir artifacts/certification-rerun
+          for f in certification.json evidence.json certification-report.md; do
+            if ! diff -q "artifacts/certification/$f" "artifacts/certification-rerun/$f"; then
+              echo "::error::certification output $f is not reproducible"; exit 1
+            fi
+          done
+          echo "OK: certification.json / evidence.json / certification-report.md reproducible"
+
       - name: Upload compliance reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compliance-reports-ic-1.0-suite-1.0.0
           path: artifacts/compliance/
+          if-no-files-found: warn
+
+      - name: Upload SDK certification outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adapter-sdk-certification
+          path: artifacts/certification/
           if-no-files-found: warn
 
   interoperability:

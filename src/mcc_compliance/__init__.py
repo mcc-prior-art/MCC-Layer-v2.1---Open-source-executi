@@ -63,6 +63,14 @@ _EXPORTS: dict[str, str] = {
     "build_manifest": "program", "write_manifest": "program", "verify_manifest": "program",
     "OFFICIAL_ADAPTERS": "program", "MANIFEST_PATH": "program", "CERTIFICATION_NOTE": "program",
     "link_capability_profile": "program",
+    # Adapter-SDK certification ingress (PR #51) — the canonical certification path.
+    "SdkComplianceAdapter": "sdk_bridge",
+    "SdkReferenceAdapter": "sdk_reference_adapter",
+    "certify_sdk_adapter": "sdk_certification", "run_sdk_certification": "sdk_certification",
+    "write_certification": "sdk_certification", "certification_document": "sdk_certification",
+    "evidence_document": "sdk_certification", "report_document": "sdk_certification",
+    "SDK_CERTIFICATION_SCHEMA_VERSION": "sdk_certification",
+    "CERTIFICATION_INGRESS": "sdk_certification",
 }
 
 # The pure, SDK-relevant modules that must NOT trigger built-in adapter registration.

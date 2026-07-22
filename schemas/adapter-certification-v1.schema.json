@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mcc-prior-art/mcc-layer/schemas/adapter-certification-v1.schema.json",
+  "title": "MCC-Core Adapter Certification (v1)",
+  "description": "The deterministic certification.json produced by the Compliance & Certification Suite for an adapter certified through the Adapter SDK ingress (PR #51). Every field is reproducible: no wall-clock time, no random identifiers, no filesystem paths.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "certification_ingress", "certification"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1"},
+    "certification_ingress": {"type": "string", "const": "adapter-sdk"},
+    "certification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adapter", "adapter_version", "implementation_id", "framework",
+        "contract_version", "compliance_suite_version", "vector_manifest_digest",
+        "status", "scenarios_total", "scenarios_passed", "scenarios_failed",
+        "covered_invariants", "evidence_digest", "digest_algorithm", "report_id"
+      ],
+      "properties": {
+        "adapter": {"type": "string"},
+        "adapter_version": {"type": "string"},
+        "implementation_id": {"type": "string"},
+        "framework": {"type": ["string", "null"]},
+        "contract_version": {"type": "string"},
+        "compliance_suite_version": {"type": "string"},
+        "vector_manifest_digest": {"type": "string"},
+        "status": {"type": "string", "enum": ["CERTIFIED", "NOT_CERTIFIED"]},
+        "scenarios_total": {"type": "integer", "minimum": 0},
+        "scenarios_passed": {"type": "integer", "minimum": 0},
+        "scenarios_failed": {"type": "integer", "minimum": 0},
+        "covered_invariants": {"type": "array", "items": {"type": "string"}},
+        "evidence_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "digest_algorithm": {"type": "string", "const": "sha256"},
+        "report_id": {"type": "string"}
+      }
+    }
+  }
+}
