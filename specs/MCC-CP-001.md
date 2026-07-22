@@ -1488,3 +1488,53 @@ Registry entries SHALL preserve version traceability.
 REG-007
 
 Registry entries SHALL remain reproducible.
+
+---
+
+# 20. Conformance Statement
+
+## 20.1 Purpose
+
+This section defines conformance requirements for implementations claiming compliance with the MCC Certification Program specification.
+
+Conformance SHALL be evaluated solely against normative requirements defined by this specification.
+
+## 20.2 Conformance Claims
+
+An implementation MAY claim conformance only after successful certification.
+
+Conformance claims SHALL reference the applicable specification version.
+
+Conformance claims SHALL reference the associated Certification Manifest.
+
+Conformance claims SHALL reference the associated Technical Certificate.
+
+## 20.3 Conformance Invariants
+
+CONF-001
+
+Conformance SHALL be evidence-based.
+
+CONF-002
+
+Conformance SHALL remain reproducible.
+
+CONF-003
+
+Conformance SHALL remain independently verifiable.
+
+CONF-004
+
+Conformance SHALL remain implementation-independent.
+
+CONF-005
+
+Conformance SHALL remain framework-neutral.
+
+CONF-006
+
+Conformance SHALL reference normative specification versions.
+
+CONF-007
+
+Conformance claims SHALL remain traceable.
