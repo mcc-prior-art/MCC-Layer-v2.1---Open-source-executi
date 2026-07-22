@@ -1,0 +1,4 @@
+# Isolated optional dependency for the 48d CrewAI interoperability adapter.
+# Installed only by the dedicated `interop-crewai` CI job — NOT part of the
+# framework-neutral MCC-Core runtime or the base test requirements.
+crewai==1.15.5

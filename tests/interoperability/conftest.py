@@ -40,6 +40,12 @@ try:  # 48c — real AutoGen (optional dependencies: autogen-agentchat + autogen
 except ImportError:
     pass
 
+try:  # 48d — real CrewAI (optional dependency: crewai)
+    from tests.interoperability.adapters.crewai_adapter import CrewAIAdapter
+    ADAPTERS.append(CrewAIAdapter())
+except ImportError:
+    pass
+
 
 # Package scope (not session): the shared Gateway subprocess + the in-process mock
 # upstream server are torn down as soon as the interoperability package finishes, so
