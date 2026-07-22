@@ -953,3 +953,85 @@ Requirements SHALL define verification methods.
 REQ-007
 
 Requirements SHALL remain fully traceable.
+
+---
+
+# 13. Requirement Classification
+
+## 13.1 Purpose
+
+Requirement Classification defines the normative categories used to classify Certification Requirements.
+
+Classification SHALL determine how requirements participate in certification.
+
+Requirement Classification SHALL remain framework-neutral.
+
+---
+
+## 13.2 Classification Categories
+
+Each Certification Requirement SHALL be classified as exactly one of:
+
+- REQUIRED
+- OPTIONAL
+- CONDITIONAL
+
+Multiple classifications for the same requirement SHALL NOT be permitted.
+
+---
+
+## 13.3 REQUIRED Requirements
+
+REQUIRED requirements SHALL always be evaluated.
+
+Failure of a REQUIRED requirement SHALL prevent certification.
+
+---
+
+## 13.4 OPTIONAL Requirements
+
+OPTIONAL requirements MAY be evaluated.
+
+Failure of OPTIONAL requirements SHALL NOT prevent certification.
+
+OPTIONAL requirements MAY be reported within certification artifacts.
+
+---
+
+## 13.5 CONDITIONAL Requirements
+
+CONDITIONAL requirements SHALL apply only when their stated applicability conditions are satisfied.
+
+When applicability conditions are not satisfied, the requirement SHALL produce the result NOT APPLICABLE.
+
+---
+
+## 13.6 Requirement Classification Invariants
+
+CLASS-001
+
+Every Certification Requirement SHALL have exactly one classification.
+
+CLASS-002
+
+Classification SHALL remain implementation-independent.
+
+CLASS-003
+
+Classification SHALL remain framework-neutral.
+
+CLASS-004
+
+REQUIRED requirements SHALL always participate in certification.
+
+CLASS-005
+
+OPTIONAL requirements SHALL NOT determine certification status.
+
+CLASS-006
+
+CONDITIONAL requirements SHALL define explicit applicability conditions.
+
+CLASS-007
+
+Requirement classifications SHALL be versioned.
