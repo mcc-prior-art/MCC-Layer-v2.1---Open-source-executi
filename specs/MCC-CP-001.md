@@ -1370,3 +1370,65 @@ Revalidation SHALL NOT overwrite previous certification records.
 VER-007
 
 Version history SHALL remain traceable.
+
+---
+
+# 18. Security Considerations
+
+## 18.1 Purpose
+
+This section defines security requirements for the MCC Certification Program.
+
+Security requirements SHALL protect certification integrity.
+
+Security requirements SHALL remain implementation-independent.
+
+## 18.2 Security Objectives
+
+Certification SHALL resist unauthorized modification.
+
+Certification SHALL preserve evidence integrity.
+
+Certification SHALL support independent verification.
+
+Certification SHALL remain reproducible.
+
+## 18.3 Threat Model
+
+Certification SHALL assume untrusted implementations.
+
+Certification SHALL assume potentially malicious inputs.
+
+Certification SHALL rely only on evaluated evidence.
+
+Certification SHALL remain independent of implementation identity.
+
+## 18.4 Security Invariants
+
+SEC-001
+
+Certification SHALL be evidence-based.
+
+SEC-002
+
+Certification SHALL remain reproducible.
+
+SEC-003
+
+Certification SHALL remain independently verifiable.
+
+SEC-004
+
+Certification SHALL preserve evidence integrity.
+
+SEC-005
+
+Certification SHALL preserve manifest integrity.
+
+SEC-006
+
+Certification SHALL preserve certificate integrity.
+
+SEC-007
+
+Certification SHALL preserve specification traceability.
