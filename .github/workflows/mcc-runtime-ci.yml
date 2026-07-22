@@ -301,6 +301,65 @@ jobs:
           path: artifacts/interoperability/
           if-no-files-found: warn
 
+  interop-voltagent:
+    # 48e — real VoltAgent adapter (5/5, completes the matrix) through the SAME
+    # shared Gateway. VoltAgent is a Node/TypeScript framework, so this job installs
+    # Node + the real integrations/voltagent package and the adapter exercises a
+    # genuine native @voltagent/core Agent in a Node subprocess (deterministic
+    # offline model — no LLM, no key, no network) to originate the proposal. A
+    # missing Node toolchain or @voltagent/core fails the job — never silently
+    # skipped here. The four Python framework adapters are deliberately NOT installed
+    # together with each other or here: crewai and autogen pin mutually incompatible
+    # pydantic versions, so the frameworks cannot share one process — which is why
+    # every framework is proven in its own isolated job over the identical shared
+    # governance path.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Install the real VoltAgent package (reproducible)
+        working-directory: integrations/voltagent
+        run: npm ci --no-audit --no-fund
+
+      - name: Show resolved framework version
+        run: node -e "console.log('@voltagent/core', require('./integrations/voltagent/node_modules/@voltagent/core/package.json').version)"
+
+      - name: Assert the official VoltAgent package + Node runner are really present
+        working-directory: integrations/voltagent
+        run: node -e "require('@voltagent/core').Agent; require('fs').accessSync('node_modules/.bin/tsx'); console.log('voltagent native API + tsx present')"
+
+      - name: Interoperability proof WITH the real VoltAgent adapter
+        # test_framework_provenance is NOT skipped here (node + @voltagent/core
+        # present): it fails if the adapter is missing or not a genuine native
+        # integration. Only generic-http + voltagent register in this job.
+        run: pytest tests/interoperability/ -v
+
+      - name: Upload interoperability evidence bundle (with VoltAgent)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-evidence-48e-voltagent
+          path: artifacts/interoperability/
+          if-no-files-found: warn
+
   smoke:
     runs-on: ubuntu-latest
     steps:
