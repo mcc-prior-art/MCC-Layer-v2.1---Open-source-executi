@@ -1130,3 +1130,89 @@ Evidence SHALL reference specification versions.
 EVID-007
 
 Evidence SHALL remain immutable after certification.
+
+---
+
+# 15. Certification Manifest Requirements
+
+## 15.1 Purpose
+
+Certification Manifest Requirements define the normative properties of Certification Manifests produced by the MCC Certification Program.
+
+A Certification Manifest SHALL describe the certification results in a structured, machine-readable form.
+
+---
+
+## 15.2 Manifest Contents
+
+Every Certification Manifest SHALL include:
+
+- manifest identifier;
+- specification version;
+- Certification Subject identifier;
+- capability profiles;
+- certification requirements evaluated;
+- certification result;
+- evidence references;
+- generation timestamp.
+
+---
+
+## 15.3 Manifest Integrity
+
+Certification Manifests SHALL accurately represent the certification results.
+
+A Certification Manifest SHALL NOT contain unverifiable claims.
+
+Manifest integrity SHALL be preserved after generation.
+
+---
+
+## 15.4 Manifest Traceability
+
+Every Certification Manifest SHALL be traceable to:
+
+- the Certification Subject;
+- the applicable specification version;
+- the Evidence Bundle;
+- the Technical Certificate, if issued.
+
+---
+
+## 15.5 Manifest Versioning
+
+Certification Manifests SHALL declare the specification version against which certification was performed.
+
+Manifest versions SHALL remain immutable after publication.
+
+---
+
+## 15.6 Manifest Invariants
+
+MAN-001
+
+Certification Manifests SHALL be machine-readable.
+
+MAN-002
+
+Certification Manifests SHALL remain framework-neutral.
+
+MAN-003
+
+Certification Manifests SHALL remain implementation-independent.
+
+MAN-004
+
+Certification Manifests SHALL reference certification evidence.
+
+MAN-005
+
+Certification Manifests SHALL remain traceable.
+
+MAN-006
+
+Certification Manifests SHALL declare specification versions.
+
+MAN-007
+
+Certification Manifests SHALL remain immutable after publication.
