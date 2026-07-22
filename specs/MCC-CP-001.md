@@ -1035,3 +1035,98 @@ CONDITIONAL requirements SHALL define explicit applicability conditions.
 CLASS-007
 
 Requirement classifications SHALL be versioned.
+
+---
+
+# 14. Evidence Requirements
+
+## 14.1 Purpose
+
+Evidence Requirements define the normative properties of certification evidence.
+
+Certification evidence SHALL support independent verification of certification results.
+
+Evidence SHALL remain implementation-independent and framework-neutral.
+
+---
+
+## 14.2 Evidence Sources
+
+Evidence MAY originate from one or more certification activities, including:
+
+- normative verification;
+- capability evaluation;
+- conformance assessment;
+- certification pipeline execution;
+- reproducibility verification.
+
+Evidence sources SHALL be explicitly identified.
+
+---
+
+## 14.3 Evidence Properties
+
+Certification evidence SHALL be:
+
+- reproducible;
+- traceable;
+- verifiable;
+- immutable after generation;
+- attributable to a certification run.
+
+Evidence SHALL reference the applicable specification version.
+
+---
+
+## 14.4 Evidence Traceability
+
+Every evidence item SHALL be traceable to:
+
+- the Certification Subject;
+- the evaluated requirement;
+- the verification result;
+- the certification decision.
+
+Evidence traceability SHALL be preserved throughout certification.
+
+---
+
+## 14.5 Evidence Retention
+
+Evidence SHALL remain available for independent verification.
+
+Retention policies MAY be defined by future MCC specifications.
+
+Evidence SHALL NOT be modified after certification.
+
+---
+
+## 14.6 Evidence Invariants
+
+EVID-001
+
+Evidence SHALL be reproducible.
+
+EVID-002
+
+Evidence SHALL remain framework-neutral.
+
+EVID-003
+
+Evidence SHALL remain implementation-independent.
+
+EVID-004
+
+Evidence SHALL remain traceable.
+
+EVID-005
+
+Evidence SHALL support independent verification.
+
+EVID-006
+
+Evidence SHALL reference specification versions.
+
+EVID-007
+
+Evidence SHALL remain immutable after certification.
