@@ -36,6 +36,29 @@ from typing import Callable, Optional
 DIST_NAME = "mcc-core"
 PUBLIC_PACKAGE = "mcc"
 
+# The public top-level packages the wheel/sdist may ship (PR #50). The stable facade
+# `mcc`, the Adapter SDK, and the Canonical Governance Protocol it façades over, plus
+# the *governance-free* curated subsets of `mcc_core` / `mcc_compliance` that the SDK
+# import path needs (pure hashing + capability vocabulary). `mcc_client` is a
+# dependency, never vendored.
+PUBLIC_PACKAGES = frozenset({
+    "mcc", "mcc_adapter_sdk", "mcc_protocol", "mcc_core", "mcc_compliance",
+})
+
+# Governance-engine / compliance-suite modules that MUST NOT ship in the built
+# distribution (the SDK reaches governance only at runtime via the gateway; the
+# engine is never physically shipped). Guards the curated `build_py` in setup.py.
+FORBIDDEN_WHEEL_MODULES = frozenset({
+    "mcc_core/gate.py", "mcc_core/authority.py", "mcc_core/coordinator.py",
+    "mcc_core/consensus.py", "mcc_core/mandate.py", "mcc_core/audit.py",
+    "mcc_core/nonce.py", "mcc_core/policy.py", "mcc_core/velocity.py",
+    "mcc_core/idempotency.py", "mcc_core/challenge.py", "mcc_core/approvals.py",
+    "mcc_core/profiles.py", "mcc_core/redis_client.py", "mcc_core/core.py",
+    "mcc_compliance/runner.py", "mcc_compliance/reporting.py", "mcc_compliance/program.py",
+    "mcc_compliance/registry.py", "mcc_compliance/adapters.py",
+    "mcc_compliance/certification.py", "mcc_compliance/protocol.py", "mcc_compliance/cli.py",
+})
+
 INDEX_URLS = {
     "pypi": "https://pypi.org/pypi",
     "testpypi": "https://test.pypi.org/pypi",
@@ -197,11 +220,19 @@ def validate_wheel(path: str, *, expected_version: str, expect_py_typed: bool = 
     problems: list = []
     info = inspect_wheel(path)
 
-    if info.top_level != {PUBLIC_PACKAGE}:
-        problems.append(f"wheel top-level packages must be exactly {{{PUBLIC_PACKAGE!r}}}, "
-                        f"got {sorted(info.top_level)}")
+    extra = info.top_level - PUBLIC_PACKAGES
+    if extra:
+        problems.append(f"wheel ships unexpected top-level packages {sorted(extra)}; "
+                        f"allowed: {sorted(PUBLIC_PACKAGES)}")
+    if PUBLIC_PACKAGE not in info.top_level:
+        problems.append(f"wheel is missing the public facade package {PUBLIC_PACKAGE!r}")
     if "mcc_client" in info.top_level:
         problems.append("wheel vendors mcc_client (must depend on it, not ship it)")
+    # The governance engine / compliance suite must never physically ship.
+    shipped_forbidden = sorted(m for m in FORBIDDEN_WHEEL_MODULES if m in set(info.names))
+    if shipped_forbidden:
+        problems.append(f"wheel ships governance-engine/suite modules {shipped_forbidden} "
+                        f"(must be excluded by the curated build)")
     if expect_py_typed and not info.has_py_typed:
         problems.append("wheel is missing mcc/py.typed but claims typed support")
 

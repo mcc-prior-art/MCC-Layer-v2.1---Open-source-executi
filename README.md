@@ -478,6 +478,19 @@ enforces. The audit chain records. Proposal is not permission.** Install with
 [sdk/python/README.md](sdk/python/README.md); runnable quickstart:
 `python examples/python_sdk_quickstart.py`.
 
+## Adapter SDK — build framework-neutral adapters
+
+The **Adapter SDK** (`mcc_adapter_sdk`) is the small, stable, public surface for
+building MCC-Core adapters without importing gateway, execution-gate, authority,
+policy, audit, runtime, or signing internals. An adapter is purely translational —
+framework proposes, the adapter translates a native request into the authoritative
+`CanonicalProposal`, the mandatory Canonical Ingress Pipeline runs, a
+`GovernanceDecision` is returned, and the adapter translates it back to a native
+response. It never authorizes, executes, evaluates policy, or signs. Structural
+validation is **not** certification. Full docs in
+[docs/ADAPTER_SDK.md](docs/ADAPTER_SDK.md); runnable example:
+`python examples/adapter_sdk/minimal_adapter.py`.
+
 ## Real Governed Executor Pilot — genuine EXECUTED
 
 The SDK path is connected to a **real governed executor** so the pilot produces a
