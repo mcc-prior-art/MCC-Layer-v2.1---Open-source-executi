@@ -1723,3 +1723,65 @@ Certification decisions SHALL reference the Evidence Bundle.
 DEC-007
 
 Certification decisions SHALL reference the Technical Certificate when certification is granted.
+
+---
+
+# Appendix C — Requirement Identifier Registry
+
+## C.1 Purpose
+
+This appendix defines the normative registry for Certification Requirement identifiers.
+
+Requirement identifiers SHALL remain globally unique within a published specification version.
+
+## C.2 Identifier Structure
+
+Requirement identifiers SHOULD consist of:
+
+- specification identifier;
+- requirement category;
+- sequential identifier.
+
+Identifier formats SHALL remain stable across specification revisions.
+
+## C.3 Registry Requirements
+
+The registry SHALL maintain:
+
+- identifier;
+- requirement title;
+- specification version;
+- status;
+- applicable section.
+
+Registry entries SHALL remain immutable after publication.
+
+## C.4 Registry Invariants
+
+RID-001
+
+Requirement identifiers SHALL be globally unique.
+
+RID-002
+
+Requirement identifiers SHALL remain versioned.
+
+RID-003
+
+Requirement identifiers SHALL remain traceable.
+
+RID-004
+
+Registry entries SHALL remain immutable.
+
+RID-005
+
+Registry entries SHALL support reproducible certification.
+
+RID-006
+
+Registry entries SHALL remain implementation-independent.
+
+RID-007
+
+Registry entries SHALL remain framework-neutral.
