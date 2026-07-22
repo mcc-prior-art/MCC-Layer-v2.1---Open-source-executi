@@ -29,6 +29,7 @@ def _adapter(name: str):
 langgraph_present = _adapter("langgraph") is not None
 autogen_present = _adapter("autogen") is not None
 crewai_present = _adapter("crewai") is not None
+voltagent_present = _adapter("voltagent") is not None
 
 
 @pytest.mark.skipif(not langgraph_present, reason="langgraph adapter not registered (base job)")
@@ -129,3 +130,33 @@ def test_crewai_is_a_real_native_integration():
 def test_crewai_adapter_is_registered_in_the_matrix():
     names = {a.adapter_name for a in ADAPTERS}
     assert "crewai" in names and "generic-http" in names
+
+
+@pytest.mark.skipif(not voltagent_present, reason="voltagent adapter not registered (base job)")
+def test_voltagent_is_a_real_native_integration():
+    a = _adapter("voltagent")
+    assert a is not None, "VoltAgent adapter not registered though Node + @voltagent/core present"
+    assert a.adapter_classification == "REAL FRAMEWORK INTEGRATION"
+
+    prov = a.framework_provenance()
+    # Real, resolved npm distribution + version (read from the installed package).
+    assert prov["framework_distribution"] == "@voltagent/core"
+    assert prov["framework_ecosystem"] == "npm"
+    assert prov["framework_version"] and prov["framework_version"][0].isdigit()
+    assert prov["language"] == "typescript/node"
+    assert prov["native_object_type"] == "@voltagent/core.Agent"
+
+    # The proposal genuinely originates from running the native VoltAgent Agent
+    # (Node subprocess, deterministic offline model) — not fabricated in Python.
+    prop = a.proposal_for("ALLOW")
+    assert prop.action == "send_notification"
+    assert prop.payload["recipient"] == "customer-123"
+    assert prop.payload["channel"] == "email"
+    # DENY drives a different native path (channel the policy rejects).
+    assert a.proposal_for("DENY").payload["channel"] == "pager"
+
+
+@pytest.mark.skipif(not voltagent_present, reason="voltagent adapter not registered (base job)")
+def test_voltagent_adapter_is_registered_in_the_matrix():
+    names = {a.adapter_name for a in ADAPTERS}
+    assert "voltagent" in names and "generic-http" in names

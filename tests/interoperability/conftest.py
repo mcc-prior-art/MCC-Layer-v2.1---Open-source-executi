@@ -46,6 +46,12 @@ try:  # 48d — real CrewAI (optional dependency: crewai)
 except ImportError:
     pass
 
+try:  # 48e — real VoltAgent (Node/TS; requires node + integrations/voltagent deps)
+    from tests.interoperability.adapters.voltagent_adapter import VoltAgentAdapter
+    ADAPTERS.append(VoltAgentAdapter())
+except ImportError:
+    pass
+
 
 # Package scope (not session): the shared Gateway subprocess + the in-process mock
 # upstream server are torn down as soon as the interoperability package finishes, so
