@@ -1785,3 +1785,64 @@ Registry entries SHALL remain implementation-independent.
 RID-007
 
 Registry entries SHALL remain framework-neutral.
+
+---
+
+# Appendix D — Revision History
+
+## D.1 Purpose
+
+This appendix defines the revision history for the MCC Certification Program specification.
+
+Revision history SHALL provide a complete and traceable record of specification evolution.
+
+## D.2 Initial Release
+
+Version: Draft v1
+
+Status: Initial Public Draft
+
+Description:
+
+- Initial normative Certification Program specification.
+- Establishes the certification model, lifecycle, pipeline, conformance requirements, evidence requirements, certification manifests, technical certificates, versioning, security considerations, registry considerations, references, and normative appendices.
+
+## D.3 Future Revisions
+
+Future revisions SHALL preserve backward traceability.
+
+Breaking changes SHALL be explicitly identified.
+
+Deprecated requirements SHALL remain documented.
+
+Superseded requirements SHALL reference their replacements where applicable.
+
+## D.4 Revision Invariants
+
+REV-001
+
+Every published revision SHALL have a unique version identifier.
+
+REV-002
+
+Every revision SHALL include a change summary.
+
+REV-003
+
+Breaking changes SHALL be explicitly identified.
+
+REV-004
+
+Revision history SHALL remain immutable after publication.
+
+REV-005
+
+Revision history SHALL remain traceable.
+
+REV-006
+
+Revision history SHALL remain versioned.
+
+REV-007
+
+Revision history SHALL support independent verification of specification evolution.
