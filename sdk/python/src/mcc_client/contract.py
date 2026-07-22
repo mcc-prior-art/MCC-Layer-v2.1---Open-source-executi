@@ -13,9 +13,18 @@ The canonical *data* models of the contract are the ones the SDK already ships �
 (:class:`~mcc_client.ConsensusAuthorization`,
 :class:`~mcc_client.MandateAuthorization`,
 :class:`~mcc_client.ApprovalAuthorization`). This module deliberately defines **no
-parallel wire models** and duplicates none of them; it references them. Adding a
-second set of "GovernanceRequest / GovernanceDecision" types would create the
-semantic drift the contract forbids, so we do not.
+parallel wire models** and duplicates none of them; it references them. There is
+exactly **one** normative wire contract.
+
+The Canonical Governance Protocol (PR #49, :mod:`mcc_protocol`) names a canonical
+request object (``CanonicalProposal``) and a canonical response envelope
+(``GovernanceDecision``). These are **not** a second competing hierarchy and do not
+create the semantic drift the contract forbids: ``CanonicalProposal`` is an additive
+request type (the SDK had none), and ``GovernanceDecision`` **wraps** — never
+replaces — :class:`mcc_client.Decision` and the existing Decision Token, reusing
+this module's version rule, error taxonomy, and the SDK's ``Verdict`` verbatim. The
+authoritative decision and execution-authorization artifact remain ``Decision`` and
+its Decision Token.
 
 What this module is / is not
 ----------------------------

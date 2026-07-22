@@ -32,7 +32,14 @@ This ties three things into one non-contradictory model:
   `mcc_client.Verdict`, `mcc_client.Decision`, `mcc_client.ExecutionResult`, and
   the authorization artifacts (`ConsensusAuthorization`, `MandateAuthorization`,
   `ApprovalAuthorization`). The contract **reuses** these; it defines **no parallel
-  wire models**. Duplicating them would create semantic drift and is forbidden.
+  wire models**. Duplicating them would create semantic drift and is forbidden. The
+  Canonical Governance Protocol (PR #49, `mcc_protocol`) adds the request object
+  `CanonicalProposal` and the response envelope `GovernanceDecision`; these are
+  **compatible evolutions, not a parallel hierarchy** — `CanonicalProposal` is the
+  additive request type the SDK previously lacked, and `GovernanceDecision`
+  **wraps** (never replaces) `mcc_client.Decision` and its Decision Token. There
+  remains exactly one normative wire contract. See
+  `docs/CANONICAL_GOVERNANCE_PROTOCOL.md`.
 - **Adapters (conforming, non-normative):** VoltAgent is a *proven reference
   integration* — it demonstrated that MCC-Core can be governed inside a real agent
   framework. It is **not** the reference definition. Every current and future
