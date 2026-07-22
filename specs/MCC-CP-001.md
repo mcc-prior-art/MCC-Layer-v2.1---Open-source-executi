@@ -423,3 +423,156 @@ Certification MAY be repeated.
 Every revalidation SHALL reference the applicable specification version.
 
 Revalidation SHALL produce a new certification result.
+
+---
+
+# 9. Certification Pipeline
+
+The MCC Certification Program defines one normative Certification Pipeline.
+
+Every certification SHALL execute every mandatory stage in the order defined below.
+
+No stage MAY be skipped unless explicitly declared OPTIONAL by this specification.
+
+A failed mandatory stage SHALL terminate certification.
+
+---
+
+## 9.1 Stage 1 — Registration
+
+Purpose:
+
+Register the Certification Subject.
+
+Outputs:
+
+- Registration Record
+
+---
+
+## 9.2 Stage 2 — Environment Validation
+
+Purpose:
+
+Verify the certification environment.
+
+Validation SHALL include:
+
+- specification version;
+- required tooling;
+- capability profile;
+- normative test vectors;
+- environment integrity.
+
+Outputs:
+
+- Environment Validation Result
+
+---
+
+## 9.3 Stage 3 — Conformance Evaluation
+
+Purpose:
+
+Evaluate every applicable normative requirement.
+
+Outputs:
+
+- Requirement Results
+
+---
+
+## 9.4 Stage 4 — Evidence Generation
+
+Purpose:
+
+Generate reproducible certification evidence.
+
+Outputs:
+
+- Evidence Bundle
+
+---
+
+## 9.5 Stage 5 — Conformance Assessment
+
+Purpose:
+
+Determine overall conformance.
+
+Outputs:
+
+- PASS
+- FAIL
+- NOT APPLICABLE
+
+---
+
+## 9.6 Stage 6 — Certification Decision
+
+Purpose:
+
+Issue the certification decision.
+
+Possible decisions:
+
+- CERTIFIED
+- NOT CERTIFIED
+
+---
+
+## 9.7 Stage 7 — Artifact Generation
+
+Purpose:
+
+Produce official certification artifacts.
+
+Outputs:
+
+- Certification Manifest
+- Technical Certificate
+- Certification Report
+
+---
+
+## 9.8 Stage 8 — Publication
+
+Purpose:
+
+Publish certification artifacts.
+
+Publication SHALL preserve reproducibility.
+
+---
+
+## 9.9 Pipeline Invariants
+
+The Certification Pipeline SHALL satisfy the following invariants.
+
+CP-PIPE-001
+
+Pipeline stages execute sequentially.
+
+CP-PIPE-002
+
+Mandatory stages SHALL NOT be skipped.
+
+CP-PIPE-003
+
+Evidence SHALL precede certification.
+
+CP-PIPE-004
+
+Certification SHALL precede certificate issuance.
+
+CP-PIPE-005
+
+Artifacts SHALL remain reproducible.
+
+CP-PIPE-006
+
+Pipeline SHALL remain framework-neutral.
+
+CP-PIPE-007
+
+Pipeline SHALL remain implementation-independent.
