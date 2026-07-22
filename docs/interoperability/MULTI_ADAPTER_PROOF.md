@@ -1,8 +1,8 @@
 # Multi-Adapter Interoperability Proof
 
-**Status: 48c — foundation + framework-neutral HTTP (5/5) + real LangGraph (2/5) +
-real AutoGen (3/5).** The remaining real-framework adapters (VoltAgent, CrewAI) are
-added in follow-ups 48d–e, each with its own isolated dependency install. This
+**Status: 48d — foundation + framework-neutral HTTP (5/5) + real LangGraph (2/5) +
+real AutoGen (3/5) + real CrewAI (4/5).** The remaining real-framework adapter
+(VoltAgent) is added in follow-up 48e with its own isolated dependency install. This
 document describes what is proven today; it does **not** yet claim the full
 five-adapter / four-framework matrix.
 
@@ -21,9 +21,9 @@ reference *integration*, not the reference *specification*.
 
 | # | Adapter | Classification | Status |
 |---|---------|----------------|--------|
-| 1 | VoltAgent | REAL FRAMEWORK INTEGRATION | pending 48c–e |
+| 1 | VoltAgent | REAL FRAMEWORK INTEGRATION | pending 48e |
 | 2 | **LangGraph** | **REAL FRAMEWORK INTEGRATION** | **✔ 48b** (langgraph 1.2.9) |
-| 3 | CrewAI | REAL FRAMEWORK INTEGRATION | pending 48d–e |
+| 3 | **CrewAI** | **REAL FRAMEWORK INTEGRATION** | **✔ 48d** (crewai 1.15.5) |
 | 4 | **AutoGen** | **REAL FRAMEWORK INTEGRATION** | **✔ 48c** (autogen-agentchat/core 0.7.5) |
 | 5 | **Generic HTTP** | **FRAMEWORK-NEUTRAL HTTP INTEGRATION** | **✔ 48a** |
 
@@ -36,13 +36,19 @@ Gateway — total now **2 adapters × 7 = 14 end-to-end scenario results**, one 
 a real framework ecosystem. **48c adds a second real framework adapter, AutoGen**
 (Microsoft AutoGen v0.4+ line, `autogen-agentchat`/`autogen-core` 0.7.5): it runs a
 native `RoutedAgent` on a native `SingleThreadedAgentRuntime` offline, whose
-message-handler emits the proposal — total now **3 adapters × 7 = 21 scenario
-results**, **2 real framework ecosystems**. Each framework is an isolated optional
-test dependency (`requirements-langgraph.txt` / `requirements-autogen.txt`), installed
-only by its dedicated CI job (`interop-langgraph` / `interop-autogen`), which fails if
-the official package is absent or not genuinely exercised. A feasibility probe
-confirmed the remaining frameworks install here (CrewAI heavy but resolvable;
-VoltAgent via Node 22) — 48d–e are unblocked.
+message-handler emits the proposal. **48d adds a third real framework adapter,
+CrewAI** (`crewai` 1.15.5): it builds and runs a native `crewai.flow.flow.Flow`
+(`@start` / `@listen` steps) through the framework's own `kickoff` entrypoint
+offline, whose final step emits the proposal — total now **4 adapters × 7 = 28
+scenario results**, **3 real framework ecosystems**. Each framework is an isolated
+optional test dependency (`requirements-langgraph.txt` / `requirements-autogen.txt` /
+`requirements-crewai.txt`), installed only by its dedicated CI job
+(`interop-langgraph` / `interop-autogen` / `interop-crewai`), which fails if the
+official package is absent or not genuinely exercised. CrewAI ships opt-out
+telemetry that would otherwise phone home on `kickoff`; the adapter opts out
+(`CREWAI_DISABLE_TELEMETRY` / `CREWAI_TRACING_ENABLED=false` / `OTEL_SDK_DISABLED`)
+**before** importing crewai, keeping the native run fully offline. Only VoltAgent
+(via Node 22) remains for 48e.
 
 ## What 48a proves (executable, offline)
 

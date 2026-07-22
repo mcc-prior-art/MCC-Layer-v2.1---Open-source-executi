@@ -2,21 +2,20 @@
 
 Each framework-backed adapter, when its optional distribution is installed, must be
 a genuine native integration — not a stub, wrapper, or metadata-only label. These
-checks are gated on the framework being importable so the base (framework-neutral)
-job stays green; the dedicated per-framework CI job installs the framework, which
-activates the gate and fails if the real package or native object is absent.
+checks are gated on the adapter having actually *registered* (i.e. its framework
+imported and the adapter constructed) rather than on ``find_spec``: for namespace
+packages a partial/leftover install can make ``find_spec`` true while the real API
+is absent, which must skip cleanly, not fail. The base (framework-neutral) job has
+no framework installed → the adapter is not registered → these tests skip. The
+dedicated per-framework CI job installs the framework AND asserts the native API is
+importable, so an absent/broken framework fails there.
 """
 
 from __future__ import annotations
 
-import importlib.util
-
 import pytest
 
 from tests.interoperability.conftest import ADAPTERS
-
-langgraph_installed = importlib.util.find_spec("langgraph") is not None
-autogen_installed = importlib.util.find_spec("autogen_core") is not None
 
 
 def _adapter(name: str):
@@ -26,7 +25,13 @@ def _adapter(name: str):
     return None
 
 
-@pytest.mark.skipif(not langgraph_installed, reason="langgraph not installed (base job)")
+# Gate on the adapter being genuinely usable (registered), not on find_spec.
+langgraph_present = _adapter("langgraph") is not None
+autogen_present = _adapter("autogen") is not None
+crewai_present = _adapter("crewai") is not None
+
+
+@pytest.mark.skipif(not langgraph_present, reason="langgraph adapter not registered (base job)")
 def test_langgraph_is_a_real_native_integration():
     a = _adapter("langgraph")
     assert a is not None, "LangGraph adapter not registered though langgraph is installed"
@@ -53,14 +58,14 @@ def test_langgraph_is_a_real_native_integration():
     assert a.proposal_for("DENY").payload["channel"] == "pager"
 
 
-@pytest.mark.skipif(not langgraph_installed, reason="langgraph not installed (base job)")
+@pytest.mark.skipif(not langgraph_present, reason="langgraph adapter not registered (base job)")
 def test_langgraph_adapter_is_registered_in_the_matrix():
     names = {a.adapter_name for a in ADAPTERS}
     assert "langgraph" in names
     assert "generic-http" in names
 
 
-@pytest.mark.skipif(not autogen_installed, reason="autogen not installed (base job)")
+@pytest.mark.skipif(not autogen_present, reason="autogen adapter not registered (base job)")
 def test_autogen_is_a_real_native_integration():
     a = _adapter("autogen")
     assert a is not None, "AutoGen adapter not registered though autogen-core is installed"
@@ -87,7 +92,40 @@ def test_autogen_is_a_real_native_integration():
     assert a.proposal_for("DENY").payload["channel"] == "pager"
 
 
-@pytest.mark.skipif(not autogen_installed, reason="autogen not installed (base job)")
+@pytest.mark.skipif(not autogen_present, reason="autogen adapter not registered (base job)")
 def test_autogen_adapter_is_registered_in_the_matrix():
     names = {a.adapter_name for a in ADAPTERS}
     assert "autogen" in names and "generic-http" in names
+
+
+@pytest.mark.skipif(not crewai_present, reason="crewai adapter not registered (base job)")
+def test_crewai_is_a_real_native_integration():
+    a = _adapter("crewai")
+    assert a is not None, "CrewAI adapter not registered though crewai is installed"
+    assert a.adapter_classification == "REAL FRAMEWORK INTEGRATION"
+
+    prov = a.framework_provenance()
+    import importlib.metadata
+    assert prov["framework_distribution"] == "crewai"
+    assert prov["framework_version"] == importlib.metadata.version("crewai")
+    assert prov["framework_ecosystem"] == "pypi"
+    assert prov["native_object_type"] == "crewai.flow.flow.Flow"
+    assert prov["flow_steps"] == ["plan", "compose"]
+
+    # The adapter's flow really subclasses the native CrewAI Flow, and the proposal
+    # genuinely originates from running it through the framework's kickoff entrypoint.
+    from crewai.flow.flow import Flow
+    from tests.interoperability.adapters.crewai_adapter import _NotifyFlow
+    assert issubclass(_NotifyFlow, Flow)
+    prop = a.proposal_for("ALLOW")
+    assert prop.action == "send_notification"
+    assert prop.payload["recipient"] == "customer-123"
+    assert prop.payload["channel"] == "email"
+    # DENY drives a different native path (channel the policy rejects).
+    assert a.proposal_for("DENY").payload["channel"] == "pager"
+
+
+@pytest.mark.skipif(not crewai_present, reason="crewai adapter not registered (base job)")
+def test_crewai_adapter_is_registered_in_the_matrix():
+    names = {a.adapter_name for a in ADAPTERS}
+    assert "crewai" in names and "generic-http" in names

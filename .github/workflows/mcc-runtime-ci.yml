@@ -251,6 +251,56 @@ jobs:
           path: artifacts/interoperability/
           if-no-files-found: warn
 
+  interop-crewai:
+    # 48d — real CrewAI adapter (4/5) through the SAME shared Gateway. Installs the
+    # official crewai distribution as an isolated optional dependency (heavy — it
+    # pulls a large transitive tree) and asserts it is genuinely present and
+    # exercised (a native crewai.flow.flow.Flow is built and run via kickoff). A
+    # missing/absent framework fails the job — never silently skipped here. The
+    # native run is kept fully offline: CrewAI telemetry/tracing is opted out (env
+    # below + the adapter opts out again before importing crewai). No LLM, no keys.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MCC_USE_OPA: "false"
+      CREWAI_DISABLE_TELEMETRY: "true"
+      CREWAI_TELEMETRY_OPT_OUT: "true"
+      CREWAI_TRACING_ENABLED: "false"
+      OTEL_SDK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated crewai)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-crewai.txt
+
+      - name: Show resolved framework version
+        run: python -c "import importlib.metadata as m; print('crewai', m.version('crewai'))"
+
+      - name: Assert the official CrewAI package is really importable
+        run: python -c "import crewai; from crewai.flow.flow import Flow, start, listen; print('crewai native API present')"
+
+      - name: Interoperability proof WITH the real CrewAI adapter
+        # test_framework_provenance is NOT skipped here (crewai installed): it fails
+        # if the adapter is missing or not a genuine native integration.
+        run: pytest tests/interoperability/ -v
+
+      - name: Upload interoperability evidence bundle (with CrewAI)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-evidence-48d-crewai
+          path: artifacts/interoperability/
+          if-no-files-found: warn
+
   smoke:
     runs-on: ubuntu-latest
     steps:
