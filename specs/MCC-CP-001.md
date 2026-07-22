@@ -609,31 +609,25 @@ Completed Sections
 
 Planned Normative Sections
 
-10. Conformance Model
+12. Certification Requirements
 
-11. Conformance Profiles
+13. Requirement Classification
 
-12. Capability Profiles
+14. Evidence Requirements
 
-13. Certification Requirements
+15. Certification Manifest Requirements
 
-14. Requirement Classification
+16. Technical Certificate Requirements
 
-15. Evidence Requirements
+17. Versioning
 
-16. Certification Manifest Requirements
+18. Security Considerations
 
-17. Technical Certificate Requirements
+19. Registry Considerations
 
-18. Versioning
+20. Conformance Statement
 
-19. Security Considerations
-
-20. Registry Considerations
-
-21. Conformance Statement
-
-22. References
+21. References
 
 Appendix A — Certification State Machine
 
