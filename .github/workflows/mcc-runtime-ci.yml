@@ -102,6 +102,8 @@ jobs:
 
       - name: Minimal example (no execution, no credentials, no side effects)
         run: python examples/adapter_sdk/minimal_adapter.py
+        env:
+          PYTHONPATH: "src:sdk/python/src:."
 
       - name: Deterministic evidence generation (generate twice, compare)
         run: |
