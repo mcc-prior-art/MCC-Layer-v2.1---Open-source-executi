@@ -208,3 +208,48 @@ set changes the evidence digest and therefore the certification. A regression dr
 the adapter from the regenerated manifest, and CI fails until the committed manifest
 is corrected. VoltAgent remains a **conforming reference integration, not the
 reference specification**.
+
+# Adapter-SDK certification ingress (PR #51)
+
+The **Adapter SDK** (PR #50) is the **canonical certification ingress**: a present or
+future adapter is certified exclusively through its public `mcc_adapter_sdk.Adapter`
+surface (`describe` / `to_proposal` / `to_response`). There is **one** Compliance &
+Certification Suite and **one** certification model — the SDK ingress feeds the same
+engine, golden vectors, certification decision, reporting, and evidence digest
+described above; it introduces no second pipeline and mints no new certification
+model. The older `ComplianceAdapter` boundary is retained only for backward-compat
+during the transition.
+
+**How it works.** `mcc_compliance.SdkComplianceAdapter` bridges an
+`mcc_adapter_sdk.Adapter` into the existing `ComplianceAdapter` boundary: for each
+golden vector it exercises the adapter's SDK surface (via `AdapterRunner` + the
+mandatory Canonical Ingress Pipeline, routing evaluation through the governed
+`mcc_client`), then drives the governed execution through the same governed path the
+reference agent uses (the harness executes — the adapter never does). Every claim is
+cross-checked against ground truth (receipts + audit).
+
+**Stable API.**
+
+```python
+from mcc_compliance import certify_sdk_adapter, write_certification
+
+result = certify_sdk_adapter(my_sdk_adapter, contract_version="1.0")   # CERTIFIED / NOT_CERTIFIED
+write_certification(my_sdk_adapter, contract_version="1.0",
+                    out_dir="artifacts/certification")                 # writes the 3 outputs
+```
+
+CLI: `python -m mcc_compliance certify-sdk --contract-version 1.0 --output-dir <dir>`
+(exit `0` CERTIFIED / `1` NOT_CERTIFIED / `2` ERROR).
+
+**Deterministic, reproducible outputs** (no wall-clock, no random identifiers, no
+paths) — generating them twice is byte-identical:
+
+- `certification.json` — the machine-readable certification, conforming to the
+  versioned schema `schemas/adapter-certification-v1.schema.json`
+  (`schema_version: "1"`, `certification_ingress: "adapter-sdk"`).
+- `evidence.json` — the deterministic compliance evidence bundle (per-scenario
+  results + totals + vector-manifest digest).
+- `certification-report.md` — the human-readable technical certification report.
+
+**Certification is only reproducible automated evidence.** Manual approval,
+screenshots, or documentation are never certification.
