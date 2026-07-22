@@ -607,6 +607,10 @@ Completed Sections
 
 9. Certification Pipeline
 
+10. Conformance Model
+
+11. Capability Profiles
+
 Planned Normative Sections
 
 12. Certification Requirements
