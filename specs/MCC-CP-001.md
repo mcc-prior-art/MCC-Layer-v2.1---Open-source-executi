@@ -1846,3 +1846,55 @@ Revision history SHALL remain versioned.
 REV-007
 
 Revision history SHALL support independent verification of specification evolution.
+
+---
+
+# Appendix E — Example Certification Flow
+
+## E.1 Purpose
+
+This appendix provides a non-normative example of a certification workflow.
+
+The example is provided for illustration only and SHALL NOT introduce additional normative requirements.
+
+## E.2 Example Flow
+
+1. Implementation submitted.
+2. Certification scope identified.
+3. Evidence Bundle generated.
+4. Certification Manifest produced.
+5. Technical evaluation completed.
+6. Conformance validated.
+7. Certification decision issued.
+8. Technical Certificate generated.
+9. Certification recorded in the registry.
+
+## E.3 Example Invariants
+
+EX-001
+
+Examples SHALL remain non-normative.
+
+EX-002
+
+Examples SHALL remain consistent with normative requirements.
+
+EX-003
+
+Examples SHALL remain reproducible.
+
+EX-004
+
+Examples SHALL remain implementation-independent.
+
+EX-005
+
+Examples SHALL remain framework-neutral.
+
+EX-006
+
+Examples SHALL NOT introduce additional requirements.
+
+EX-007
+
+Examples SHALL support understanding of the certification process.
