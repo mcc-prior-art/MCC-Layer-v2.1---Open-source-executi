@@ -1898,3 +1898,57 @@ Examples SHALL NOT introduce additional requirements.
 EX-007
 
 Examples SHALL support understanding of the certification process.
+
+---
+
+# Appendix F — Future Extensions
+
+## F.1 Purpose
+
+This appendix identifies potential future extensions to the MCC Certification Program.
+
+The items described in this appendix are informative only and SHALL NOT introduce normative requirements.
+
+## F.2 Potential Extensions
+
+Future revisions MAY introduce:
+
+- additional certification profiles;
+- additional evidence formats;
+- new certification artifact types;
+- expanded registry capabilities;
+- automated certification workflows;
+- interoperability improvements;
+- additional governance integrations.
+
+Future extensions SHALL preserve backward traceability unless an explicitly documented breaking revision is published.
+
+## F.3 Extension Invariants
+
+EXT-001
+
+Future extensions SHALL preserve the normative architecture.
+
+EXT-002
+
+Future extensions SHALL remain framework-neutral.
+
+EXT-003
+
+Future extensions SHALL remain implementation-independent.
+
+EXT-004
+
+Future extensions SHALL preserve reproducibility.
+
+EXT-005
+
+Future extensions SHALL preserve independent verification.
+
+EXT-006
+
+Future extensions SHALL preserve traceability.
+
+EXT-007
+
+Future extensions SHALL preserve compatibility with published specification versions unless explicitly documented otherwise.
