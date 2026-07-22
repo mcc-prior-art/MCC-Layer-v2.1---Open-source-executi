@@ -174,3 +174,134 @@ Implementations realize requirements.
 Certification verifies requirements.
 
 No single implementation becomes the specification.
+
+---
+
+# 7. Certification Model
+
+The MCC Certification Program defines a single normative certification model.
+
+All certifications SHALL be performed according to this model.
+
+The certification model is implementation-independent.
+
+The certification model evaluates conformance to MCC specifications rather than implementation identity.
+
+Certification SHALL always evaluate normative requirements.
+
+Certification SHALL NOT evaluate implementation popularity, project ownership, programming language, framework ecosystem, deployment topology, commercial status or organizational affiliation.
+
+Every successful certification SHALL produce reproducible certification artifacts.
+
+Those artifacts SHALL be sufficient for independent verification.
+
+---
+
+## 7.1 Certification Authority
+
+The MCC Certification Program defines exactly one normative certification authority.
+
+The Certification Authority is responsible for:
+
+- defining certification requirements;
+- defining certification procedures;
+- defining certification outputs;
+- defining certification invariants;
+- approving specification versions;
+- issuing Technical Certificates.
+
+Implementations SHALL NOT redefine certification requirements.
+
+---
+
+## 7.2 Certification Subject
+
+A Certification Subject is any implementation evaluated against one or more MCC specifications.
+
+Certification Subjects include, but are not limited to:
+
+- Adapter SDK implementations;
+- adapter integrations;
+- gateways;
+- certification tooling;
+- reference implementations;
+- future MCC components.
+
+Certification SHALL evaluate behavior rather than implementation origin.
+
+---
+
+## 7.3 Certification Inputs
+
+Certification SHALL consume one or more of the following inputs:
+
+- implementation under evaluation;
+- specification version;
+- conformance profile;
+- capability profile;
+- certification configuration;
+- normative test vectors.
+
+Certification inputs SHALL be versioned.
+
+---
+
+## 7.4 Certification Outputs
+
+Every successful certification SHALL produce:
+
+- Evidence Bundle;
+- Certification Manifest;
+- Technical Certificate;
+- Conformance Result;
+- Certification Report.
+
+These outputs SHALL be reproducible.
+
+---
+
+## 7.5 Certification Invariants
+
+The following invariants SHALL always hold.
+
+CI-001
+
+Certification evaluates specifications.
+
+Never implementations.
+
+CI-002
+
+Evidence precedes certification.
+
+CI-003
+
+Certification precedes Technical Certificate issuance.
+
+CI-004
+
+Certification results SHALL be reproducible.
+
+CI-005
+
+Certification SHALL remain framework-neutral.
+
+CI-006
+
+No implementation SHALL become normative.
+
+CI-007
+
+Reference implementations remain informative.
+
+CI-008
+
+Certification SHALL be independently verifiable.
+
+CI-009
+
+Normative requirements SHALL be versioned.
+
+CI-010
+
+Certification SHALL remain implementation-independent.
