@@ -1304,3 +1304,69 @@ Technical Certificates SHALL declare specification versions.
 CERT-007
 
 Technical Certificates SHALL remain immutable after issuance.
+
+---
+
+# 17. Versioning
+
+## 17.1 Purpose
+
+This section defines versioning requirements for the MCC Certification Program specification.
+
+Versioning SHALL support reproducible certification.
+
+Versioning SHALL support long-term compatibility.
+
+## 17.2 Specification Versions
+
+Each certification SHALL reference an explicit specification version.
+
+Specification versions SHALL uniquely identify the normative document used during certification.
+
+Version identifiers SHALL remain immutable.
+
+## 17.3 Version Compatibility
+
+Certification SHALL be evaluated only against the referenced specification version.
+
+Different specification versions SHALL NOT be considered equivalent unless explicitly declared.
+
+Compatibility rules SHALL be documented.
+
+## 17.4 Certification Revalidation
+
+Certification MAY be repeated against newer specification versions.
+
+Each revalidation SHALL produce a new certification result.
+
+Previous certification results SHALL remain preserved.
+
+## 17.5 Version Invariants
+
+VER-001
+
+Specification versions SHALL be immutable.
+
+VER-002
+
+Certification SHALL reference exactly one specification version.
+
+VER-003
+
+Version identifiers SHALL remain globally unique.
+
+VER-004
+
+Version compatibility SHALL be explicitly documented.
+
+VER-005
+
+Historical certification results SHALL remain reproducible.
+
+VER-006
+
+Revalidation SHALL NOT overwrite previous certification records.
+
+VER-007
+
+Version history SHALL remain traceable.
