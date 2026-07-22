@@ -1599,3 +1599,68 @@ References SHALL remain framework-neutral.
 REF-007
 
 References SHALL support reproducible certification.
+
+---
+
+# Appendix A — Certification State Machine
+
+## A.1 Overview
+
+This appendix defines the normative certification state machine.
+
+The state machine describes the lifecycle of a certification process.
+
+## A.2 States
+
+The certification process SHALL consist of the following states:
+
+- Draft
+- Submitted
+- Under Evaluation
+- Evidence Collection
+- Validation
+- Decision
+- Certified
+- Rejected
+- Revoked
+- Archived
+
+## A.3 State Transitions
+
+State transitions SHALL occur only through defined certification procedures.
+
+Undefined transitions SHALL NOT occur.
+
+Revocation SHALL NOT modify historical certification evidence.
+
+Archival SHALL preserve certification history.
+
+## A.4 State Invariants
+
+STATE-001
+
+Certification SHALL have exactly one active state.
+
+STATE-002
+
+State transitions SHALL be traceable.
+
+STATE-003
+
+State transitions SHALL be reproducible.
+
+STATE-004
+
+Archived certifications SHALL remain verifiable.
+
+STATE-005
+
+Revoked certifications SHALL preserve historical evidence.
+
+STATE-006
+
+Certification SHALL NOT skip mandatory states.
+
+STATE-007
+
+State history SHALL remain immutable.
