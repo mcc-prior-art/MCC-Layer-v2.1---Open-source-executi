@@ -69,6 +69,71 @@ jobs:
           path: artifacts/protocol/
           if-no-files-found: warn
 
+  adapter-sdk:
+    # Adapter SDK (PR #50) — the public, framework-neutral SDK third parties use to
+    # build MCC-Core adapters. Runs the SDK unit tests + architecture guards + the
+    # import-boundary regression (importing the SDK/protocol never loads the
+    # governance engine), the minimal example, deterministic evidence generation,
+    # the migrated reference adapter's interoperability, and the packaged clean
+    # install of the curated (engine-free) wheel. Offline; no external services.
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ build for the packaging checks)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install build
+
+      - name: Adapter SDK tests + architecture guards + reference-migration interop
+        run: pytest tests/adapter_sdk/ -v
+
+      - name: Import-boundary regression (SDK/protocol import loads no engine)
+        run: pytest tests/adapter_sdk/test_import_boundary.py -v
+
+      - name: Minimal example (no execution, no credentials, no side effects)
+        run: python examples/adapter_sdk/minimal_adapter.py
+
+      - name: Deterministic evidence generation (generate twice, compare)
+        run: |
+          python -c "import examples.adapter_sdk.minimal_adapter as m; \
+            from mcc_adapter_sdk import generate_adapter_evidence; \
+            a=m.GreetingAdapter(); \
+            e1=generate_adapter_evidence(a, write=False); \
+            e2=generate_adapter_evidence(a, write=False); \
+            assert e1==e2, 'evidence not deterministic'; print('evidence deterministic OK')"
+        env:
+          PYTHONPATH: "src:sdk/python/src:."
+
+      - name: Public API import smoke
+        run: |
+          python -c "from mcc_adapter_sdk import (Adapter, AdapterMetadata, AdapterContext, \
+            AdapterRunner, AdapterRunResult, AdapterRegistration, AdapterValidationReport, \
+            register_adapter, validate_adapter, generate_adapter_evidence, SDK_VERSION); \
+            print('curated public API OK', SDK_VERSION)"
+        env:
+          PYTHONPATH: "src:sdk/python/src:."
+
+      - name: Packaging — build wheel/sdist, inspect content, clean install, run example
+        run: pytest tests/test_artifact_contract.py -v
+
+      - name: Upload Adapter SDK evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adapter-sdk-evidence
+          path: artifacts/adapter-sdk/
+          if-no-files-found: warn
+
   compliance:
     # Integration Contract Compliance & Certification Suite (PR #44).
     # Runs the suite's unit + integration tests, then certifies the reference and

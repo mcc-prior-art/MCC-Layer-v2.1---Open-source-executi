@@ -30,6 +30,12 @@ dependencies = [
     # The facade re-exports this supported client; no governance logic is
     # duplicated here. Pinned to the 0.1.x line it was validated against.
     "mcc-client>=0.1,<0.2",
+    # Required by the bundled Adapter SDK / Canonical Protocol import path (PR #50):
+    # `mcc_core.signing` (canonical hashing) imports cryptography, and
+    # `mcc_protocol.observability` uses prometheus-client for bounded metrics. These
+    # are the SDK's runtime needs — no governance engine is shipped or pulled in.
+    "cryptography>=42",
+    "prometheus-client>=0.20.0",
 ]
 
 [project.optional-dependencies]
@@ -59,16 +65,32 @@ release = [
 Homepage = "https://github.com/mcc-prior-art/mcc-layer"
 Documentation = "https://github.com/mcc-prior-art/mcc-layer/blob/main/docs/PACKAGING_AND_SDK.md"
 
-# Package ONLY the facade. `mcc_client` is a dependency, not part of this wheel,
-# so `mcc-core` and `mcc-client` never both provide the same import namespace.
+# Distribution contents (PR #50).
+#
+# The wheel carries the stable public facade `mcc` plus the public Adapter SDK
+# (`mcc_adapter_sdk`) and the Canonical Governance Protocol it is a façade over
+# (`mcc_protocol`). Those two import only *pure* primitives from `mcc_core`
+# (canonical hashing) and `mcc_compliance` (the capability vocabulary), so a
+# **governance-free** subset of each is included — the execution gate, authority,
+# consensus, coordinator, audit, and the compliance runner/suite are deliberately
+# excluded from the built distribution (see `setup.py`'s `build_py`: it ships only
+# the pure modules the SDK/protocol import path needs). `mcc_client` remains its own
+# dependency distribution and is never vendored here.
 [tool.setuptools]
-packages = ["mcc"]
+packages = ["mcc", "mcc_adapter_sdk", "mcc_protocol", "mcc_core", "mcc_compliance"]
+
+[tool.setuptools.package-dir]
+mcc_adapter_sdk = "src/mcc_adapter_sdk"
+mcc_protocol = "src/mcc_protocol"
+mcc_core = "src/mcc_core"
+mcc_compliance = "src/mcc_compliance"
 
 [tool.setuptools.dynamic]
 version = { attr = "mcc._version.__version__" }
 
 [tool.setuptools.package-data]
 mcc = ["py.typed"]
+mcc_adapter_sdk = ["py.typed"]
 
 [tool.mypy]
 python_version = "3.11"

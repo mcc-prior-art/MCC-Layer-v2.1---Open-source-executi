@@ -70,11 +70,18 @@ def test_sdist_content_contract(dist):
     assert problems == [], problems
 
 
-def test_wheel_ships_only_mcc_with_py_typed(dist):
+def test_wheel_ships_public_packages_engine_free(dist):
+    # PR #50: the wheel carries the facade + Adapter SDK + Canonical Protocol + the
+    # governance-free curated subsets of mcc_core/mcc_compliance — and NEVER the
+    # governance engine or the compliance suite.
+    from scripts.release_checks import FORBIDDEN_WHEEL_MODULES, PUBLIC_PACKAGES
     info = inspect_wheel(dist["wheels"][0])
-    assert info.top_level == {"mcc"}
+    assert info.top_level <= PUBLIC_PACKAGES, sorted(info.top_level)
+    assert {"mcc", "mcc_adapter_sdk", "mcc_protocol"} <= info.top_level
     assert info.has_py_typed
-    assert "mcc_client" not in info.top_level
+    assert "mcc_client" not in info.top_level  # dependency, never vendored
+    shipped_forbidden = sorted(m for m in FORBIDDEN_WHEEL_MODULES if m in set(info.names))
+    assert shipped_forbidden == [], f"engine/suite modules leaked into wheel: {shipped_forbidden}"
 
 
 def test_clean_wheel_install_outside_checkout(dist, tmp_path):
@@ -101,7 +108,19 @@ def test_clean_wheel_install_outside_checkout(dist, tmp_path):
         "assert MCCClient is Orig, 'facade must re-export identical class'\n"
         "assert mcc.__version__ == im.version('mcc-core'), 'runtime != metadata'\n"
         "assert mcc.client_version == mcc_client.__version__\n"
-        "print('CLEAN-INSTALL OK', mcc.__version__, mf)\n"
+        # PR #50: the curated Adapter SDK public API imports from the clean install...
+        "import mcc_adapter_sdk as sdk\n"
+        "from mcc_adapter_sdk import (Adapter, AdapterMetadata, AdapterContext, "
+        "AdapterRunner, register_adapter, validate_adapter, generate_adapter_evidence)\n"
+        "sf = pathlib.Path(sdk.__file__).resolve()\n"
+        "assert root not in sf.parents, ('sdk imported from checkout: %%s' %% sf)\n"
+        # ...and the governance engine is NOT shippable from this wheel.
+        "import importlib\n"
+        "try:\n"
+        "    importlib.import_module('mcc_core.gate'); raise SystemExit('engine shipped!')\n"
+        "except ModuleNotFoundError:\n"
+        "    pass\n"
+        "print('CLEAN-INSTALL OK', mcc.__version__, sdk.SDK_VERSION, mf)\n"
     ) % str(ROOT)
     proc = subprocess.run([str(py), "-c", script], cwd=str(tmp_path),
                           capture_output=True, text=True)
