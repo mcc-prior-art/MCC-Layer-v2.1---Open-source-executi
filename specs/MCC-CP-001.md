@@ -856,3 +856,100 @@ Capability dependencies SHALL be acyclic.
 CAP-008
 
 Only verified capabilities MAY be certified.
+
+---
+
+# 12. Certification Requirements
+
+## 12.1 Purpose
+
+Certification Requirements define the normative requirements that SHALL be evaluated during certification.
+
+Certification Requirements SHALL be technology-independent and framework-neutral.
+
+Certification SHALL evaluate only published normative requirements.
+
+---
+
+## 12.2 Requirement Identifier
+
+Each Certification Requirement SHALL define:
+
+- requirement identifier;
+- requirement title;
+- normative statement;
+- applicability;
+- verification method;
+- expected outcome.
+
+Requirement identifiers SHALL be globally unique within a specification version.
+
+---
+
+## 12.3 Requirement Applicability
+
+Each requirement SHALL specify its applicability.
+
+Applicability MAY be:
+
+- universal;
+- profile-specific;
+- capability-specific;
+- conditional.
+
+Requirements SHALL NOT be evaluated outside their stated applicability.
+
+---
+
+## 12.4 Requirement Verification
+
+Each requirement SHALL define at least one normative verification method.
+
+Verification methods SHALL produce reproducible results.
+
+Verification SHALL remain implementation-independent.
+
+---
+
+## 12.5 Requirement Traceability
+
+Every Certification Requirement SHALL be traceable to:
+
+- the governing specification;
+- the evaluated capability profile, if applicable;
+- the verification result;
+- the generated Evidence Bundle.
+
+Traceability SHALL be preserved throughout certification.
+
+---
+
+## 12.6 Requirement Invariants
+
+REQ-001
+
+Requirements SHALL be normative.
+
+REQ-002
+
+Requirements SHALL be uniquely identified.
+
+REQ-003
+
+Requirements SHALL be reproducible.
+
+REQ-004
+
+Requirements SHALL remain framework-neutral.
+
+REQ-005
+
+Requirements SHALL remain implementation-independent.
+
+REQ-006
+
+Requirements SHALL define verification methods.
+
+REQ-007
+
+Requirements SHALL remain fully traceable.
