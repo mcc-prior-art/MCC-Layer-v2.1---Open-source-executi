@@ -648,3 +648,101 @@ Appendix E — Example Certification Flow
 Appendix F — Future Extensions
 
 The remaining sections SHALL be developed according to this roadmap unless superseded by a later approved specification revision.
+
+---
+
+# 10. Conformance Model
+
+## 10.1 Purpose
+
+The Conformance Model defines the normative criteria used to determine whether a Certification Subject conforms to applicable MCC specifications.
+
+Conformance SHALL be evaluated only against normative requirements defined by MCC specifications.
+
+No implementation-specific behavior SHALL influence conformance results.
+
+---
+
+## 10.2 Normative Requirements
+
+Each normative requirement SHALL have a unique identifier.
+
+Each requirement SHALL define:
+
+- identifier;
+- requirement statement;
+- applicability;
+- verification method;
+- expected outcome.
+
+Requirements SHALL remain stable within a published specification version.
+
+---
+
+## 10.3 Requirement Classification
+
+Normative requirements SHALL be classified as one of:
+
+- REQUIRED
+- OPTIONAL
+- CONDITIONAL
+
+REQUIRED requirements SHALL always be evaluated.
+
+OPTIONAL requirements SHALL NOT affect mandatory certification.
+
+CONDITIONAL requirements SHALL apply only when their stated conditions are satisfied.
+
+---
+
+## 10.4 Conformance Evaluation
+
+Each evaluated requirement SHALL produce exactly one outcome:
+
+- PASS
+- FAIL
+- NOT APPLICABLE
+
+No additional outcome values are permitted.
+
+---
+
+## 10.5 Overall Conformance
+
+Overall conformance SHALL be determined only after all REQUIRED and applicable CONDITIONAL requirements have been evaluated.
+
+Certification SHALL NOT be issued if any REQUIRED requirement fails.
+
+OPTIONAL requirements SHALL NOT prevent certification.
+
+---
+
+## 10.6 Conformance Invariants
+
+CONF-001
+
+Conformance evaluates requirements.
+
+CONF-002
+
+Conformance SHALL remain implementation-independent.
+
+CONF-003
+
+Conformance SHALL remain framework-neutral.
+
+CONF-004
+
+Conformance SHALL be reproducible.
+
+CONF-005
+
+Conformance SHALL be independently verifiable.
+
+CONF-006
+
+Normative requirements SHALL be versioned.
+
+CONF-007
+
+Certification decisions SHALL be derived only from evaluated normative requirements.
