@@ -386,8 +386,8 @@ Certification SHALL issue exactly one certification decision.
 
 Possible decisions are:
 
-- CERTIFIED
-- NOT CERTIFIED
+- PASS
+- FAIL
 
 Certification decisions SHALL be reproducible.
 
@@ -516,8 +516,8 @@ Issue the certification decision.
 
 Possible decisions:
 
-- CERTIFIED
-- NOT CERTIFIED
+- PASS
+- FAIL
 
 ---
 
@@ -1511,31 +1511,31 @@ Conformance claims SHALL reference the associated Technical Certificate.
 
 ## 20.3 Conformance Invariants
 
-CONF-001
+CSTMT-001
 
 Conformance SHALL be evidence-based.
 
-CONF-002
+CSTMT-002
 
 Conformance SHALL remain reproducible.
 
-CONF-003
+CSTMT-003
 
 Conformance SHALL remain independently verifiable.
 
-CONF-004
+CSTMT-004
 
 Conformance SHALL remain implementation-independent.
 
-CONF-005
+CSTMT-005
 
 Conformance SHALL remain framework-neutral.
 
-CONF-006
+CSTMT-006
 
 Conformance SHALL reference normative specification versions.
 
-CONF-007
+CSTMT-007
 
 Conformance claims SHALL remain traceable.
 
@@ -1679,12 +1679,12 @@ Certification decisions SHALL be derived exclusively from evaluated normative re
 
 The certification authority MAY produce only one of the following outcomes:
 
-- Certified
-- Certified with Conditions
-- Rejected
-- Revoked
+- PASS
+- FAIL
 
 No additional certification outcomes SHALL be defined unless introduced by a future specification revision.
+
+The governance runtime outcomes ALLOW, DENY, ESCALATE, and CONSTRAIN belong exclusively to MCC-Core runtime governance and SHALL NOT be used as certification outcomes.
 
 ## B.3 Decision Rules
 
