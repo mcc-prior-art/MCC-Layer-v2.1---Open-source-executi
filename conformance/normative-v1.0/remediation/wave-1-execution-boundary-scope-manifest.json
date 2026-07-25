@@ -1,0 +1,172 @@
+{
+  "wave": "Wave 1 — Execution Boundary",
+  "source_baseline_commit": "ef95b13ad449166965e6ae901c2e483ceb95e6da",
+  "source_of_truth": "conformance/normative-v1.0/requirements.json",
+  "requirement_count_in_baseline": 429,
+  "selected_requirement_ids": [],
+  "selected_requirement_count": 0,
+  "status": "BLOCKED_METHODOLOGICAL_DEFECT",
+  "defect_summary": "The Wave 1 target vocabulary (Decision Token signature verification, action-hash binding, audience binding, policy-hash binding, nonce/replay rejection, nbf/expiry, DENY-blocks-actuation, audit-before-actuation, bypass prevention, Execution Gate fail-closed behavior) names concepts that belong exclusively to MCC-Core runtime governance (src/mcc_core: gate.py, signing.py, nonce.py, coordinator.py, authority.py). All four Normative v1.0 specifications (MCC-CP-001, MCC-EB-001, MCC-CM-001, MCC-TC-001) explicitly and repeatedly exclude this vocabulary from their own normative scope. There is therefore no requirement in the 429-item Normative v1.0 baseline that the Wave 1 scope, as described, could legitimately select.",
+  "verification_method": [
+    "Extracted the committed conformance/normative-v1.0/requirements.json (429 requirements, generated from specs/MCC-CP-001.md, specs/MCC-EB-001.md, specs/MCC-CM-001.md, specs/MCC-TC-001.md at the reviewed Normative v1.0 baseline commit a65b2f375408dfbe8df86fbfc09724c5c45d3ba4).",
+    "Searched requirement_text, requirement_category, and section fields for: nonce, audience, action-hash, action_hash, policy-hash, policy_hash, nbf, decision token, execution gate, replay, actuation, fail-closed, ALLOW, DENY, ESCALATE, CONSTRAIN.",
+    "Cross-checked every match against the full text of each requirement to determine whether the requirement imposes an execution-boundary obligation or merely references the runtime-governance vocabulary while excluding it from scope."
+  ],
+  "matches_found": [
+    {
+      "requirement_id": "MCC-CM-001-6-NON-GOALS-D01",
+      "specification_id": "MCC-CM-001",
+      "disposition": "SCOPE_EXCLUSION",
+      "note": "Non-Goals section: 'This specification SHALL NOT ... define runtime governance behavior (ALLOW, DENY, ESCALATE, CONSTRAIN), which belongs exclusively to MCC-Core runtime governance.'"
+    },
+    {
+      "requirement_id": "MCC-EB-001-6-NON-GOALS-D01",
+      "specification_id": "MCC-EB-001",
+      "disposition": "SCOPE_EXCLUSION",
+      "note": "Non-Goals section: identical exclusion clause for runtime governance behavior."
+    },
+    {
+      "requirement_id": "MCC-TC-001-ABSTRACT-D02",
+      "specification_id": "MCC-TC-001",
+      "disposition": "SCOPE_EXCLUSION",
+      "note": "Abstract: 'A Technical Certificate ... is not, and SHALL NOT be interpreted as, a runtime execution authorization. Runtime governance behavior (ALLOW, DENY, ESCALATE, CONSTRAIN) belongs exclusively to MCC-Core runtime governance and is out of scope for this specification.'"
+    },
+    {
+      "requirement_id": "CM-CONF-003",
+      "specification_id": "MCC-CM-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'A conforming validator MUST implement fail-closed validation in full.' — this is Manifest-validator fail-closed behavior, not Execution Gate fail-closed behavior. Already tracked as GAP in the baseline for reasons unrelated to the execution boundary."
+    },
+    {
+      "requirement_id": "CM-VAL-001",
+      "specification_id": "MCC-CM-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'Validation MUST be fail-closed.' — same as above; already tracked as PARTIAL in the baseline."
+    },
+    {
+      "requirement_id": "EB-CONF-003",
+      "specification_id": "MCC-EB-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'A conforming validator MUST implement fail-closed validation in full.' — Evidence Bundle validator, not the Execution Gate."
+    },
+    {
+      "requirement_id": "EB-VAL-001",
+      "specification_id": "MCC-EB-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'Validation MUST be fail-closed.' — same as above."
+    },
+    {
+      "requirement_id": "TC-CONF-003",
+      "specification_id": "MCC-TC-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'A conforming verifier MUST implement fail-closed verification in full, including revocation checking.' — Technical Certificate verifier, not the Execution Gate."
+    },
+    {
+      "requirement_id": "TC-VERIFY-001",
+      "specification_id": "MCC-TC-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'Verification MUST be fail-closed.' — same as above."
+    }
+  ],
+  "conclusion": "Zero requirements were selected for Wave 1. Every requirement that references the Wave 1 vocabulary either explicitly excludes that vocabulary from the specification's normative scope, or uses 'fail-closed' in an unrelated sense (certification-artifact validator/verifier fail-closed behavior, not runtime Execution Gate fail-closed behavior). No implementation, test, or evidence change made against this vocabulary could move a Normative v1.0 requirement to CONFORMANT, because no Normative v1.0 requirement imposes an obligation on it.",
+  "conformant_count_before": 0,
+  "conformant_count_after": 0,
+  "followup_review_finding_1_extraction_coverage_gap": {
+    "title": "PR #60 requirement extraction is incomplete, independent of the Wave 1 finding above",
+    "mechanism": "src/mcc_conformance/extract.py disables the derived-requirement fallback for an entire H1 section the moment that section contains any canonical requirement ID anywhere within it (the `covered_h1` check, extract.py lines ~152-155). Canonical extraction itself only captures the paragraph immediately following an ID line. Any other MUST/SHALL/SHALL NOT/MUST NOT/REQUIRED sentence in that same H1 section, not restated under a canonical ID, is silently dropped: it is never extracted as a requirement, canonical or derived, and therefore never appears in requirements.json, traceability_matrix.*, or gap_report.md.",
+    "measured_impact": {
+      "MCC-CP-001": 155,
+      "MCC-TC-001": 102,
+      "MCC-EB-001": 73,
+      "MCC-CM-001": 61,
+      "total_orphaned_binding_lines": 391,
+      "note": "391 orphaned MUST/SHALL-class lines vs. 429 requirements currently extracted — a gap comparable in size to the entire existing corpus."
+    },
+    "concrete_example": {
+      "location": "specs/MCC-CP-001.md, Section 7.4 'Certification Outputs' (approx. lines 249-259)",
+      "text": "Every successful certification SHALL produce: Evidence Bundle; Certification Manifest; Technical Certificate; Conformance Result; Certification Report. These outputs SHALL be reproducible.",
+      "why_it_matters": "This is the requirement Appendix G and Appendix H (added in PR #57) exist to satisfy, yet it has no requirement ID of its own — it is not restated verbatim by any entry in the neighboring 7.5 Certification Invariants canonical block (CI-001..CI-010) — and is absent from requirements.json entirely."
+    },
+    "relationship_to_wave_1": "This defect does NOT change the Wave 1 conclusion. The vocabulary search behind Section A (nonce, audience, action-hash, policy-hash, nbf, decision token, execution gate, replay, actuation) was run directly against the full specification source text, not against requirements.json, so it already covers these 391 orphaned lines. None of them contain execution-boundary vocabulary either. This finding is reported because it independently invalidates the completeness claim in conformance/normative-v1.0/README.md ('Every normatively-binding requirement ... has been discovered'), which is not accurate as currently generated.",
+    "status": "Documented only. The extractor (src/mcc_conformance/extract.py) is NOT modified by this PR."
+  },
+  "followup_review_finding_2_disconnected_runtime_governance_coverage": {
+    "title": "Runtime execution-boundary behavior already has real normative coverage elsewhere in this repository — it is not unspecified, only disconnected from the Normative v1.0 Specification Program",
+    "existing_normative_document": {
+      "path": "docs/INTEGRATION_CONTRACT.md",
+      "status": "Status: Normative, contract version 1.0 (mcc_client.contract.CONTRACT_VERSION)",
+      "coverage": {
+        "Decision Tokens": "lines ~40, ~274",
+        "Execution Gate": "lines ~88, ~114, ~131, ~329",
+        "authority/action/scope/audience/policy binding": "line ~393 ('authority/scope/identity/policy binding at the Gate')",
+        "nonce and replay protection": "lines ~276, ~297-298, ~349",
+        "validity windows": "line ~299 (within_validity_window)",
+        "fail-closed execution": "lines ~187, ~200-201, ~219, ~222, ~227, ~336, ~393",
+        "audit-before-actuation": "lines ~136, ~228, ~302, ~393",
+        "bypass prevention": "lines ~329, ~395 ('cannot bypass the gate')"
+      }
+    },
+    "existing_conformance_evidence": {
+      "golden_vectors": "src/mcc_compliance/vectors/v1/manifest.json (IC-V1-* vectors)",
+      "certification_records": "certifications/manifest.json — two real CERTIFIED entries (reference-governed-agent, voltagent), each listing covered_invariants: action_hash_matches, nonce_not_replayed, policy_hash_matches, within_validity_window, verdict_authorizes, not_revoked, durably_recorded_before_enforce, signature_verified, actor_matches, resource_matches",
+      "tests": ["tests/test_compliance_suite.py", "tests/test_certified_adapter_program.py"],
+      "canonical_wire_models": "sdk/python/src/mcc_client/contract.py (CONTRACT_VERSION, ContractErrorCode, conformance_manifest())"
+    },
+    "the_disconnection": {
+      "no_cross_reference": "grep -rn \"Integration Contract\" specs/*.md returns zero results — none of the four Normative v1.0 specifications reference docs/INTEGRATION_CONTRACT.md.",
+      "incompatible_identifier_scheme": "docs/INTEGRATION_CONTRACT.md has no canonical `XX-000`-style Requirement Identifier Registry (verified: zero lines match ^[A-Z][A-Z-]{1,20}-[0-9]{3}$); it expresses normative content as prose plus named tables ('Traceability matrix', 'Invariant ownership matrix'), which src/mcc_conformance/extract.py's canonical-ID-line extraction cannot parse.",
+      "not_in_baseline": "docs/INTEGRATION_CONTRACT.md is not listed in src/mcc_conformance/extract.py's SPEC_FILES and has no presence in conformance/normative-v1.0/requirements.json."
+    },
+    "correction_to_original_wave_1_framing": "The original Wave 1 report's 'recommended paths forward' implied that execution-boundary conformance would require specifying and implementing this behavior from scratch. That implication is corrected here: the behavior is already specified (Integration Contract) and already has real conformance evidence (compliance suite + 2 CERTIFIED adapters). The actual unresolved question is registration/reconciliation, not specification or implementation from scratch — see the design decision below."
+  },
+  "unresolved_design_decision": {
+    "question": "How should docs/INTEGRATION_CONTRACT.md's existing runtime-governance normative coverage be made selectable by the conformance/normative-v1.0/ tooling and future remediation waves, given it is real and already normative but structurally incompatible with the current extractor?",
+    "option_1": {
+      "name": "Register/reconcile the existing Integration Contract under a dedicated normative identifier, e.g. MCC-RG-001",
+      "description": "Introduce a thin specification that canonically adopts docs/INTEGRATION_CONTRACT.md and mcc_client.contract as its normative source (not a rewrite), assigning an RG-### Requirement Identifier Registry compatible with the existing extractor convention, parallel to CP-001/EB-001/CM-001/TC-001, not subordinate to them.",
+      "status": "NOT implemented by this PR — concept only, per explicit instruction."
+    },
+    "option_2": {
+      "name": "Extend the conformance extractor to ingest the Integration Contract directly",
+      "description": "Teach src/mcc_conformance/extract.py to parse docs/INTEGRATION_CONTRACT.md's table-based normative sections (Traceability matrix, Invariant ownership matrix, Stable error taxonomy) into Requirement objects without requiring a canonical `XX-000` ID convention change to the source document.",
+      "status": "NOT implemented by this PR — concept only, per explicit instruction."
+    },
+    "decision_owner": "AX — not decided by this PR. This PR documents the choice; it does not make it.",
+    "explicit_constraint": "The extractor (src/mcc_conformance/extract.py) is NOT modified by this PR. MCC-RG-001 is NOT created by this PR."
+  },
+  "future_remediation_candidates_not_implemented_here": {
+    "note": "The following are dependency-ordered candidate waves identified during this review for genuinely in-scope MCC-CP-001/EB-001/CM-001/TC-001 GAP/PARTIAL requirements. NONE of them are implemented, tested, or evidence-generated by this PR. They are recorded here so a future implementation PR has a concrete, evidence-grounded starting point instead of re-deriving it.",
+    "wave_A": {
+      "name": "Evidence Bundle Structure and Hash Reference alignment",
+      "requirement_ids": ["CM-HASH-001", "CM-HASH-002", "CM-HASH-003", "CM-HASH-004",
+                           "EB-STR-001", "EB-STR-002", "EB-STR-003", "EB-STR-004", "EB-STR-005",
+                           "EB-FILE-001", "EB-FILE-002", "EB-FILE-003", "EB-FILE-004", "EB-FILE-005"],
+      "current_status": "PARTIAL (all 14)",
+      "reusable_implementation": ["src/mcc_evidence/export.py", "src/mcc_evidence/schema.py", "src/mcc_evidence/verify.py", "src/mcc_core/signing.py"],
+      "missing_behavior": "The exact Bundle Descriptor / Integrity Record / Provenance Record three-file split MCC-EB-001 requires (mcc_evidence currently uses one manifest.json plus named artifact paths), and a structured Hash Reference object (digest, algorithm, content pointer) rather than a bare digest string.",
+      "dependencies": "None — leaf-level; extends mcc_evidence in place rather than creating a parallel bundle system.",
+      "estimated_size": "small-medium"
+    },
+    "wave_B": {
+      "name": "Evidence Bundle Reference in the Certification Manifest",
+      "requirement_ids": ["CM-EBREF-001", "CM-EBREF-002", "CM-EBREF-003", "CM-EBREF-004"],
+      "current_status": "GAP (all 4)",
+      "dependencies": "Wave A — a Certification Manifest's Evidence Bundle Reference must point at a real EB-001-conformant Bundle and a real Hash Reference object, neither of which exist until Wave A lands.",
+      "estimated_size": "small"
+    },
+    "wave_C": {
+      "name": "Technical Certificate required fields and model",
+      "requirement_ids": ["TC-RFLD-001", "TC-RFLD-002", "TC-RFLD-003", "TC-RFLD-004", "TC-RFLD-005", "TC-RFLD-006",
+                           "TC-MODEL-001", "TC-MODEL-002", "TC-MODEL-003", "TC-MODEL-004"],
+      "current_status": "PARTIAL (all 10)",
+      "reusable_implementation": ["gateway/trust.py", "src/mcc_core/signing.py"],
+      "dependencies": "Wave A and Wave B — a Technical Certificate references a Manifest which references a Bundle.",
+      "estimated_size": "medium-large"
+    }
+  },
+  "recommended_paths_forward": [
+    "Decide the unresolved_design_decision above (MCC-RG-001 registration vs. extractor extension) before any execution-boundary remediation wave can select real requirement IDs.",
+    "Independently of that decision, Wave A (Evidence Bundle Structure and Hash Reference alignment) is available now as the correctly-scoped, dependency-ordered first remediation wave for genuinely in-scope MCC-EB-001/MCC-CM-001 findings — see conformance/normative-v1.0/gap_report.md and future_remediation_candidates_not_implemented_here.wave_A above.",
+    "Correct the extraction coverage gap (followup_review_finding_1) in src/mcc_conformance/extract.py in a dedicated methodology-correction PR before relying on requirements.json as a complete inventory for any future wave selection."
+  ]
+}
