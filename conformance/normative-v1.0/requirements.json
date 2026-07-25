@@ -304,15 +304,16 @@
       "id_origin": "canonical",
       "source_line": 364,
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/hash_reference.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_hash_reference.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "certifications/manifest.json binds evidence_digest / vector_manifest_digest (sha256, DIGEST_ALGORITHM) to the certification record, the same binding concept, but as bare digest strings rather than this section's required identifier+algorithm+content-pointer structured Hash Reference object.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): HashReference is a structured object identifying a Digest, a hash algorithm, and the content it corresponds to (content_ref); HashReference.from_dict fails closed on any missing/malformed field. Directly tested by test_cm_hash_001_structure_identifies_digest_algorithm_and_content, test_cm_hash_001_round_trips_through_to_dict_from_dict, and the from_dict rejection tests.",
       "notes": null
     },
     {
@@ -327,15 +328,16 @@
       "id_origin": "canonical",
       "source_line": 368,
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/hash_reference.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_hash_reference.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "certifications/manifest.json binds evidence_digest / vector_manifest_digest (sha256, DIGEST_ALGORITHM) to the certification record, the same binding concept, but as bare digest strings rather than this section's required identifier+algorithm+content-pointer structured Hash Reference object.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): SUPPORTED_HASH_ALGORITHMS is the closed set {\"sha256\"}; compute_hash_reference refuses to construct a reference with any other algorithm, and HashReference.validate()/verify_hash_reference reject one at verification time too -- a non-collision-resistant algorithm is never accepted, only rejected. Directly tested by test_cm_hash_002_* (compute refusal, validate rejection, verify fail-closed) and test_unsupported_hash_algorithm_is_rejected.",
       "notes": null
     },
     {
@@ -373,15 +375,16 @@
       "id_origin": "canonical",
       "source_line": 376,
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/hash_reference.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_hash_reference.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "certifications/manifest.json binds evidence_digest / vector_manifest_digest (sha256, DIGEST_ALGORITHM) to the certification record, the same binding concept, but as bare digest strings rather than this section's required identifier+algorithm+content-pointer structured Hash Reference object.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): verify_hash_reference independently recomputes the digest of supplied data and compares it to the declared value -- it never trusts a prior verification result. Directly tested by test_cm_hash_004_verify_succeeds_for_matching_content, test_cm_hash_004_verify_fails_for_mismatched_content, and the malformed-digest / wrong-length fail-closed tests.",
       "notes": null
     },
     {
@@ -10595,18 +10598,18 @@
       "id_origin": "canonical",
       "source_line": 285,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): the Bundle Descriptor is always written at the Bundle Root and declares the Schema Version, Bundle identifier, and MCC-CP-001 specification version (Section 11.1); its absence is rejected by verify_eb001_bundle. Directly tested by test_eb_file_001_bundle_descriptor_present_and_declares_required_fields and the parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
       "notes": null
     },
     {
@@ -10621,18 +10624,18 @@
       "id_origin": "canonical",
       "source_line": 289,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): the Integrity Record is always written at the Bundle Root; its absence is rejected by verify_eb001_bundle. Directly tested by test_eb_file_002_integrity_record_present and the parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
       "notes": null
     },
     {
@@ -10647,18 +10650,18 @@
       "id_origin": "canonical",
       "source_line": 293,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): the Provenance Record is always written at the Bundle Root and declares the certification run and specification version that produced the Bundle; its absence is rejected by verify_eb001_bundle. Directly tested by test_eb_file_003_provenance_record_present_and_declares_origin and the parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
       "notes": null
     },
     {
@@ -10673,18 +10676,18 @@
       "id_origin": "canonical",
       "source_line": 297,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): the Integrity Record enumerates a Hash Reference for every file other than itself; verify_eb001_bundle's integrity_enumeration_completeness check rejects both an unenumerated actual file and an enumerated-but-absent file. Directly tested by test_eb_file_004_every_non_integrity_record_file_is_enumerated, test_eb_file_004_unenumerated_file_is_rejected, and test_eb_file_004_missing_enumerated_file_is_rejected.",
       "notes": null
     },
     {
@@ -10699,18 +10702,18 @@
       "id_origin": "canonical",
       "source_line": 301,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): build_eb001_bundle never omits a required root artifact or the Evidence Directory regardless of whether Evidence Items are present (an empty certification outcome still yields all required structure); verify_eb001_bundle rejects any bundle a required artifact was removed from post-generation. Directly tested by test_missing_evidence_directory_is_rejected and the parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
       "notes": null
     },
     {
@@ -11475,18 +11478,18 @@
       "id_origin": "canonical",
       "source_line": 229,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): build_eb001_bundle produces exactly one Bundle Root per generation (directory or archive); verify_eb001_bundle's root_structure check confirms it. Directly tested by test_produces_and_verifies_a_valid_eb001_bundle_directory_form and test_eb_str_002_bundle_root_contains_exactly_the_required_entries; deterministic evidence recorded under EB-STR-001 in wave-a-evidence.json.",
       "notes": null
     },
     {
@@ -11501,18 +11504,18 @@
       "id_origin": "canonical",
       "source_line": 233,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): the Bundle Root contains exactly one Bundle Descriptor, Integrity Record, Provenance Record, and Evidence Directory by construction; verify_eb001_bundle's root_structure check rejects any bundle missing one or duplicating one. Directly tested by test_eb_str_002_bundle_root_contains_exactly_the_required_entries, test_eb_file_005_missing_required_root_artifact_is_rejected, and test_duplicate_singleton_root_artifact_is_rejected.",
       "notes": null
     },
     {
@@ -11527,18 +11530,18 @@
       "id_origin": "canonical",
       "source_line": 237,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): build_eb001_bundle is a pure function of its input (no wall-clock timestamp, random ID, or unordered collection) -- two independent generations from equivalent input produce byte-identical directory structure. Directly tested by test_eb_str_003_004_deterministic_regeneration_produces_identical_files and test_repeated_generation_is_deterministic.",
       "notes": null
     },
     {
@@ -11553,18 +11556,18 @@
       "id_origin": "canonical",
       "source_line": 241,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): file and directory names are fixed constants (BUNDLE_DESCRIPTOR_NAME / INTEGRITY_RECORD_NAME / PROVENANCE_RECORD_NAME / EVIDENCE_DIR_NAME), never derived from wall-clock time or randomness, so naming is stable across regeneration of equivalent input. Same tests as EB-STR-003.",
       "notes": null
     },
     {
@@ -11579,18 +11582,18 @@
       "id_origin": "canonical",
       "source_line": 245,
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "src/mcc_evidence exports/verifies bundles in directory and .tar.gz form with bundle-level metadata (bundle_id, created_at), semantically close to this section, but uses one manifest.json plus named artifact paths rather than this specification's separate Bundle Descriptor / Integrity Record / Provenance Record files, so the exact structural requirement is not met.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave A (PR #63): build_eb001_bundle derives both the directory form and the .tar.gz archive form from the identical in-memory {path: bytes} file set (build_bundle_files), so they are structurally equivalent by construction. Directly tested by test_eb_str_005_directory_and_archive_forms_are_structurally_equivalent.",
       "notes": null
     },
     {

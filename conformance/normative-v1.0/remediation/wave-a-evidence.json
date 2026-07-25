@@ -1,0 +1,278 @@
+{
+  "wave": "Wave A \u2014 Evidence Bundle Structure & Hash Reference",
+  "requirement_count": 13,
+  "records": [
+    {
+      "requirement_id": "EB-STR-001",
+      "specification": "MCC-EB-001",
+      "source_section": "10.1 Bundle Root / 10.5 Structure Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:build_eb001_bundle",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_produces_and_verifies_a_valid_eb001_bundle_directory_form"
+      ],
+      "input_fixture": "FIXED_INPUT (fixed bundle_id, 2 fixed Evidence Items)",
+      "expected_result": "one Bundle Root produced, containing all Bundle content",
+      "actual_result": "one Bundle Root directory produced; verification VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "referenced_bundle_artifact": "bundle_descriptor.json",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-STR-002",
+      "specification": "MCC-EB-001",
+      "source_section": "10.2 Top-Level Layout / 10.5 Structure Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_verify.py:_verify (root_structure check)",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_str_002_bundle_root_contains_exactly_the_required_entries",
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_005_missing_required_root_artifact_is_rejected"
+      ],
+      "input_fixture": "FIXED_INPUT; negative case: provenance_record.json removed after generation",
+      "expected_result": "exactly one Bundle Descriptor, Integrity Record, Provenance Record, Evidence Directory",
+      "actual_result": "positive: VALID; negative: INVALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "root_structure: missing required root artifact(s): ['provenance_record.json']",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-STR-003",
+      "specification": "MCC-EB-001",
+      "source_section": "10.5 Structure Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:build_bundle_files",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_str_003_004_deterministic_regeneration_produces_identical_files",
+        "tests/test_eb001_evidence_bundle.py::test_repeated_generation_is_deterministic"
+      ],
+      "input_fixture": "FIXED_INPUT generated twice independently",
+      "expected_result": "two independent generations produce byte-identical files and names",
+      "actual_result": "files identical across two independent generations: True",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-STR-004",
+      "specification": "MCC-EB-001",
+      "source_section": "10.4 Path Rules / 10.5 Structure Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:build_bundle_files",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_str_003_004_deterministic_regeneration_produces_identical_files",
+        "tests/test_eb001_evidence_bundle.py::test_repeated_generation_is_deterministic"
+      ],
+      "input_fixture": "FIXED_INPUT generated twice independently",
+      "expected_result": "two independent generations produce byte-identical files and names",
+      "actual_result": "files identical across two independent generations: True",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-STR-005",
+      "specification": "MCC-EB-001",
+      "source_section": "9.2 Bundle Forms / 10.5 Structure Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:build_eb001_bundle",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_str_005_directory_and_archive_forms_are_structurally_equivalent"
+      ],
+      "input_fixture": "FIXED_INPUT built as both directory and .tar.gz from the same in-memory file set",
+      "expected_result": "directory form and archive form contain identical files and content",
+      "actual_result": "directory and archive file sets identical: True",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-FILE-001",
+      "specification": "MCC-EB-001",
+      "source_section": "11.1 Bundle Descriptor / 11.5 Required Files Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:build_eb001_bundle; eb001_verify.py:_verify",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_001_bundle_descriptor_present_and_declares_required_fields",
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_005_missing_required_root_artifact_is_rejected"
+      ],
+      "input_fixture": "FIXED_INPUT; negative case: bundle_descriptor.json removed after generation",
+      "expected_result": "bundle_descriptor.json present at the Bundle Root",
+      "actual_result": "positive: VALID; negative: INVALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "bundle_descriptor: bundle_descriptor.json missing at Bundle Root",
+      "referenced_bundle_artifact": "bundle_descriptor.json",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-FILE-002",
+      "specification": "MCC-EB-001",
+      "source_section": "11.2 Integrity Record / 11.5 Required Files Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:build_eb001_bundle; eb001_verify.py:_verify",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_002_integrity_record_present",
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_005_missing_required_root_artifact_is_rejected"
+      ],
+      "input_fixture": "FIXED_INPUT; negative case: integrity_record.json removed after generation",
+      "expected_result": "integrity_record.json present at the Bundle Root",
+      "actual_result": "positive: VALID; negative: INVALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "root_structure: missing required root artifact(s): ['integrity_record.json']; integrity_record: integrity_record.json missing at Bundle Root",
+      "referenced_bundle_artifact": "integrity_record.json",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-FILE-003",
+      "specification": "MCC-EB-001",
+      "source_section": "11.3 Provenance Record / 11.5 Required Files Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:build_eb001_bundle; eb001_verify.py:_verify",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_003_provenance_record_present_and_declares_origin",
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_005_missing_required_root_artifact_is_rejected"
+      ],
+      "input_fixture": "FIXED_INPUT; negative case: provenance_record.json removed after generation",
+      "expected_result": "provenance_record.json present at the Bundle Root",
+      "actual_result": "positive: VALID; negative: INVALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "root_structure: missing required root artifact(s): ['provenance_record.json']; provenance_record: provenance_record.json missing at Bundle Root; hash_reference_integrity: entry for 'provenance_record.json': content reference does not resolve to any actual file; integrity_enumeration_completeness: enumerated file(s) not actually present in the Bundle: ['provenance_record.json']",
+      "referenced_bundle_artifact": "provenance_record.json",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-FILE-004",
+      "specification": "MCC-EB-001",
+      "source_section": "11.2 Integrity Record / 13.4 Digest Coverage",
+      "implementation_location": "src/mcc_evidence/eb001_export.py:_integrity_record; eb001_verify.py:_integrity_checks",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_004_every_non_integrity_record_file_is_enumerated",
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_004_unenumerated_file_is_rejected",
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_004_missing_enumerated_file_is_rejected"
+      ],
+      "input_fixture": "FIXED_INPUT; negative case: an unenumerated file added into evidence/ after generation",
+      "expected_result": "every file other than the Integrity Record is enumerated by it, exactly once",
+      "actual_result": "positive: VALID; negative: INVALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "integrity_enumeration_completeness: file(s) present but not enumerated by the Integrity Record: ['evidence/sneaked-in.json']",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "sha256:f2a443e61fd7eec996123af25b22bb7f75914e663aac3d05645e10d0f063a95f",
+      "relevant_hash_reference": {
+        "algorithm": "sha256",
+        "content_ref": "evidence/req-CI-001.json",
+        "digest": "sha256:f2a443e61fd7eec996123af25b22bb7f75914e663aac3d05645e10d0f063a95f"
+      },
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "EB-FILE-005",
+      "specification": "MCC-EB-001",
+      "source_section": "11.5 Required Files Invariants",
+      "implementation_location": "src/mcc_evidence/eb001_verify.py:_verify (root_structure check)",
+      "proving_tests": [
+        "tests/test_eb001_evidence_bundle.py::test_missing_evidence_directory_is_rejected",
+        "tests/test_eb001_evidence_bundle.py::test_eb_file_005_missing_required_root_artifact_is_rejected"
+      ],
+      "input_fixture": "an otherwise-valid empty-evidence bundle with its Evidence Directory deleted",
+      "expected_result": "required files/directories are never omitted regardless of certification outcome",
+      "actual_result": "negative: INVALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "root_structure: Evidence Directory is absent at the Bundle Root; hash_reference_integrity: entry for 'evidence/.keep': content reference does not resolve to any actual file; integrity_enumeration_completeness: enumerated file(s) not actually present in the Bundle: ['evidence/.keep']",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "CM-HASH-001",
+      "specification": "MCC-CM-001",
+      "source_section": "13.2 Hash Reference Structure / 13.5 Hash Reference Invariants",
+      "implementation_location": "src/mcc_evidence/hash_reference.py:HashReference",
+      "proving_tests": [
+        "tests/test_hash_reference.py::test_cm_hash_001_structure_identifies_digest_algorithm_and_content",
+        "tests/test_hash_reference.py::test_cm_hash_001_round_trips_through_to_dict_from_dict"
+      ],
+      "input_fixture": "compute_hash_reference(b'deterministic evidence fixture content', content_ref='evidence/req-CI-001.json')",
+      "expected_result": "a Hash Reference identifying a Digest, a hash algorithm, and its content",
+      "actual_result": "digest/algorithm/content_ref all present and round-trip through to_dict/from_dict",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "sha256:3f0a7324246002ba18ed42009e9cc18e3f4b52610143f653a2e38d3cdf7c5eaf",
+      "relevant_hash_reference": {
+        "digest": "sha256:3f0a7324246002ba18ed42009e9cc18e3f4b52610143f653a2e38d3cdf7c5eaf",
+        "algorithm": "sha256",
+        "content_ref": "evidence/req-CI-001.json"
+      },
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "CM-HASH-002",
+      "specification": "MCC-CM-001",
+      "source_section": "13.3 Hash Algorithm Requirements / 13.5 Hash Reference Invariants",
+      "implementation_location": "src/mcc_evidence/hash_reference.py:SUPPORTED_HASH_ALGORITHMS, HashReference.validate",
+      "proving_tests": [
+        "tests/test_hash_reference.py::test_cm_hash_002_compute_refuses_unsupported_algorithm",
+        "tests/test_hash_reference.py::test_cm_hash_002_validate_rejects_unsupported_algorithm",
+        "tests/test_eb001_evidence_bundle.py::test_unsupported_hash_algorithm_is_rejected"
+      ],
+      "input_fixture": "a Hash Reference declaring algorithm='md5' (not collision-resistant)",
+      "expected_result": "a non-collision-resistant algorithm is rejected, never accepted as valid",
+      "actual_result": "validate() problems: [\"hash algorithm 'md5' is not collision-resistant / not supported (supported: ['sha256'])\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "hash algorithm 'md5' is not collision-resistant / not supported (supported: ['sha256'])",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "",
+      "relevant_hash_reference": {},
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    },
+    {
+      "requirement_id": "CM-HASH-004",
+      "specification": "MCC-CM-001",
+      "source_section": "13.4 Hash Reference Usage / 13.5 Hash Reference Invariants",
+      "implementation_location": "src/mcc_evidence/hash_reference.py:verify_hash_reference",
+      "proving_tests": [
+        "tests/test_hash_reference.py::test_cm_hash_004_verify_succeeds_for_matching_content",
+        "tests/test_hash_reference.py::test_cm_hash_004_verify_fails_for_mismatched_content"
+      ],
+      "input_fixture": "compute_hash_reference(data) then independently verify_hash_reference(ref, data) and verify_hash_reference(ref, tampered_data)",
+      "expected_result": "independent recomputation confirms a match and rejects a mismatch",
+      "actual_result": "match: True; mismatch: False",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "referenced_bundle_artifact": "",
+      "relevant_digest": "sha256:9ecb36561341d18eb65484e833efea61edc74b84cf5e6ae1b81c63533e25fc8f",
+      "relevant_hash_reference": {
+        "digest": "sha256:9ecb36561341d18eb65484e833efea61edc74b84cf5e6ae1b81c63533e25fc8f",
+        "algorithm": "sha256",
+        "content_ref": "evidence/req-CI-002.json"
+      },
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_a_evidence.py",
+      "eb001_schema_version": "mcc-eb-001/1"
+    }
+  ]
+}
