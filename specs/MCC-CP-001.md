@@ -645,6 +645,10 @@ Appendix E — Example Certification Flow
 
 Appendix F — Future Extensions
 
+Appendix G — Conformance Result Requirements
+
+Appendix H — Certification Report Requirements
+
 The remaining sections SHALL be developed according to this roadmap unless superseded by a later approved specification revision.
 
 ---
@@ -1952,3 +1956,120 @@ Future extensions SHALL preserve traceability.
 EXT-007
 
 Future extensions SHALL preserve compatibility with published specification versions unless explicitly documented otherwise.
+
+---
+
+# Appendix G — Conformance Result Requirements
+
+## G.1 Purpose
+
+This appendix defines the normative content of the Conformance Result, one of the certification outputs named in Section 7.4 and Section 9.5.
+
+The Conformance Result is the record of the overall outcome of Conformance Assessment, as defined in Section 8.5, Section 9.5, and Section 10.4/10.5, for a single certification run.
+
+## G.2 Conformance Result Content
+
+The Conformance Result SHALL identify:
+
+- the Certification Subject identifier, as defined in Section 7.2;
+- the specification version under which certification was performed;
+- the overall certification outcome, exactly one of PASS or FAIL, consistent with Section 8.6 and Section 9.6;
+- the Requirement Result (PASS, FAIL, or NOT APPLICABLE) for every evaluated Certification Requirement, consistent with Section 10.4;
+- the generation timestamp.
+
+## G.3 Relationship to the Certification Manifest
+
+The Conformance Result is not a separate artifact from the Certification Manifest. It SHALL be carried by the Manifest Fields required under Section 15.2 ("certification requirements evaluated" and "certification result"), as further specified by MCC-CM-001.
+
+A certification implementation MUST NOT produce a Conformance Result as a document distinct from the Certification Manifest.
+
+## G.4 Conformance Result Invariants
+
+CRES-001
+
+The Conformance Result SHALL be carried by the Certification Manifest and SHALL NOT be produced as a separate artifact.
+
+CRES-002
+
+The Conformance Result SHALL identify the Certification Subject, the specification version, and the overall outcome.
+
+CRES-003
+
+The Conformance Result SHALL include a Requirement Result for every evaluated Certification Requirement.
+
+CRES-004
+
+The Conformance Result SHALL be reproducible.
+
+CRES-005
+
+The Conformance Result SHALL remain consistent with the Certification Manifest requirements defined by MCC-CM-001.
+
+---
+
+# Appendix H — Certification Report Requirements
+
+## H.1 Purpose
+
+This appendix defines the normative content of the Certification Report, one of the certification outputs named in Section 7.4 and Section 9.7.
+
+The Certification Report is the human-readable output that summarizes a certification run. It is distinct from the machine-readable Certification Manifest (MCC-CM-001) and Technical Certificate (MCC-TC-001).
+
+## H.2 Certification Report Content
+
+Every Certification Report SHALL include:
+
+- the Certification Subject identifier;
+- the specification version under which certification was performed;
+- the overall certification outcome (PASS or FAIL);
+- a human-readable summary of Requirement Results;
+- a reference to the associated Certification Manifest;
+- the generation timestamp.
+
+## H.3 Certification Report Properties
+
+The Certification Report SHALL be human-readable.
+
+The Certification Report SHALL NOT be treated as the authoritative record of a certification outcome. The Certification Manifest, and the Technical Certificate where issued, remain authoritative.
+
+The Certification Report SHALL NOT contain claims inconsistent with its referenced Certification Manifest.
+
+The Certification Report MAY be derived deterministically from the Certification Manifest.
+
+## H.4 Certification Report Format
+
+This specification does not mandate a specific serialization or presentation format for the Certification Report.
+
+A future specification MAY define a normative Certification Report format. Until such a specification is published, any human-readable, deterministic rendering satisfying Section H.2 and Section H.3 conforms.
+
+## H.5 Certification Report Applicability
+
+A Certification Report SHALL be produced for every successful certification, consistent with Section 7.4.
+
+This specification does not require a Certification Report for a FAIL certification result.
+
+## H.6 Certification Report Invariants
+
+CREP-001
+
+A Certification Report SHALL be produced for every successful certification.
+
+CREP-002
+
+The Certification Report SHALL be human-readable.
+
+CREP-003
+
+The Certification Report SHALL identify the Certification Subject, the specification version, and the overall certification outcome.
+
+CREP-004
+
+The Certification Report SHALL NOT be treated as authoritative in place of the Certification Manifest or Technical Certificate.
+
+CREP-005
+
+The Certification Report SHALL NOT contain claims inconsistent with its referenced Certification Manifest.
+
+CREP-006
+
+The Certification Report format SHALL remain implementation-independent absent a future normative format specification.
