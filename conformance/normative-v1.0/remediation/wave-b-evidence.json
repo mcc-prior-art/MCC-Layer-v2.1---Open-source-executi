@@ -1,0 +1,135 @@
+{
+  "wave": "Wave B \u2014 Certification Manifest Evidence Bundle Reference",
+  "requirement_count": 5,
+  "records": [
+    {
+      "requirement_id": "CM-EBREF-001",
+      "specification": "MCC-CM-001",
+      "source_section": "14.2 Primary Evidence Bundle Reference / 14.5 Invariants",
+      "implementation_location": "src/mcc_evidence/cm001_manifest.py:CM001Manifest, build_cm001_manifest",
+      "proving_tests": [
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_001_manifest_has_exactly_one_primary_reference",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_001_manifest_from_dict_requires_a_primary_reference"
+      ],
+      "input_fixture": "PRIMARY_INPUT (fixed bundle_id, fixed evidence item)",
+      "referenced_evidence_bundle": "wave-b-evidence-bundle-primary",
+      "bundle_id": "wave-b-evidence-bundle-primary",
+      "schema_version": "mcc-eb-001/1",
+      "hash_reference": {
+        "digest": "sha256:b9e857fd27b4b7666515c15fdc0221dfe1082eb4c1c669099ebce00667c8091f",
+        "algorithm": "sha256",
+        "content_ref": "wave-b-evidence-bundle-primary"
+      },
+      "expected_result": "the Manifest references exactly one primary Evidence Bundle",
+      "actual_result": "manifest.primary_evidence_bundle_reference is present and singular by construction",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_b_evidence.py",
+      "cm001_manifest_schema_version": "mcc-cm-001/1"
+    },
+    {
+      "requirement_id": "CM-EBREF-002",
+      "specification": "MCC-CM-001",
+      "source_section": "14.2 Primary Evidence Bundle Reference / 14.5 Invariants",
+      "implementation_location": "src/mcc_evidence/cm001_manifest.py:build_evidence_bundle_reference",
+      "proving_tests": [
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_002_valid_evidence_bundle_reference_creation",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_002_missing_bundle_id_rejected",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_002_missing_schema_version_rejected"
+      ],
+      "input_fixture": "PRIMARY_INPUT",
+      "referenced_evidence_bundle": "wave-b-evidence-bundle-primary",
+      "bundle_id": "wave-b-evidence-bundle-primary",
+      "schema_version": "mcc-eb-001/1",
+      "hash_reference": {
+        "digest": "sha256:b9e857fd27b4b7666515c15fdc0221dfe1082eb4c1c669099ebce00667c8091f",
+        "algorithm": "sha256",
+        "content_ref": "wave-b-evidence-bundle-primary"
+      },
+      "expected_result": "the primary reference includes Bundle identifier, Schema Version, and a Hash Reference",
+      "actual_result": "bundle_id='wave-b-evidence-bundle-primary', schema_version='mcc-eb-001/1', hash_references=1",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_b_evidence.py",
+      "cm001_manifest_schema_version": "mcc-cm-001/1"
+    },
+    {
+      "requirement_id": "CM-EBREF-003",
+      "specification": "MCC-CM-001",
+      "source_section": "14.3 Supplementary Evidence Bundle References / 14.5 Invariants",
+      "implementation_location": "src/mcc_evidence/cm001_manifest.py:_validate_distinguishable",
+      "proving_tests": [
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_003_supplementary_reference_distinguishable_from_primary",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_003_indistinguishable_supplementary_reference_rejected",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_003_duplicate_supplementary_references_rejected"
+      ],
+      "input_fixture": "PRIMARY_INPUT + SUPPLEMENTARY_INPUT (distinct bundle_id); negative case: a supplementary reference sharing the primary's bundle_id",
+      "referenced_evidence_bundle": "wave-b-evidence-bundle-supplementary",
+      "bundle_id": "wave-b-evidence-bundle-supplementary",
+      "schema_version": "mcc-eb-001/1",
+      "hash_reference": {
+        "digest": "sha256:4ab92f9af303dadf8c636eded9cda1712c67572c72f72e3d89a0f4f8327085ea",
+        "algorithm": "sha256",
+        "content_ref": "wave-b-evidence-bundle-supplementary"
+      },
+      "expected_result": "a supplementary reference sharing the primary bundle_id is rejected as indistinguishable",
+      "actual_result": "indistinguishable case rejected: True",
+      "verification_outcome": "PASS",
+      "rejection_reason": "a supplementary Evidence Bundle Reference is not distinguishable from the primary reference: both reference the same bundle_id",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_b_evidence.py",
+      "cm001_manifest_schema_version": "mcc-cm-001/1"
+    },
+    {
+      "requirement_id": "CM-EBREF-004",
+      "specification": "MCC-CM-001",
+      "source_section": "14.4 Reference Integrity / 14.5 Invariants",
+      "implementation_location": "src/mcc_evidence/cm001_manifest.py:verify_cm001_manifest",
+      "proving_tests": [
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_004_manifest_invalidated_when_primary_unverifiable",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_004_incorrect_bundle_id_rejected",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_ebref_004_incorrect_schema_version_rejected"
+      ],
+      "input_fixture": "PRIMARY_INPUT; negative case: the referenced bundle's evidence content tampered after the Manifest was built",
+      "referenced_evidence_bundle": "wave-b-evidence-bundle-primary",
+      "bundle_id": "wave-b-evidence-bundle-primary",
+      "schema_version": "mcc-eb-001/1",
+      "hash_reference": {
+        "digest": "sha256:b9e857fd27b4b7666515c15fdc0221dfe1082eb4c1c669099ebce00667c8091f",
+        "algorithm": "sha256",
+        "content_ref": "wave-b-evidence-bundle-primary"
+      },
+      "expected_result": "an unverifiable primary Evidence Bundle Reference invalidates the whole Manifest",
+      "actual_result": "negative: INVALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "primary Evidence Bundle Reference unverifiable: ['bundle_structural_validity: referenced bundle is not a structurally valid MCC-EB-001 Bundle: [\"hash_reference_integrity: entry for \\'evidence/req-CI-001.json\\': digest mismatch (tampered or regenerated content)\"]']",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_b_evidence.py",
+      "cm001_manifest_schema_version": "mcc-cm-001/1"
+    },
+    {
+      "requirement_id": "CM-HASH-003",
+      "specification": "MCC-CM-001",
+      "source_section": "13.4 Hash Reference Usage / 13.5 Hash Reference Invariants",
+      "implementation_location": "src/mcc_evidence/cm001_manifest.py:EvidenceBundleReference",
+      "proving_tests": [
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_hash_003_at_least_one_hash_reference_present",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_hash_003_from_dict_rejects_zero_hash_references",
+        "tests/test_cm001_evidence_bundle_reference.py::test_cm_hash_003_missing_hash_reference_field_rejected"
+      ],
+      "input_fixture": "PRIMARY_INPUT; negative case: an Evidence Bundle Reference dict with an empty hash_references array",
+      "referenced_evidence_bundle": "wave-b-evidence-bundle-primary",
+      "bundle_id": "wave-b-evidence-bundle-primary",
+      "schema_version": "mcc-eb-001/1",
+      "hash_reference": {
+        "digest": "sha256:b9e857fd27b4b7666515c15fdc0221dfe1082eb4c1c669099ebce00667c8091f",
+        "algorithm": "sha256",
+        "content_ref": "wave-b-evidence-bundle-primary"
+      },
+      "expected_result": "every Evidence Bundle Reference carries at least one Hash Reference",
+      "actual_result": "positive: 1 Hash Reference(s); negative: zero-length hash_references array is rejected at parse time",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_b_evidence.py",
+      "cm001_manifest_schema_version": "mcc-cm-001/1"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ Auto-generated. Do not hand-edit — regenerate with:
 python -m mcc_conformance generate
 ```
 
-Total non-CONFORMANT requirements: 797 of 810.
+Total non-CONFORMANT requirements: 792 of 810.
 
 ## CM-COMPAT-001
 
@@ -112,58 +112,6 @@ Total non-CONFORMANT requirements: 797 of 810.
 - Recommended remediation scope: LARGE
 - May affect public interfaces / governance semantics: Yes — requires new public artifact schemas/objects and, for MCC-CP-001, new certification-program tooling; no existing Decision Token, Execution Gate, or Policy Bundle semantics are affected.
 
-## CM-EBREF-001
-
-- Specification / section: MCC-CM-001 / 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants
-- Status: GAP
-- Requirement: A Certification Manifest MUST reference exactly one primary Evidence Bundle.
-- Existing implementation: None
-- Missing implementation behavior: Full requirement not implemented.
-- Missing test coverage: No test exists for this requirement.
-- Missing evidence: No generated evidence artifact exists for this requirement.
-- Rationale: certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.
-- Recommended remediation scope: LARGE
-- May affect public interfaces / governance semantics: Yes — requires new public artifact schemas/objects and, for MCC-CP-001, new certification-program tooling; no existing Decision Token, Execution Gate, or Policy Bundle semantics are affected.
-
-## CM-EBREF-002
-
-- Specification / section: MCC-CM-001 / 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants
-- Status: GAP
-- Requirement: The primary Evidence Bundle Reference MUST include the Evidence Bundle identifier, Schema Version, and a Hash Reference.
-- Existing implementation: None
-- Missing implementation behavior: Full requirement not implemented.
-- Missing test coverage: No test exists for this requirement.
-- Missing evidence: No generated evidence artifact exists for this requirement.
-- Rationale: certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.
-- Recommended remediation scope: LARGE
-- May affect public interfaces / governance semantics: Yes — requires new public artifact schemas/objects and, for MCC-CP-001, new certification-program tooling; no existing Decision Token, Execution Gate, or Policy Bundle semantics are affected.
-
-## CM-EBREF-003
-
-- Specification / section: MCC-CM-001 / 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants
-- Status: GAP
-- Requirement: Supplementary Evidence Bundle References MUST be distinguishable from the primary reference.
-- Existing implementation: None
-- Missing implementation behavior: Full requirement not implemented.
-- Missing test coverage: No test exists for this requirement.
-- Missing evidence: No generated evidence artifact exists for this requirement.
-- Rationale: certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.
-- Recommended remediation scope: LARGE
-- May affect public interfaces / governance semantics: Yes — requires new public artifact schemas/objects and, for MCC-CP-001, new certification-program tooling; no existing Decision Token, Execution Gate, or Policy Bundle semantics are affected.
-
-## CM-EBREF-004
-
-- Specification / section: MCC-CM-001 / 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants
-- Status: GAP
-- Requirement: An unverifiable primary Evidence Bundle Reference invalidates the Manifest.
-- Existing implementation: None
-- Missing implementation behavior: Full requirement not implemented.
-- Missing test coverage: No test exists for this requirement.
-- Missing evidence: No generated evidence artifact exists for this requirement.
-- Rationale: certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.
-- Recommended remediation scope: LARGE
-- May affect public interfaces / governance semantics: Yes — requires new public artifact schemas/objects and, for MCC-CP-001, new certification-program tooling; no existing Decision Token, Execution Gate, or Policy Bundle semantics are affected.
-
 ## CM-EXT-001
 
 - Specification / section: MCC-CM-001 / 20. Extension Model / 20.4 Extension Model Invariants
@@ -201,19 +149,6 @@ Total non-CONFORMANT requirements: 797 of 810.
 - Missing evidence: No generated evidence artifact exists for this requirement.
 - Rationale: No extension-declaration mechanism (a way to mark additional fields as explicit, non-breaking extensions to a committed schema) was found anywhere in this repository for any artifact.
 - Recommended remediation scope: LARGE
-- May affect public interfaces / governance semantics: Yes — requires new public artifact schemas/objects and, for MCC-CP-001, new certification-program tooling; no existing Decision Token, Execution Gate, or Policy Bundle semantics are affected.
-
-## CM-HASH-003
-
-- Specification / section: MCC-CM-001 / 13. Hash References / 13.5 Hash Reference Invariants
-- Status: PARTIAL
-- Requirement: Every Evidence Bundle Reference MUST include at least one Hash Reference.
-- Existing implementation: src/mcc_compliance/program.py; certifications/manifest.json
-- Missing implementation behavior: Not wired to the artifact this specification defines; see rationale.
-- Missing test coverage: Existing tests cover the reused primitive only, not this requirement directly.
-- Missing evidence: No generated evidence artifact exists for this requirement.
-- Rationale: certifications/manifest.json binds evidence_digest / vector_manifest_digest (sha256, DIGEST_ALGORITHM) to the certification record, the same binding concept, but as bare digest strings rather than this section's required identifier+algorithm+content-pointer structured Hash Reference object.
-- Recommended remediation scope: SMALL
 - May affect public interfaces / governance semantics: Yes — requires new public artifact schemas/objects and, for MCC-CP-001, new certification-program tooling; no existing Decision Token, Execution Gate, or Policy Bundle semantics are affected.
 
 ## CM-META-001

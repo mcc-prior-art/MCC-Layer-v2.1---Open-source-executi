@@ -97,37 +97,61 @@
       "requirement_id": "CM-EBREF-001",
       "specification_id": "MCC-CM-001",
       "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-EBREF-002",
       "specification_id": "MCC-CM-001",
       "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-EBREF-003",
       "specification_id": "MCC-CM-001",
       "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-EBREF-004",
       "specification_id": "MCC-CM-001",
       "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-EXT-001",
@@ -190,15 +214,16 @@
       "requirement_id": "CM-HASH-003",
       "specification_id": "MCC-CM-001",
       "section": "13. Hash References / 13.5 Hash Reference Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/cm001_manifest.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_cm001_evidence_bundle_reference.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-HASH-004",
