@@ -160,29 +160,31 @@
       "requirement_id": "CM-HASH-001",
       "specification_id": "MCC-CM-001",
       "section": "13. Hash References / 13.5 Hash Reference Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/hash_reference.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_hash_reference.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-HASH-002",
       "specification_id": "MCC-CM-001",
       "section": "13. Hash References / 13.5 Hash Reference Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/hash_reference.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_hash_reference.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-HASH-003",
@@ -202,15 +204,16 @@
       "requirement_id": "CM-HASH-004",
       "specification_id": "MCC-CM-001",
       "section": "13. Hash References / 13.5 Hash Reference Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/hash_reference.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_hash_reference.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "CM-META-001",
@@ -6248,86 +6251,86 @@
       "requirement_id": "EB-FILE-001",
       "specification_id": "MCC-EB-001",
       "section": "11. Required Files / 11.5 Required Files Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-FILE-002",
       "specification_id": "MCC-EB-001",
       "section": "11. Required Files / 11.5 Required Files Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-FILE-003",
       "specification_id": "MCC-EB-001",
       "section": "11. Required Files / 11.5 Required Files Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-FILE-004",
       "specification_id": "MCC-EB-001",
       "section": "11. Required Files / 11.5 Required Files Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-FILE-005",
       "specification_id": "MCC-EB-001",
       "section": "11. Required Files / 11.5 Required Files Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-HASH-001",
@@ -6804,86 +6807,86 @@
       "requirement_id": "EB-STR-001",
       "specification_id": "MCC-EB-001",
       "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-STR-002",
       "specification_id": "MCC-EB-001",
       "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-STR-003",
       "specification_id": "MCC-EB-001",
       "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-STR-004",
       "specification_id": "MCC-EB-001",
       "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-STR-005",
       "specification_id": "MCC-EB-001",
       "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/eb001_schema.py",
+        "src/mcc_evidence/eb001_export.py",
+        "src/mcc_evidence/eb001_verify.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_eb001_evidence_bundle.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-a-evidence.json"
+      ]
     },
     {
       "requirement_id": "EB-VAL-001",

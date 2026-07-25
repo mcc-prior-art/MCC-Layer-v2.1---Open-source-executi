@@ -95,6 +95,14 @@ EV_SIGNING = (
     ["tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
      "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"],
 )
+EV_EB001_BUNDLE = (
+    ["src/mcc_evidence/eb001_schema.py", "src/mcc_evidence/eb001_export.py", "src/mcc_evidence/eb001_verify.py"],
+    ["tests/test_eb001_evidence_bundle.py"],
+)
+EV_HASH_REFERENCE = (
+    ["src/mcc_evidence/hash_reference.py"],
+    ["tests/test_hash_reference.py"],
+)
 EV_EVIDENCE_BUNDLE = (
     ["src/mcc_evidence/schema.py", "src/mcc_evidence/export.py", "src/mcc_evidence/verify.py"],
     ["tests/test_evidence_bundle.py", "tests/test_evidence_tamper.py", "tests/test_evidence_security.py"],
@@ -344,6 +352,142 @@ RULES: List[Rule] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Wave A (PR #63) per-requirement CONFORMANT overrides.
+#
+# Deliberately requirement-ID scoped, NOT category-scoped like RULES above.
+# EB-STR-*/EB-FILE-*/CM-HASH-* share categories ("10. Bundle Directory
+# Structure", "11. Required Files", "13. Hash References") with other
+# requirements Wave A did NOT select: near-duplicate derived prose
+# (e.g. MCC-EB-001-11-REQUIRED-FILES-D01..08) and CM-HASH-003 ("Every
+# Evidence Bundle Reference MUST include at least one Hash Reference"),
+# which is an obligation on the Evidence Bundle Reference object MCC-CM-001
+# Section 14 defines and Wave B has not yet built. A category-level RULES
+# change would silently promote or otherwise disturb all of those too; this
+# table promotes only the exact 13 requirement IDs Wave A implemented,
+# tested, and evidenced, leaving every other member of these categories at
+# its pre-existing status untouched. See
+# conformance/normative-v1.0/remediation/wave-a-evidence-bundle-scope-manifest.md
+# for the full selection/exclusion rationale and
+# conformance/normative-v1.0/remediation/wave-a-evidence.json for the
+# deterministic evidence record backing each entry below.
+_WAVE_A_EVIDENCE = ["conformance/normative-v1.0/remediation/wave-a-evidence.json"]
+
+IDOverride = Tuple[str, Tuple[List[str], List[str]], str]
+
+ID_OVERRIDES: Dict[str, IDOverride] = {
+    "EB-STR-001": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): build_eb001_bundle produces exactly one Bundle Root per "
+        "generation (directory or archive); verify_eb001_bundle's root_structure check "
+        "confirms it. Directly tested by "
+        "test_produces_and_verifies_a_valid_eb001_bundle_directory_form and "
+        "test_eb_str_002_bundle_root_contains_exactly_the_required_entries; deterministic "
+        "evidence recorded under EB-STR-001 in wave-a-evidence.json.",
+    ),
+    "EB-STR-002": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): the Bundle Root contains exactly one Bundle Descriptor, "
+        "Integrity Record, Provenance Record, and Evidence Directory by construction; "
+        "verify_eb001_bundle's root_structure check rejects any bundle missing one or "
+        "duplicating one. Directly tested by "
+        "test_eb_str_002_bundle_root_contains_exactly_the_required_entries, "
+        "test_eb_file_005_missing_required_root_artifact_is_rejected, and "
+        "test_duplicate_singleton_root_artifact_is_rejected.",
+    ),
+    "EB-STR-003": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): build_eb001_bundle is a pure function of its input (no "
+        "wall-clock timestamp, random ID, or unordered collection) -- two independent "
+        "generations from equivalent input produce byte-identical directory structure. "
+        "Directly tested by test_eb_str_003_004_deterministic_regeneration_produces_identical_files "
+        "and test_repeated_generation_is_deterministic.",
+    ),
+    "EB-STR-004": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): file and directory names are fixed constants "
+        "(BUNDLE_DESCRIPTOR_NAME / INTEGRITY_RECORD_NAME / PROVENANCE_RECORD_NAME / "
+        "EVIDENCE_DIR_NAME), never derived from wall-clock time or randomness, so naming "
+        "is stable across regeneration of equivalent input. Same tests as EB-STR-003.",
+    ),
+    "EB-STR-005": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): build_eb001_bundle derives both the directory form and the "
+        ".tar.gz archive form from the identical in-memory {path: bytes} file set "
+        "(build_bundle_files), so they are structurally equivalent by construction. "
+        "Directly tested by test_eb_str_005_directory_and_archive_forms_are_structurally_equivalent.",
+    ),
+    "EB-FILE-001": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): the Bundle Descriptor is always written at the Bundle Root and "
+        "declares the Schema Version, Bundle identifier, and MCC-CP-001 specification "
+        "version (Section 11.1); its absence is rejected by verify_eb001_bundle. Directly "
+        "tested by test_eb_file_001_bundle_descriptor_present_and_declares_required_fields "
+        "and the parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
+    ),
+    "EB-FILE-002": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): the Integrity Record is always written at the Bundle Root; its "
+        "absence is rejected by verify_eb001_bundle. Directly tested by "
+        "test_eb_file_002_integrity_record_present and the parametrized "
+        "test_eb_file_005_missing_required_root_artifact_is_rejected.",
+    ),
+    "EB-FILE-003": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): the Provenance Record is always written at the Bundle Root and "
+        "declares the certification run and specification version that produced the "
+        "Bundle; its absence is rejected by verify_eb001_bundle. Directly tested by "
+        "test_eb_file_003_provenance_record_present_and_declares_origin and the "
+        "parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
+    ),
+    "EB-FILE-004": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): the Integrity Record enumerates a Hash Reference for every file "
+        "other than itself; verify_eb001_bundle's integrity_enumeration_completeness check "
+        "rejects both an unenumerated actual file and an enumerated-but-absent file. "
+        "Directly tested by test_eb_file_004_every_non_integrity_record_file_is_enumerated, "
+        "test_eb_file_004_unenumerated_file_is_rejected, and "
+        "test_eb_file_004_missing_enumerated_file_is_rejected.",
+    ),
+    "EB-FILE-005": (
+        "CONFORMANT", EV_EB001_BUNDLE,
+        "Wave A (PR #63): build_eb001_bundle never omits a required root artifact or the "
+        "Evidence Directory regardless of whether Evidence Items are present (an empty "
+        "certification outcome still yields all required structure); verify_eb001_bundle "
+        "rejects any bundle a required artifact was removed from post-generation. Directly "
+        "tested by test_missing_evidence_directory_is_rejected and the parametrized "
+        "test_eb_file_005_missing_required_root_artifact_is_rejected.",
+    ),
+    "CM-HASH-001": (
+        "CONFORMANT", EV_HASH_REFERENCE,
+        "Wave A (PR #63): HashReference is a structured object identifying a Digest, a "
+        "hash algorithm, and the content it corresponds to (content_ref); "
+        "HashReference.from_dict fails closed on any missing/malformed field. Directly "
+        "tested by test_cm_hash_001_structure_identifies_digest_algorithm_and_content, "
+        "test_cm_hash_001_round_trips_through_to_dict_from_dict, and the "
+        "from_dict rejection tests.",
+    ),
+    "CM-HASH-002": (
+        "CONFORMANT", EV_HASH_REFERENCE,
+        "Wave A (PR #63): SUPPORTED_HASH_ALGORITHMS is the closed set {\"sha256\"}; "
+        "compute_hash_reference refuses to construct a reference with any other algorithm, "
+        "and HashReference.validate()/verify_hash_reference reject one at verification time "
+        "too -- a non-collision-resistant algorithm is never accepted, only rejected. "
+        "Directly tested by test_cm_hash_002_* (compute refusal, validate rejection, "
+        "verify fail-closed) and test_unsupported_hash_algorithm_is_rejected.",
+    ),
+    "CM-HASH-004": (
+        "CONFORMANT", EV_HASH_REFERENCE,
+        "Wave A (PR #63): verify_hash_reference independently recomputes the digest of "
+        "supplied data and compares it to the declared value -- it never trusts a prior "
+        "verification result. Directly tested by "
+        "test_cm_hash_004_verify_succeeds_for_matching_content, "
+        "test_cm_hash_004_verify_fails_for_mismatched_content, and the malformed-digest / "
+        "wrong-length fail-closed tests.",
+    ),
+}
+
+
 def _find_rule(spec_id: str, category: str) -> Optional[Rule]:
     for rule_spec, pattern, status, evidence, rationale in RULES:
         if rule_spec not in ("*", spec_id):
@@ -356,6 +500,16 @@ def _find_rule(spec_id: str, category: str) -> Optional[Rule]:
 def assess(requirements: List[Requirement]) -> List[Requirement]:
     for req in requirements:
         cat = req.requirement_category
+
+        if req.requirement_id in ID_OVERRIDES:
+            status, evidence, rationale = ID_OVERRIDES[req.requirement_id]
+            req.conformance_status = status
+            impl, tests = evidence
+            req.implementation_references = list(impl)
+            req.test_references = list(tests)
+            req.evidence_references = list(_WAVE_A_EVIDENCE)
+            req.rationale = rationale
+            continue
 
         if _META.search(cat):
             req.conformance_status = "NOT_APPLICABLE"

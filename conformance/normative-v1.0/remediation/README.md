@@ -15,6 +15,22 @@ would have misrepresented conformance rather than establishing it.
 | Wave | Name | Selected requirements | Outcome |
 |---|---|---|---|
 | 1 | Execution Boundary | 0 | Blocked — target vocabulary is explicitly out of scope for all four Normative v1.0 specifications. Also documents two independent findings (extraction coverage gap; disconnected but real Integration Contract coverage) and three dependency-ordered candidate waves for future work. See manifest. |
+| A | Evidence Bundle Structure & Hash Reference | 13 (of 14 candidates; `CM-HASH-003` excluded — depends on Wave B) | **Implemented.** `EB-STR-001..005`, `EB-FILE-001..005`, `CM-HASH-001/002/004` promoted `PARTIAL` → `CONFORMANT` via a real, tested extension of `src/mcc_evidence/` (PR #63). Global `CONFORMANT`: 0 → 13. See scope manifest and implementation report. |
+
+## Wave A — status
+
+Implemented in PR #63. `src/mcc_evidence/` gained `hash_reference.py`,
+`eb001_schema.py`, `eb001_export.py`, `eb001_verify.py` (a second,
+explicitly-versioned bundle schema alongside the pre-existing Governance
+Evidence Bundle, coexisting without interpreting each other's files) and 56
+new direct tests. `CM-HASH-003` was evaluated and explicitly excluded
+(depends on the not-yet-built Evidence Bundle Reference, Wave B). No other
+requirement sharing these categories was affected. See
+`wave-a-evidence-bundle-scope-manifest.{json,md}` and
+`wave-a-evidence-bundle-implementation-report.md` for the full record.
+
+Wave B (Evidence Bundle Reference, `CM-EBREF-*`) and Wave C (Technical
+Certificate) remain not started.
 
 ## Wave 1 — what it actually is
 

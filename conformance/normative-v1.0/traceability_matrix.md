@@ -29,13 +29,13 @@ python -m mcc_conformance generate
 
 | Status | Count | % of total |
 |---|---|---|
-| CONFORMANT | 0 | 0.0% |
-| PARTIAL | 606 | 74.8% |
+| CONFORMANT | 13 | 1.6% |
+| PARTIAL | 593 | 73.2% |
 | GAP | 114 | 14.1% |
 | NOT_APPLICABLE | 90 | 11.1% |
 | NOT_ASSESSED | 0 | 0.0% |
 
-**Conformance coverage (CONFORMANT / applicable requirements): 0.0% (0/720)**
+**Conformance coverage (CONFORMANT / applicable requirements): 1.8% (13/720)**
 
 ## Full Traceability Matrix
 
@@ -56,10 +56,10 @@ python -m mcc_conformance generate
 | CM-EXT-001 | MCC-CM-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | CM-EXT-002 | MCC-CM-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | CM-EXT-003 | MCC-CM-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
-| CM-HASH-001 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| CM-HASH-002 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
+| CM-HASH-001 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | CONFORMANT | src/mcc_evidence/hash_reference.py | tests/test_hash_reference.py |
+| CM-HASH-002 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | CONFORMANT | src/mcc_evidence/hash_reference.py | tests/test_hash_reference.py |
 | CM-HASH-003 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| CM-HASH-004 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
+| CM-HASH-004 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | CONFORMANT | src/mcc_evidence/hash_reference.py | tests/test_hash_reference.py |
 | CM-META-001 | MCC-CM-001 | 15. Certification Metadata / 15.6 Certification Metadata Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
 | CM-META-002 | MCC-CM-001 | 15. Certification Metadata / 15.6 Certification Metadata Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
 | CM-META-003 | MCC-CM-001 | 15. Certification Metadata / 15.6 Certification Metadata Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
@@ -523,11 +523,11 @@ python -m mcc_conformance generate
 | EB-EXT-002 | MCC-EB-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | EB-EXT-003 | MCC-EB-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | EB-EXT-004 | MCC-EB-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
-| EB-FILE-001 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-FILE-002 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-FILE-003 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-FILE-004 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-FILE-005 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
+| EB-FILE-001 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-FILE-002 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-FILE-003 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-FILE-004 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-FILE-005 | MCC-EB-001 | 11. Required Files / 11.5 Required Files Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
 | EB-HASH-001 | MCC-EB-001 | 13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
 | EB-HASH-002 | MCC-EB-001 | 13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
 | EB-HASH-003 | MCC-EB-001 | 13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
@@ -559,11 +559,11 @@ python -m mcc_conformance generate
 | EB-SEC-003 | MCC-EB-001 | 19. Security Considerations / 19.5 Security Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
 | EB-SEC-004 | MCC-EB-001 | 19. Security Considerations / 19.5 Security Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
 | EB-SEC-005 | MCC-EB-001 | 19. Security Considerations / 19.5 Security Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-STR-001 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-STR-002 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-STR-003 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-STR-004 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| EB-STR-005 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
+| EB-STR-001 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-STR-002 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-STR-003 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-STR-004 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
+| EB-STR-005 | MCC-EB-001 | 10. Bundle Directory Structure / 10.5 Structure Invariants | CONFORMANT | src/mcc_evidence/eb001_schema.py; src/mcc_evidence/eb001_export.py; src/mcc_evidence/eb001_verify.py | tests/test_eb001_evidence_bundle.py |
 | EB-VAL-001 | MCC-EB-001 | 16. Validation Rules / 16.7 Validation Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
 | EB-VAL-002 | MCC-EB-001 | 16. Validation Rules / 16.7 Validation Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
 | EB-VAL-003 | MCC-EB-001 | 16. Validation Rules / 16.7 Validation Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
