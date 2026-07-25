@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcc-prior-art/schemas/normative-v1.0/baseline.schema.json",
+  "title": "MCC Normative v1.0 Baseline Provenance Record",
+  "description": "Provenance of the normative baseline this conformance assessment was generated against.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "release_title",
+    "tag",
+    "baseline_commit",
+    "declaration_status",
+    "final_disposition",
+    "declaration_document",
+    "review_document",
+    "specifications",
+    "generated_at_note"
+  ],
+  "properties": {
+    "release_title": { "type": "string", "minLength": 1 },
+    "tag": { "type": "string", "minLength": 1 },
+    "baseline_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "declaration_status": { "type": "string", "minLength": 1 },
+    "final_disposition": { "type": "string", "minLength": 1 },
+    "declaration_document": { "type": "string", "minLength": 1 },
+    "review_document": { "type": "string", "minLength": 1 },
+    "specifications": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["specification_id", "source_file", "version", "status"],
+        "properties": {
+          "specification_id": { "type": "string" },
+          "source_file": { "type": "string" },
+          "version": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "generated_at_note": { "type": "string" }
+  }
+}

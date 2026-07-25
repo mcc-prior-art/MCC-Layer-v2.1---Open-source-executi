@@ -1,0 +1,5579 @@
+{
+  "schema": "schemas/requirement.schema.json",
+  "matrix": [
+    {
+      "requirement_id": "CM-COMPAT-001",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.6 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-COMPAT-002",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.6 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-COMPAT-003",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.6 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-COMPAT-004",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.6 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-CONF-001",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-CONF-002",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-CONF-003",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-CONF-004",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-EBREF-001",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-EBREF-002",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-EBREF-003",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-EBREF-004",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-EXT-001",
+      "specification_id": "MCC-CM-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-EXT-002",
+      "specification_id": "MCC-CM-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-EXT-003",
+      "specification_id": "MCC-CM-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-HASH-001",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.5 Hash Reference Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-HASH-002",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.5 Hash Reference Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-HASH-003",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.5 Hash Reference Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-HASH-004",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.5 Hash Reference Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-META-001",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.6 Certification Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-META-002",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.6 Certification Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-META-003",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.6 Certification Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-META-004",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.6 Certification Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-META-005",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.6 Certification Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-OPTF-001",
+      "specification_id": "MCC-CM-001",
+      "section": "12. Optional Fields / 12.4 Optional Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-OPTF-002",
+      "specification_id": "MCC-CM-001",
+      "section": "12. Optional Fields / 12.4 Optional Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-OPTF-003",
+      "specification_id": "MCC-CM-001",
+      "section": "12. Optional Fields / 12.4 Optional Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-OPTF-004",
+      "specification_id": "MCC-CM-001",
+      "section": "12. Optional Fields / 12.4 Optional Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-REF-001",
+      "specification_id": "MCC-CM-001",
+      "section": "24. References / 24.3 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-REF-002",
+      "specification_id": "MCC-CM-001",
+      "section": "24. References / 24.3 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-REF-003",
+      "specification_id": "MCC-CM-001",
+      "section": "24. References / 24.3 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RFLD-001",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.5 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RFLD-002",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.5 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RFLD-003",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.5 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RFLD-004",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.5 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RFLD-005",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.5 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RFLD-006",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.5 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RID-001",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RID-002",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RID-003",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-RID-004",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SCHEMA-001",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.5 Manifest Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SCHEMA-002",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.5 Manifest Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SCHEMA-003",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.5 Manifest Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SCHEMA-004",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.5 Manifest Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SCHEMA-005",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.5 Manifest Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SEC-001",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SEC-002",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SEC-003",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SEC-004",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-SEC-005",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VAL-001",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VAL-002",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VAL-003",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VAL-004",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VAL-005",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VSN-001",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VSN-002",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VSN-003",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CM-VSN-004",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-1-STATUS-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "1. Status",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-2-ABSTRACT-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "2. Abstract",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-5-GOALS-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "5. Goals / CM-G1. Framework Neutrality",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-5-GOALS-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "5. Goals / CM-G2. Machine Readability",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-5-GOALS-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "5. Goals / CM-G3. Independent Verifiability",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-5-GOALS-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "5. Goals / CM-G4. Traceability",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-6-NON-GOALS-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "6. Non-Goals",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-9-CERTIFICATION-MANIFEST-OVERVIEW-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "9. Certification Manifest Overview / 9.1 Role in Certification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-9-CERTIFICATION-MANIFEST-OVERVIEW-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "9. Certification Manifest Overview / 9.2 Manifest Form",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-9-CERTIFICATION-MANIFEST-OVERVIEW-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "9. Certification Manifest Overview / 9.2 Manifest Form",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-9-CERTIFICATION-MANIFEST-OVERVIEW-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "9. Certification Manifest Overview / 9.3 Relationship to Other Certification Artifacts",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-001",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-002",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-003",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-004",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-005",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-006",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-007",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CAP-008",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.7 Capability Profile Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CERT-001",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.6 Certificate Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CERT-002",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.6 Certificate Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CERT-003",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.6 Certificate Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CERT-004",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.6 Certificate Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CERT-005",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.6 Certificate Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CERT-006",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.6 Certificate Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CERT-007",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.6 Certificate Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-001",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-002",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-003",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-004",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-005",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-006",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-007",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-008",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-009",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CI-010",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CLASS-001",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.6 Requirement Classification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CLASS-002",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.6 Requirement Classification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CLASS-003",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.6 Requirement Classification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CLASS-004",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.6 Requirement Classification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CLASS-005",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.6 Requirement Classification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CLASS-006",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.6 Requirement Classification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CLASS-007",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.6 Requirement Classification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CONF-001",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.6 Conformance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CONF-002",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.6 Conformance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CONF-003",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.6 Conformance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CONF-004",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.6 Conformance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CONF-005",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.6 Conformance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CONF-006",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.6 Conformance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CONF-007",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.6 Conformance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CP-PIPE-001",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CP-PIPE-002",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CP-PIPE-003",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CP-PIPE-004",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CP-PIPE-005",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CP-PIPE-006",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CP-PIPE-007",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CREP-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.6 Certification Report Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CREP-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.6 Certification Report Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CREP-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.6 Certification Report Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CREP-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.6 Certification Report Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CREP-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.6 Certification Report Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CREP-006",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.6 Certification Report Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CRES-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.4 Conformance Result Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CRES-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.4 Conformance Result Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CRES-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.4 Conformance Result Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CRES-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.4 Conformance Result Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CRES-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.4 Conformance Result Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CSTMT-001",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.3 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CSTMT-002",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.3 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CSTMT-003",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.3 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CSTMT-004",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.3 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CSTMT-005",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.3 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CSTMT-006",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.3 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "CSTMT-007",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.3 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "DEC-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.4 Decision Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "DEC-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.4 Decision Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "DEC-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.4 Decision Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "DEC-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.4 Decision Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "DEC-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.4 Decision Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "DEC-006",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.4 Decision Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "DEC-007",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.4 Decision Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EVID-001",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.6 Evidence Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EVID-002",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.6 Evidence Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EVID-003",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.6 Evidence Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EVID-004",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.6 Evidence Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EVID-005",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.6 Evidence Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EVID-006",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.6 Evidence Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EVID-007",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.6 Evidence Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EX-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.3 Example Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EX-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.3 Example Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EX-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.3 Example Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EX-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.3 Example Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EX-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.3 Example Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EX-006",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.3 Example Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EX-007",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.3 Example Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EXT-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.3 Extension Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EXT-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.3 Extension Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EXT-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.3 Extension Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EXT-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.3 Extension Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EXT-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.3 Extension Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EXT-006",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.3 Extension Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EXT-007",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.3 Extension Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MAN-001",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.6 Manifest Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MAN-002",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.6 Manifest Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MAN-003",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.6 Manifest Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MAN-004",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.6 Manifest Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MAN-005",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.6 Manifest Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MAN-006",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.6 Manifest Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MAN-007",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.6 Manifest Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-2-GOALS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "2. Goals / G1. Framework Neutrality",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-2-GOALS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "2. Goals / G1. Framework Neutrality",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-2-GOALS-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "2. Goals / G2. Reproducibility",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-2-GOALS-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "2. Goals / G3. Independent Verification",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-2-GOALS-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "2. Goals / G4. Conformance",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-2-GOALS-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "2. Goals / G4. Conformance",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-3-NON-GOALS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "3. Non-Goals",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-5-NORMATIVE-LANGUAGE-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "5. Normative Language",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-6-ARCHITECTURAL-PRINCIPLES-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "6. Architectural Principles",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-6-ARCHITECTURAL-PRINCIPLES-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "6. Architectural Principles",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-6-ARCHITECTURAL-PRINCIPLES-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "6. Architectural Principles",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.1 Registration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.1 Registration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.2 Preparation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.2 Preparation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.2 Preparation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.3 Evaluation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.3 Evaluation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.3 Evaluation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D10",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.4 Evidence Collection",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D11",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.4 Evidence Collection",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D12",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.4 Evidence Collection",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D13",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.5 Conformance Assessment",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D14",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.5 Conformance Assessment",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D15",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.5 Conformance Assessment",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D16",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.6 Certification Decision",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D17",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.6 Certification Decision",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D18",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.7 Technical Certificate Issuance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D19",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.7 Technical Certificate Issuance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D20",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.8 Publication",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D21",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.8 Publication",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D22",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.9 Revalidation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-8-CERTIFICATION-LIFECYCLE-D23",
+      "specification_id": "MCC-CP-001",
+      "section": "8. Certification Lifecycle / 8.9 Revalidation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-ABSTRACT-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Abstract",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-DOCUMENT-ROADMAP-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Document Roadmap",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-DOCUMENT-ROADMAP-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Document Roadmap",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-STATUS-OF-THIS-SPECIFICATION-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Status of This Specification",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REF-001",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.4 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REF-002",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.4 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REF-003",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.4 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REF-004",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.4 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REF-005",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.4 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REF-006",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.4 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REF-007",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.4 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REG-001",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.4 Registry Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REG-002",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.4 Registry Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REG-003",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.4 Registry Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REG-004",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.4 Registry Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REG-005",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.4 Registry Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REG-006",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.4 Registry Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REG-007",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.4 Registry Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REQ-001",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.6 Requirement Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REQ-002",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.6 Requirement Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REQ-003",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.6 Requirement Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REQ-004",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.6 Requirement Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REQ-005",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.6 Requirement Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REQ-006",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.6 Requirement Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REQ-007",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.6 Requirement Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REV-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.4 Revision Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REV-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.4 Revision Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REV-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.4 Revision Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REV-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.4 Revision Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REV-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.4 Revision Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REV-006",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.4 Revision Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "REV-007",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.4 Revision Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "RID-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.4 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "RID-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.4 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "RID-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.4 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "RID-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.4 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "RID-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.4 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "RID-006",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.4 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "RID-007",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.4 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "SEC-001",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.4 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "SEC-002",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.4 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "SEC-003",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.4 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "SEC-004",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.4 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "SEC-005",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.4 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "SEC-006",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.4 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "SEC-007",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.4 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "STATE-001",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.4 State Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "STATE-002",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.4 State Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "STATE-003",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.4 State Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "STATE-004",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.4 State Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "STATE-005",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.4 State Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "STATE-006",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.4 State Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "STATE-007",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.4 State Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "VER-001",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.5 Version Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "VER-002",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.5 Version Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "VER-003",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.5 Version Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "VER-004",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.5 Version Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "VER-005",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.5 Version Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "VER-006",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.5 Version Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "VER-007",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.5 Version Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-COMPAT-001",
+      "specification_id": "MCC-EB-001",
+      "section": "18. Compatibility Requirements / 18.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-COMPAT-002",
+      "specification_id": "MCC-EB-001",
+      "section": "18. Compatibility Requirements / 18.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-COMPAT-003",
+      "specification_id": "MCC-EB-001",
+      "section": "18. Compatibility Requirements / 18.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-COMPAT-004",
+      "specification_id": "MCC-EB-001",
+      "section": "18. Compatibility Requirements / 18.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-CONF-001",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-CONF-002",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-CONF-003",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-CONF-004",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-EXT-001",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-EXT-002",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-EXT-003",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-EXT-004",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-FILE-001",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.5 Required Files Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-FILE-002",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.5 Required Files Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-FILE-003",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.5 Required Files Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-FILE-004",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.5 Required Files Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-FILE-005",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.5 Required Files Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-HASH-001",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-HASH-002",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-HASH-003",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-HASH-004",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-HASH-005",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.6 Hash and Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-META-001",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.4 Required Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-META-002",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.4 Required Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-META-003",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.4 Required Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-META-004",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.4 Required Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-META-005",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.4 Required Metadata Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-PROV-001",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.5 Provenance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-PROV-002",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.5 Provenance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-PROV-003",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.5 Provenance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-PROV-004",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.5 Provenance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-PROV-005",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.5 Provenance Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-REF-001",
+      "specification_id": "MCC-EB-001",
+      "section": "24. References / 24.3 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-REF-002",
+      "specification_id": "MCC-EB-001",
+      "section": "24. References / 24.3 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-REF-003",
+      "specification_id": "MCC-EB-001",
+      "section": "24. References / 24.3 Reference Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-REPRO-001",
+      "specification_id": "MCC-EB-001",
+      "section": "15. Reproducibility Requirements / 15.5 Reproducibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-REPRO-002",
+      "specification_id": "MCC-EB-001",
+      "section": "15. Reproducibility Requirements / 15.5 Reproducibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-REPRO-003",
+      "specification_id": "MCC-EB-001",
+      "section": "15. Reproducibility Requirements / 15.5 Reproducibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-REPRO-004",
+      "specification_id": "MCC-EB-001",
+      "section": "15. Reproducibility Requirements / 15.5 Reproducibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-RID-001",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-RID-002",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-RID-003",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-RID-004",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-SEC-001",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-SEC-002",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-SEC-003",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-SEC-004",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-SEC-005",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.5 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-STR-001",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-STR-002",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-STR-003",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-STR-004",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-STR-005",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.5 Structure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VAL-001",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VAL-002",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VAL-003",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VAL-004",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VAL-005",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.7 Validation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VSN-001",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VSN-002",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VSN-003",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "EB-VSN-004",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-1-STATUS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "1. Status",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-2-ABSTRACT-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "2. Abstract",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-5-GOALS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "5. Goals / EB-G1. Framework Neutrality",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-5-GOALS-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "5. Goals / EB-G2. Reproducibility",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-5-GOALS-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "5. Goals / EB-G3. Independent Verifiability",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-5-GOALS-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "5. Goals / EB-G4. Structural Determinism",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-6-NON-GOALS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "6. Non-Goals",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-9-EVIDENCE-BUNDLE-OVERVIEW-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "9. Evidence Bundle Overview / 9.1 Role in Certification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-9-EVIDENCE-BUNDLE-OVERVIEW-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "9. Evidence Bundle Overview / 9.2 Bundle Forms",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-9-EVIDENCE-BUNDLE-OVERVIEW-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "9. Evidence Bundle Overview / 9.2 Bundle Forms",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-9-EVIDENCE-BUNDLE-OVERVIEW-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "9. Evidence Bundle Overview / 9.3 Relationship to Certification Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-9-EVIDENCE-BUNDLE-OVERVIEW-D05",
+      "specification_id": "MCC-EB-001",
+      "section": "9. Evidence Bundle Overview / 9.3 Relationship to Certification Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-1-PURPOSE-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "1. Purpose",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-1-PURPOSE-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "1. Purpose",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-1-PURPOSE-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "1. Purpose",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-1-PURPOSE-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "1. Purpose",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-ABSTRACT-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "Abstract",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-ABSTRACT-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "Abstract",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-STATUS-OF-THIS-SPECIFICATION-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "Status of This Specification",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-COMPAT-001",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-COMPAT-002",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-COMPAT-003",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-COMPAT-004",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.5 Compatibility Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-CONF-001",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-CONF-002",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-CONF-003",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-CONF-004",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-CONF-005",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-EXT-001",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-EXT-002",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-EXT-003",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-EXT-004",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.4 Extension Model Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-HASH-001",
+      "specification_id": "MCC-TC-001",
+      "section": "13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-HASH-002",
+      "specification_id": "MCC-TC-001",
+      "section": "13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-HASH-003",
+      "specification_id": "MCC-TC-001",
+      "section": "13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-ID-001",
+      "specification_id": "MCC-TC-001",
+      "section": "5. Certificate Identity / 5.4 Certificate Identity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-ID-002",
+      "specification_id": "MCC-TC-001",
+      "section": "5. Certificate Identity / 5.4 Certificate Identity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-ID-003",
+      "specification_id": "MCC-TC-001",
+      "section": "5. Certificate Identity / 5.4 Certificate Identity Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-ISS-001",
+      "specification_id": "MCC-TC-001",
+      "section": "10. Issuer Information / 10.4 Issuer Information Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-ISS-002",
+      "specification_id": "MCC-TC-001",
+      "section": "10. Issuer Information / 10.4 Issuer Information Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-ISS-003",
+      "specification_id": "MCC-TC-001",
+      "section": "10. Issuer Information / 10.4 Issuer Information Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-MODEL-001",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-MODEL-002",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-MODEL-003",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-MODEL-004",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-OPTF-001",
+      "specification_id": "MCC-TC-001",
+      "section": "7. Optional Fields / 7.4 Optional Fields Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-OPTF-002",
+      "specification_id": "MCC-TC-001",
+      "section": "7. Optional Fields / 7.4 Optional Fields Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-OPTF-003",
+      "specification_id": "MCC-TC-001",
+      "section": "7. Optional Fields / 7.4 Optional Fields Invariants",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RES-001",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.5 Certification Result Representation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RES-002",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.5 Certification Result Representation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RES-003",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.5 Certification Result Representation Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-REV-001",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-REV-002",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-REV-003",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-REV-004",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-REV-005",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-REV-006",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RFLD-001",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.7 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RFLD-002",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.7 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RFLD-003",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.7 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RFLD-004",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.7 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RFLD-005",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.7 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RFLD-006",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.7 Required Fields Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RID-001",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RID-002",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RID-003",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-RID-004",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.5 Registry Invariants",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SCHEMA-001",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SCHEMA-002",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SCHEMA-003",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SCHEMA-004",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SCHEMA-005",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SEC-001",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.6 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SEC-002",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.6 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SEC-003",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.6 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SEC-004",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.6 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SEC-005",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.6 Security Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SIG-001",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SIG-002",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SIG-003",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SIG-004",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SIG-005",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SUBJ-001",
+      "specification_id": "MCC-TC-001",
+      "section": "8. Subject Identification / 8.4 Subject Identification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SUBJ-002",
+      "specification_id": "MCC-TC-001",
+      "section": "8. Subject Identification / 8.4 Subject Identification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-SUBJ-003",
+      "specification_id": "MCC-TC-001",
+      "section": "8. Subject Identification / 8.4 Subject Identification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-TRUST-001",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.6 Trust Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-TRUST-002",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.6 Trust Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-TRUST-003",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.6 Trust Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-TRUST-004",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.6 Trust Model Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VALID-001",
+      "specification_id": "MCC-TC-001",
+      "section": "11. Validity Period / 11.4 Validity Period Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VALID-002",
+      "specification_id": "MCC-TC-001",
+      "section": "11. Validity Period / 11.4 Validity Period Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VALID-003",
+      "specification_id": "MCC-TC-001",
+      "section": "11. Validity Period / 11.4 Validity Period Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VALID-004",
+      "specification_id": "MCC-TC-001",
+      "section": "11. Validity Period / 11.4 Validity Period Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VERIFY-001",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VERIFY-002",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VERIFY-003",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VERIFY-004",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VERIFY-005",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VERIFY-006",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VSN-001",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VSN-002",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VSN-003",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "TC-VSN-004",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.5 Versioning Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    }
+  ]
+}

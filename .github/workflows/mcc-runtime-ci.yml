@@ -30,6 +30,56 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
+  normative-v1-conformance:
+    # MCC Normative v1.0 — Implementation Conformance Baseline. Recomputes the
+    # requirement inventory directly from specs/MCC-{CP,EB,CM,TC}-001.md (never
+    # trusts the committed artifacts), validates structure/schema/baseline
+    # provenance, confirms the committed conformance/normative-v1.0/ artifacts
+    # are byte-identical to a fresh generation (so a stale, uncommitted
+    # regeneration fails CI), and runs the dedicated test suite. This baseline
+    # is observational: it does not certify MCC-Core or any adapter — see
+    # conformance/normative-v1.0/README.md.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: "src:."
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Validate the Normative v1.0 conformance baseline (fail-closed)
+        run: python -m mcc_conformance validate
+
+      - name: Conformance baseline tests
+        run: pytest tests/test_conformance_baseline.py -v
+
+      - name: Confirm committed artifacts are not stale (regenerate + diff)
+        run: |
+          python -m mcc_conformance generate
+          git diff --exit-code -- conformance/normative-v1.0/ || {
+            echo "STOP: conformance/normative-v1.0/ artifacts are stale."
+            echo "Run: python -m mcc_conformance generate, then commit the result."
+            exit 1
+          }
+          echo "OK: conformance artifacts are deterministic and up to date."
+
+      - name: Upload conformance baseline artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: normative-v1-conformance-baseline
+          path: conformance/normative-v1.0/
+          if-no-files-found: error
+
   protocol:
     # Canonical Governance Protocol & Canonical Ingress Pipeline (PR #49).
     # Offline unit tests + architecture/reconciliation guards prove one normative
