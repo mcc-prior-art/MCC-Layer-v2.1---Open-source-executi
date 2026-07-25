@@ -125,6 +125,18 @@ Revocation
 Certificate Schema Version
 : The version identifier of the Technical Certificate format itself, distinct from the version of MCC-CP-001, the Evidence Bundle Schema Version, and the Manifest Schema Version.
 
+Manifest Reference
+: A structured Certificate field that directly identifies, and binds by Hash Reference to, the Certification Manifest a Technical Certificate attests to, as further specified in Section 6.5.
+
+Canonical Form
+: A deterministic, unambiguous serialization of data used as input to a hash function or signature, such that identical logical content always produces an identical Canonical Form, as defined by MCC-EB-001, Section 7.
+
+Digest
+: The output of a cryptographic hash function applied to data in Canonical Form, as defined by MCC-EB-001, Section 7.
+
+Hash Reference
+: A structured field that identifies a Digest, the hash algorithm used to produce it, and the artifact or content the Digest corresponds to, as defined by MCC-CM-001, Section 7.
+
 ## 3.2 Role in Certification
 
 A Technical Certificate is issued during the Technical Certificate Issuance step of the Certification Lifecycle defined in MCC-CP-001, Section 8.7, only after the Certification Decision defined in MCC-CP-001, Sections 8.6 and 9.6, is PASS.
@@ -133,9 +145,11 @@ A Technical Certificate SHALL NOT be issued where the Certification Decision is 
 
 ## 3.3 Relationship to Other Certification Artifacts
 
-A Technical Certificate MUST reference exactly one Certification Manifest, as defined by MCC-CM-001.
+A Technical Certificate MUST reference exactly one Certification Manifest, as defined by MCC-CM-001, by a direct Manifest Reference, per Section 6.5.
 
-A Technical Certificate is traceable to the Evidence Bundle that substantiates its Certification Manifest transitively, through that Manifest's Evidence Bundle Reference as defined by MCC-CM-001, Section 14. This transitive path satisfies the traceability requirement of MCC-CP-001, Section 16.5.
+A Technical Certificate MUST also reference, by a direct Evidence Bundle Reference per Section 6.6, the Evidence Bundle that substantiates its Certification Manifest. This satisfies the requirement of MCC-CP-001, Section 16.2 that a Technical Certificate include an Evidence Bundle reference directly, in addition to the traceability requirement of MCC-CP-001, Section 16.5.
+
+The Evidence Bundle identified by the Certificate's direct Evidence Bundle Reference MUST be the same Evidence Bundle identified by the Evidence Bundle Reference contained within the referenced Certification Manifest, as defined by MCC-CM-001, Section 14. A verifier MUST check this consistency, per Section 15.5.
 
 ## 3.4 Distinction from Runtime Governance Artifacts
 
@@ -159,7 +173,7 @@ A Technical Certificate MUST NOT be interpreted or used as a runtime execution a
 
 TC-MODEL-004
 
-A Technical Certificate MUST remain traceable, directly or transitively, to the Certification Subject, specification version, Certification Manifest, and Evidence Bundle.
+A Technical Certificate MUST remain traceable to the Certification Subject, specification version, Certification Manifest, and Evidence Bundle, by direct reference in every case.
 
 ---
 
@@ -178,7 +192,8 @@ A Technical Certificate SHALL be a single structured, machine-readable document 
 - Certification Result Representation, per Section 9;
 - Issuer Information, per Section 10;
 - Validity Period, per Section 11;
-- Manifest Reference, per Section 6;
+- Manifest Reference, per Section 6.5;
+- Evidence Bundle Reference, per Section 6.6;
 - Signature, per Section 14;
 - Optional Fields, per Section 7;
 - Extension fields, per Section 20, where present.
@@ -270,8 +285,8 @@ Consistent with MCC-CP-001, Section 16.2, every Technical Certificate MUST inclu
 - specification version;
 - certification result;
 - certified capability profiles;
-- Certification Manifest reference;
-- Evidence Bundle reference (satisfied transitively per Section 3.3);
+- Certification Manifest reference, per Section 6.5;
+- Evidence Bundle reference, per Section 6.6;
 - issuance timestamp.
 
 ## 6.3 Additional Required Fields
@@ -286,7 +301,27 @@ In addition to Section 6.2, every Technical Certificate MUST include:
 
 A Technical Certificate MUST NOT omit a Required Field. A Certificate that omits any Required Field MUST be rejected under Section 15.
 
-## 6.5 Required Fields Invariants
+## 6.5 Manifest Reference Structure
+
+The Manifest Reference MUST include:
+
+- the Certification Manifest identifier;
+- the Manifest Schema Version, as defined by MCC-CM-001, Section 16.2;
+- a Hash Reference binding the Certificate to that Certification Manifest, using the Hash Reference model defined by MCC-CM-001, Section 13.
+
+## 6.6 Evidence Bundle Reference Structure
+
+The Evidence Bundle Reference MUST be present as direct Certificate content. It MUST NOT be satisfied only by transitive resolution through the Certification Manifest.
+
+The Evidence Bundle Reference MUST include:
+
+- the Evidence Bundle identifier, as defined by MCC-EB-001, Section 12.1;
+- the Evidence Bundle Schema Version, as defined by MCC-EB-001, Section 17.2;
+- a Hash Reference binding the Certificate to that Evidence Bundle's Integrity Record, using the same normative Hash Reference model defined by MCC-EB-001, Section 13, and used by MCC-CM-001, Section 13, for the equivalent binding within a Certification Manifest.
+
+The Evidence Bundle identified by this Hash Reference MUST be the same Evidence Bundle identified by the Evidence Bundle Reference contained within the Certificate's referenced Certification Manifest, consistent with Section 3.3 and Section 15.5.
+
+## 6.7 Required Fields Invariants
 
 TC-RFLD-001
 
@@ -299,6 +334,18 @@ Issuer identity, Validity Period fields, and a Signature MUST be present.
 TC-RFLD-003
 
 A Certificate omitting any Required Field MUST be rejected.
+
+TC-RFLD-004
+
+The Manifest Reference MUST include the Manifest identifier, the Manifest Schema Version, and a Hash Reference to the Certification Manifest.
+
+TC-RFLD-005
+
+The Evidence Bundle Reference MUST include the Evidence Bundle identifier, the Evidence Bundle Schema Version, and a Hash Reference to the Evidence Bundle.
+
+TC-RFLD-006
+
+The Evidence Bundle Reference MUST be direct Certificate content and MUST NOT be satisfied only by transitive resolution through the Certification Manifest.
 
 ---
 
@@ -492,7 +539,7 @@ The Revocation Model defines how a previously valid Technical Certificate is dec
 
 ## 12.2 Immutability and Revocation
 
-A Technical Certificate MUST remain immutable after issuance, consistent with MCC-CP-001, Section 16.4.
+A Technical Certificate MUST remain immutable after issuance, consistent with MCC-CP-001, Section 16.6, CERT-007.
 
 Revocation SHALL NOT be represented by modifying a Technical Certificate's own content. Revocation SHALL be represented by an external Revocation Record.
 
@@ -558,11 +605,11 @@ Cryptographic Integrity defines how the contents of a Technical Certificate are 
 
 ## 13.2 Digest Requirements
 
-Where a Technical Certificate includes a Hash Reference to its Certification Manifest, that Hash Reference MUST use a collision-resistant cryptographic hash function, consistent with MCC-EB-001, Section 13.3 and MCC-CM-001, Section 13.3.
+Where a Technical Certificate includes a Hash Reference to its Certification Manifest or to its Evidence Bundle, that Hash Reference MUST use a collision-resistant cryptographic hash function, consistent with MCC-EB-001, Section 13.3 and MCC-CM-001, Section 13.3.
 
 ## 13.3 Integrity Scope
 
-Cryptographic Integrity, in this specification, refers to the binding between a Technical Certificate and the Certification Manifest it references.
+Cryptographic Integrity, in this specification, refers to the binding between a Technical Certificate and the Certification Manifest and Evidence Bundle it references.
 
 The integrity of the Technical Certificate's own content as a whole is provided by the Signature Requirements defined in Section 14, not by a separate self-digest.
 
@@ -570,11 +617,11 @@ The integrity of the Technical Certificate's own content as a whole is provided 
 
 TC-HASH-001
 
-A Hash Reference to the Certification Manifest MUST use a collision-resistant hash algorithm.
+A Hash Reference to the Certification Manifest or to the Evidence Bundle MUST use a collision-resistant hash algorithm.
 
 TC-HASH-002
 
-Manifest binding MUST be independently recomputable and verifiable.
+Manifest and Evidence Bundle binding MUST each be independently recomputable and verifiable.
 
 TC-HASH-003
 
@@ -654,23 +701,38 @@ A verifier MUST verify the Manifest Reference, including its Hash Reference, aga
 
 A Certificate whose Manifest Reference cannot be verified MUST be rejected.
 
-## 15.5 Subject and Result Consistency Verification
+## 15.5 Evidence Bundle Reference Consistency Verification
+
+A verifier MUST perform the following steps, in order, to verify the Certificate's Evidence Bundle Reference:
+
+1. read the direct Evidence Bundle Reference from the Technical Certificate;
+2. resolve the Certification Manifest identified by the Certificate's Manifest Reference;
+3. read the Evidence Bundle Reference contained within that Certification Manifest, as defined by MCC-CM-001, Section 14;
+4. compare the Evidence Bundle identified by the Certificate's direct Evidence Bundle Reference against the Evidence Bundle identified by the Manifest's Evidence Bundle Reference.
+
+Both Evidence Bundle References MUST identify the exact same Evidence Bundle.
+
+A verifier MUST return verification failure if the two Evidence Bundle References identify different Evidence Bundles.
+
+A Certificate whose direct Evidence Bundle Reference cannot itself be verified against the referenced Evidence Bundle's Integrity Record, consistent with MCC-EB-001, Section 16, MUST also be rejected.
+
+## 15.6 Subject and Result Consistency Verification
 
 A verifier MUST verify Subject consistency per Section 8.3 and Certification Result consistency per Section 9.3.
 
-## 15.6 Validity and Revocation Verification
+## 15.7 Validity and Revocation Verification
 
 A verifier MUST verify that the Certificate is within its Validity Period per Section 11 and MUST check for a Revocation Record per Section 12.6.
 
 A Certificate that is expired or revoked MUST NOT be treated as currently valid, even if all other verification steps succeed.
 
-## 15.7 Fail-Closed Verification
+## 15.8 Fail-Closed Verification
 
 Verification SHALL be fail-closed: a Technical Certificate MUST be treated as invalid unless every applicable verification step in this section succeeds.
 
 Partial or inconclusive verification results MUST NOT be treated as valid.
 
-## 15.8 Verification Procedure Invariants
+## 15.9 Verification Procedure Invariants
 
 TC-VERIFY-001
 
@@ -678,7 +740,7 @@ Verification MUST be fail-closed.
 
 TC-VERIFY-002
 
-Structural verification MUST precede signature, manifest reference, and consistency verification.
+Structural verification MUST precede signature, manifest reference, evidence bundle reference, and consistency verification.
 
 TC-VERIFY-003
 
@@ -691,6 +753,10 @@ Validity and revocation MUST both be checked, independent of all other verificat
 TC-VERIFY-005
 
 A Certificate failing any verification step MUST be rejected in its entirety.
+
+TC-VERIFY-006
+
+A verifier MUST reject a Technical Certificate whose direct Evidence Bundle Reference identifies a different Evidence Bundle than the Evidence Bundle Reference contained in its referenced Certification Manifest.
 
 ---
 
@@ -758,11 +824,13 @@ A verifier supporting a given Certificate Schema Version SHOULD also support ver
 
 A verifier MUST NOT assume forward compatibility with a Certificate Schema Version it does not recognize.
 
-An unrecognized Certificate Schema Version MUST be treated per Section 18.4 and Section 15.7, not silently accepted.
+An unrecognized Certificate Schema Version MUST be treated per Section 18.4 and Section 15.8, not silently accepted.
 
 ## 17.4 Cross-Specification Compatibility
 
 A Technical Certificate MUST NOT be considered valid if it references a Manifest Schema Version that MCC-CM-001, as currently published, does not recognize.
+
+A Technical Certificate MUST NOT be considered valid if its direct Evidence Bundle Reference identifies an Evidence Bundle Schema Version that MCC-EB-001, as currently published, does not recognize.
 
 ## 17.5 Compatibility Invariants
 
@@ -777,6 +845,10 @@ Unrecognized Certificate Schema Versions MUST NOT be silently accepted.
 TC-COMPAT-003
 
 Certificate validity MUST account for the compatibility of any referenced Manifest Schema Version.
+
+TC-COMPAT-004
+
+Certificate validity MUST account for the compatibility of the Evidence Bundle Schema Version identified by the direct Evidence Bundle Reference.
 
 ---
 
@@ -886,13 +958,13 @@ The Extension Model defines how future content MAY be added to a Technical Certi
 
 ## 20.2 Extension Points
 
-Fields beyond those defined by Sections 4 through 11 are permitted only as explicitly declared extensions.
+Fields beyond those defined by Sections 4 through 14 are permitted only as explicitly declared extensions.
 
 Extensions MUST be declared and identified as such within the Certificate.
 
 ## 20.3 Extension Constraints
 
-An extension MUST NOT alter the meaning of any Required Field, the Signature, or the Manifest Reference defined by this specification.
+An extension MUST NOT alter the meaning of any Required Field, the Signature, the Manifest Reference, or the Evidence Bundle Reference defined by this specification.
 
 An extension MUST be covered by the Certificate's Signature like any other Certificate content.
 
@@ -906,7 +978,7 @@ Extensions MUST be explicitly declared within the Certificate.
 
 TC-EXT-002
 
-Extensions MUST NOT redefine the meaning of Required Fields, the Signature, or the Manifest Reference.
+Extensions MUST NOT redefine the meaning of Required Fields, the Signature, the Manifest Reference, or the Evidence Bundle Reference.
 
 TC-EXT-003
 
@@ -931,6 +1003,8 @@ A conforming Certificate issuer MUST issue Technical Certificates satisfying Sec
 A conforming Certificate issuer MUST NOT issue a Technical Certificate for a certification result other than PASS.
 
 A conforming Certificate issuer MUST NOT issue a Technical Certificate that fails verification under Section 15 against its own declared Schema Version.
+
+A conforming Certificate issuer MUST ensure that the Certificate's direct Evidence Bundle Reference and the Evidence Bundle Reference contained in the referenced Certification Manifest identify the same Evidence Bundle before issuance.
 
 ## 21.3 Conforming Certificate Verifier
 
@@ -959,6 +1033,10 @@ A conforming verifier MUST implement fail-closed verification in full, including
 TC-CONF-004
 
 Conformance MUST remain framework-neutral and implementation-independent.
+
+TC-CONF-005
+
+A conforming issuer MUST ensure its direct Evidence Bundle Reference and its Certification Manifest's Evidence Bundle Reference identify the same Evidence Bundle before issuance.
 
 ---
 
