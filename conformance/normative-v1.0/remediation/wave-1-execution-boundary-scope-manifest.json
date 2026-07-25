@@ -1,0 +1,78 @@
+{
+  "wave": "Wave 1 — Execution Boundary",
+  "source_baseline_commit": "ef95b13ad449166965e6ae901c2e483ceb95e6da",
+  "source_of_truth": "conformance/normative-v1.0/requirements.json",
+  "requirement_count_in_baseline": 429,
+  "selected_requirement_ids": [],
+  "selected_requirement_count": 0,
+  "status": "BLOCKED_METHODOLOGICAL_DEFECT",
+  "defect_summary": "The Wave 1 target vocabulary (Decision Token signature verification, action-hash binding, audience binding, policy-hash binding, nonce/replay rejection, nbf/expiry, DENY-blocks-actuation, audit-before-actuation, bypass prevention, Execution Gate fail-closed behavior) names concepts that belong exclusively to MCC-Core runtime governance (src/mcc_core: gate.py, signing.py, nonce.py, coordinator.py, authority.py). All four Normative v1.0 specifications (MCC-CP-001, MCC-EB-001, MCC-CM-001, MCC-TC-001) explicitly and repeatedly exclude this vocabulary from their own normative scope. There is therefore no requirement in the 429-item Normative v1.0 baseline that the Wave 1 scope, as described, could legitimately select.",
+  "verification_method": [
+    "Extracted the committed conformance/normative-v1.0/requirements.json (429 requirements, generated from specs/MCC-CP-001.md, specs/MCC-EB-001.md, specs/MCC-CM-001.md, specs/MCC-TC-001.md at the reviewed Normative v1.0 baseline commit a65b2f375408dfbe8df86fbfc09724c5c45d3ba4).",
+    "Searched requirement_text, requirement_category, and section fields for: nonce, audience, action-hash, action_hash, policy-hash, policy_hash, nbf, decision token, execution gate, replay, actuation, fail-closed, ALLOW, DENY, ESCALATE, CONSTRAIN.",
+    "Cross-checked every match against the full text of each requirement to determine whether the requirement imposes an execution-boundary obligation or merely references the runtime-governance vocabulary while excluding it from scope."
+  ],
+  "matches_found": [
+    {
+      "requirement_id": "MCC-CM-001-6-NON-GOALS-D01",
+      "specification_id": "MCC-CM-001",
+      "disposition": "SCOPE_EXCLUSION",
+      "note": "Non-Goals section: 'This specification SHALL NOT ... define runtime governance behavior (ALLOW, DENY, ESCALATE, CONSTRAIN), which belongs exclusively to MCC-Core runtime governance.'"
+    },
+    {
+      "requirement_id": "MCC-EB-001-6-NON-GOALS-D01",
+      "specification_id": "MCC-EB-001",
+      "disposition": "SCOPE_EXCLUSION",
+      "note": "Non-Goals section: identical exclusion clause for runtime governance behavior."
+    },
+    {
+      "requirement_id": "MCC-TC-001-ABSTRACT-D02",
+      "specification_id": "MCC-TC-001",
+      "disposition": "SCOPE_EXCLUSION",
+      "note": "Abstract: 'A Technical Certificate ... is not, and SHALL NOT be interpreted as, a runtime execution authorization. Runtime governance behavior (ALLOW, DENY, ESCALATE, CONSTRAIN) belongs exclusively to MCC-Core runtime governance and is out of scope for this specification.'"
+    },
+    {
+      "requirement_id": "CM-CONF-003",
+      "specification_id": "MCC-CM-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'A conforming validator MUST implement fail-closed validation in full.' — this is Manifest-validator fail-closed behavior, not Execution Gate fail-closed behavior. Already tracked as GAP in the baseline for reasons unrelated to the execution boundary."
+    },
+    {
+      "requirement_id": "CM-VAL-001",
+      "specification_id": "MCC-CM-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'Validation MUST be fail-closed.' — same as above; already tracked as PARTIAL in the baseline."
+    },
+    {
+      "requirement_id": "EB-CONF-003",
+      "specification_id": "MCC-EB-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'A conforming validator MUST implement fail-closed validation in full.' — Evidence Bundle validator, not the Execution Gate."
+    },
+    {
+      "requirement_id": "EB-VAL-001",
+      "specification_id": "MCC-EB-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'Validation MUST be fail-closed.' — same as above."
+    },
+    {
+      "requirement_id": "TC-CONF-003",
+      "specification_id": "MCC-TC-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'A conforming verifier MUST implement fail-closed verification in full, including revocation checking.' — Technical Certificate verifier, not the Execution Gate."
+    },
+    {
+      "requirement_id": "TC-VERIFY-001",
+      "specification_id": "MCC-TC-001",
+      "disposition": "UNRELATED_FAIL_CLOSED",
+      "note": "'Verification MUST be fail-closed.' — same as above."
+    }
+  ],
+  "conclusion": "Zero requirements were selected for Wave 1. Every requirement that references the Wave 1 vocabulary either explicitly excludes that vocabulary from the specification's normative scope, or uses 'fail-closed' in an unrelated sense (certification-artifact validator/verifier fail-closed behavior, not runtime Execution Gate fail-closed behavior). No implementation, test, or evidence change made against this vocabulary could move a Normative v1.0 requirement to CONFORMANT, because no Normative v1.0 requirement imposes an obligation on it.",
+  "conformant_count_before": 0,
+  "conformant_count_after": 0,
+  "recommended_paths_forward": [
+    "Re-scope Wave 1 to a real Normative v1.0 GAP/PARTIAL cluster that MCC-CP-001/EB-001/CM-001/TC-001 actually govern (e.g. the Evidence Bundle three-file structure, Hash Reference / Evidence Bundle Reference / Manifest Reference sub-object composition, or Ed25519 signature verification wired specifically to a Technical Certificate) — see conformance/normative-v1.0/gap_report.md for candidates with a stated SMALL remediation scope.",
+    "If execution-boundary conformance is genuinely wanted, first amend MCC-CP-001/EB-001/CM-001/TC-001 (or introduce a new specification) to bring MCC-Core runtime-governance behavior into normative scope with its own requirement IDs, through the spec-first process this repository already follows — then re-run extraction and select from the resulting requirements."
+  ]
+}
