@@ -4,9 +4,9 @@
 
 Document ID: MCC-CM-001
 
-Version: Draft v0.1
+Version: 1.0
 
-Status: Draft
+Status: Normative
 
 Category: Normative Specification
 
