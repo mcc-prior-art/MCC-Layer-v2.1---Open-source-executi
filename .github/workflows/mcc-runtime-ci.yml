@@ -60,7 +60,9 @@ jobs:
         run: python -m mcc_conformance validate
 
       - name: Conformance baseline tests
-        run: pytest tests/test_conformance_baseline.py -v
+        run: |
+          pytest tests/test_conformance_baseline.py -v
+          pytest tests/test_conformance_extraction_correction.py -v
 
       - name: Confirm committed artifacts are not stale (regenerate + diff)
         run: |

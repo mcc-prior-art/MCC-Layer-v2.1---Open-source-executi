@@ -252,6 +252,8 @@ def _gap_report_md(reqs: List[Requirement]) -> str:
 
 
 def generate(repo_root: Path) -> None:
+    from mcc_conformance import coverage_audit
+
     reqs = build_requirements(repo_root)
     out = repo_root / OUT_DIR
     out.mkdir(parents=True, exist_ok=True)
@@ -260,3 +262,4 @@ def generate(repo_root: Path) -> None:
     (out / "traceability_matrix.json").write_text(_matrix_json(reqs), encoding="utf-8")
     (out / "traceability_matrix.md").write_text(_matrix_md(reqs), encoding="utf-8")
     (out / "gap_report.md").write_text(_gap_report_md(reqs), encoding="utf-8")
+    coverage_audit.generate_audit(repo_root)
