@@ -42,6 +42,7 @@ class Requirement:
     requirement_text: str
     requirement_category: str
     id_origin: str  # "canonical" | "derived"
+    source_line: int
     implementation_references: List[str] = field(default_factory=list)
     test_references: List[str] = field(default_factory=list)
     evidence_references: List[str] = field(default_factory=list)
@@ -60,6 +61,7 @@ class Requirement:
             "requirement_text": self.requirement_text,
             "requirement_category": self.requirement_category,
             "id_origin": self.id_origin,
+            "source_line": self.source_line,
             "implementation_references": self.implementation_references,
             "test_references": self.test_references,
             "evidence_references": self.evidence_references,

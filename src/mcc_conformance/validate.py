@@ -162,11 +162,16 @@ def validate_schemas(repo_root: Path) -> List[str]:
     errors: List[str] = []
     req_schema = _load_schema(repo_root, "requirement.schema.json")
     base_schema = _load_schema(repo_root, "baseline.schema.json")
+    audit_schema = _load_schema(repo_root, "coverage_audit.schema.json")
 
     baseline_path = repo_root / OUT_DIR / "baseline.json"
     requirements_path = repo_root / OUT_DIR / "requirements.json"
+    audit_path = repo_root / OUT_DIR / "extraction_coverage_audit.json"
     if not baseline_path.exists() or not requirements_path.exists():
         errors.append("baseline.json / requirements.json not found; run generate first.")
+        return errors
+    if not audit_path.exists():
+        errors.append("extraction_coverage_audit.json not found; run generate first.")
         return errors
 
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
@@ -175,6 +180,14 @@ def validate_schemas(repo_root: Path) -> List[str]:
     payload = json.loads(requirements_path.read_text(encoding="utf-8"))
     for req in payload.get("requirements", []):
         errors += _check_object(req, req_schema, req.get("requirement_id", "?"))
+
+    audit_payload = json.loads(audit_path.read_text(encoding="utf-8"))
+    errors += _check_object(audit_payload, audit_schema, "extraction_coverage_audit.json")
+    for i, entry in enumerate(audit_payload.get("entries", [])):
+        errors += _check_object(
+            entry, audit_schema["properties"]["entries"]["items"],
+            f"extraction_coverage_audit.json entry #{i}",
+        )
 
     return errors
 
@@ -186,16 +199,19 @@ def validate_committed_matches_generated(repo_root: Path) -> List[str]:
     location conceptually by comparing in-memory output to the committed
     files, so uncommitted regeneration is always caught.
     """
-    from mcc_conformance import generate as gen
+    from mcc_conformance import coverage_audit, generate as gen
 
     errors: List[str] = []
     reqs = build_requirements(repo_root)
+    audit_entries = coverage_audit.build_audit_entries(repo_root)
     expected = {
         "baseline.json": gen._baseline_json(),
         "requirements.json": gen._requirements_json(reqs),
         "traceability_matrix.json": gen._matrix_json(reqs),
         "traceability_matrix.md": gen._matrix_md(reqs),
         "gap_report.md": gen._gap_report_md(reqs),
+        "extraction_coverage_audit.json": coverage_audit._audit_json(audit_entries),
+        "extraction_coverage_audit.md": coverage_audit._audit_md(audit_entries),
     }
     for name, expected_content in expected.items():
         path = repo_root / OUT_DIR / name

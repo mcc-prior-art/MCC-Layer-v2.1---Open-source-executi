@@ -25,7 +25,8 @@ def main(argv=None) -> int:
     if argv[0] == "generate":
         generate(repo_root)
         print("Generated conformance/normative-v1.0/{baseline,requirements,traceability_matrix}.json, "
-              "traceability_matrix.md, gap_report.md")
+              "traceability_matrix.md, gap_report.md, extraction_coverage_audit.json, "
+              "extraction_coverage_audit.md")
         return 0
 
     errors = validate_all(repo_root)

@@ -10,12 +10,14 @@ certification. It is generated and validated by `src/mcc_conformance`
   REQUIRED, or an explicitly declared normative invariant) in
   `specs/MCC-CP-001.md`, `specs/MCC-EB-001.md`, `specs/MCC-CM-001.md`, and
   `specs/MCC-TC-001.md`, as of the reviewed baseline commit, has been
-  discovered with a stable identifier — 361 requirements already carry a
-  canonical identifier defined by the specifications' own Requirement
-  Identifier Registry sections; 68 additional requirements, expressed as
-  binding prose without a canonical ID, were discovered and given a
-  deterministic derived identifier.
-- Every one of those 429 requirements has exactly one explicit conformance
+  discovered with a stable identifier and a source line — 361 requirements
+  carry a canonical identifier defined by the specifications' own
+  Requirement Identifier Registry sections; 449 additional independent
+  obligations, expressed as binding prose without a canonical ID (including
+  inside H1 sections that also contain canonical IDs — see "Extraction
+  coverage" below), were discovered and given a deterministic derived
+  identifier. **810 requirements total.**
+- Every one of those 810 requirements has exactly one explicit conformance
   status (`requirements.json`, `traceability_matrix.md`).
 - For every requirement not marked CONFORMANT, `gap_report.md` states what
   exists, what is missing, and a recommended remediation scope.
@@ -25,6 +27,89 @@ certification. It is generated and validated by `src/mcc_conformance`
   grep for each specification's exact vocabulary. See "Methodology" below.
 - The baseline's own tooling and generated artifacts are deterministic and
   schema-validated (`python -m mcc_conformance validate`, run in CI).
+
+## Extraction coverage (corrected)
+
+An earlier version of this extractor skipped its second discovery pass
+entirely for any H1 section that contained *any* canonical requirement ID,
+silently dropping every other independent MUST/SHALL sentence in that
+section — 391 such lines, comparable in size to the entire corpus at the
+time. This was found and corrected; see
+`conformance/normative-v1.0/remediation/wave-1-execution-boundary-scope-manifest.md`
+(Finding 1) for how it was discovered, and
+`conformance/normative-v1.0/extraction_coverage_audit.{json,md}` for the
+full, per-line reconciliation of every one of those 391 lines against its
+final disposition. The corrected coverage semantics:
+
+- **Source files covered**: exactly `specs/MCC-CP-001.md`,
+  `specs/MCC-EB-001.md`, `specs/MCC-CM-001.md`, `specs/MCC-TC-001.md` — no
+  other document (e.g. `docs/INTEGRATION_CONTRACT.md`) is in scope; see the
+  Wave 1 remediation manifest for why that document's real, separate
+  normative coverage is not part of this baseline.
+- **Canonical recognition**: any standalone source line matching
+  `^[A-Z][A-Z-]{1,20}-[0-9]{3}$` is a canonical requirement ID; the
+  paragraph immediately following it, up to the next heading/ID/horizontal
+  rule, is its text. Unchanged from the original extractor and always
+  authoritative — a derived ID never replaces or overrides one.
+- **Derived obligation discovery**: every other MUST/MUST NOT/SHALL/SHALL
+  NOT/REQUIRED-bearing source line in *every* H1 section (not only sections
+  without a canonical ID) is a candidate, evaluated line by line: a
+  colon-terminated intro line absorbs its following bullet list as one
+  requirement (unchanged list convention); otherwise contiguous plain-prose
+  lines are joined into one paragraph (a wrapped-sentence safeguard) and
+  split at genuine sentence boundaries, so two obligations sharing one
+  physical line become two requirements. See
+  `src/mcc_conformance/extract.py`'s module docstring for the full
+  algorithm and its deliberate exclusions (no Markdown tables appear
+  anywhere in the four specifications; semicolon-joined clauses are kept as
+  one requirement rather than guessed at).
+- **Source-span association**: every requirement, canonical or derived,
+  records `source_line` — the 1-indexed line where its text begins in
+  `source_file`. This is exact-location provenance, not just the shared
+  section title.
+- **Duplication prevention**: a candidate is compared, by whitespace-
+  normalized text, against every canonical requirement already captured in
+  the *same* H1 section (a verbatim restatement, e.g. MCC-EB-001's
+  `EB-STR-001` restating Section 10.1 word for word, is recorded as a
+  duplicate of that canonical ID, not re-extracted) and against every
+  derived requirement already extracted earlier in the same section during
+  the same pass. This is a source-aware, provenance-tracked comparison, not
+  a bare raw-line equality check.
+- **ID stability**: canonical IDs and text are provably unchanged (see
+  `tests/test_conformance_extraction_correction.py`); 66 of the 68
+  previously-derived requirements (in H1 sections that already had zero
+  canonical IDs) are byte-identical. Two disclosed exceptions, both
+  pre-existing-defect corrections rather than scheme failures, are
+  documented in that same test file and in the PR #62 reconciliation
+  report: one previously-derived requirement was removed (a false positive:
+  a MAY-permission sentence misflagged as binding solely because of the
+  word "REQUIRED" used as a classification-enum label, not an obligation),
+  and one requirement's text was narrowed (a single physical line
+  previously combined one binding sentence with two non-binding framing
+  sentences; the corrected extractor isolates only the binding one).
+- **Coverage validation**: `python -m mcc_conformance validate` recomputes
+  extraction from the specification files (never trusts committed output)
+  and fails closed on any structural, schema, or staleness problem, in CI on
+  every change.
+- **Known exclusions / limitations**: Markdown tables and semicolon-joined
+  clauses are not specially parsed (neither construct is exercised anywhere
+  in the current four specifications — re-verified by
+  `tests/test_conformance_extraction_correction.py`, not merely asserted).
+  Extraction is source-line-based, not a full natural-language parse: it
+  cannot detect semantic duplication expressed in materially different
+  wording (only verbatim, whitespace-normalized duplication is caught) —
+  see the remediation manifest for the EB-001/CM-001/TC-001 "prose vs.
+  Invariants" cases where two related-but-differently-worded statements are
+  both retained as independently distinct rather than fuzzy-matched.
+- **Source-line coverage vs. distinct-requirement count**: extraction
+  discovers 810 distinct normative requirements from far more than 810
+  *source lines* — a single line's compound obligation can be one
+  requirement, one obligation can span multiple physical lines and still be
+  one requirement, and a small number of previously-orphaned lines were
+  found to verbatim-duplicate an existing canonical requirement and are
+  therefore zero *additional* requirements (8 such cases; see
+  `extraction_coverage_audit.json`). Requirement count is not, and was never
+  intended to be, a literal line count.
 
 ## What this baseline does NOT prove
 
@@ -69,7 +154,7 @@ These are three distinct, sequential milestones. This baseline is the
 
 Assessment was performed at **requirement-category** granularity (grouped
 by specification section / theme), not as an independently bespoke code
-review of all 429 individual requirements. Requirements sharing a section
+review of all 810 individual requirements. Requirements sharing a section
 and normative theme share a status and rationale unless repository
 evidence specifically distinguished them. This is disclosed, not hidden,
 and is itself a limitation: a category-level PARTIAL does not guarantee
@@ -125,12 +210,15 @@ methodology statement).
 python -m mcc_conformance generate   # recompute all artifacts from the specs
 python -m mcc_conformance validate   # fail-closed structural + schema + drift check
 pytest tests/test_conformance_baseline.py -v
+pytest tests/test_conformance_extraction_correction.py -v
 ```
 
 `generate` is fully deterministic: given the same specification files and
 the same assessment rules in `assess.py`, it always produces byte-identical
 output (no wall-clock timestamps, random IDs, or unordered collections
-anywhere in the generated artifacts). CI runs `generate` and diffs it
+anywhere in the generated artifacts) — including
+`extraction_coverage_audit.json` / `.md`, the deterministic reconciliation
+of every previously-orphaned source line. CI runs `generate` and diffs it
 against the committed files — a stale, uncommitted regeneration fails the
 build.
 

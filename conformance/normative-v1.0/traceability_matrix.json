@@ -761,9 +761,750 @@
       "evidence_references": []
     },
     {
+      "requirement_id": "MCC-CM-001-10-MANIFEST-SCHEMA-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.2 Top-Level Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-10-MANIFEST-SCHEMA-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.3 Field Typing",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-10-MANIFEST-SCHEMA-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.3 Field Typing",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-10-MANIFEST-SCHEMA-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "10. Manifest Schema / 10.4 Canonical Form",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-11-REQUIRED-FIELDS-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-11-REQUIRED-FIELDS-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.2 Identification Fields",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-11-REQUIRED-FIELDS-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.3 Baseline Required Fields",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-11-REQUIRED-FIELDS-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "11. Required Fields / 11.4 Field Presence Rule",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-12-OPTIONAL-FIELDS-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "12. Optional Fields / 12.3 Optional Field Constraints",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-12-OPTIONAL-FIELDS-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "12. Optional Fields / 12.3 Optional Field Constraints",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-12-OPTIONAL-FIELDS-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "12. Optional Fields / 12.3 Optional Field Constraints",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-13-HASH-REFERENCES-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.2 Hash Reference Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-13-HASH-REFERENCES-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.3 Hash Algorithm Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-13-HASH-REFERENCES-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.3 Hash Algorithm Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-13-HASH-REFERENCES-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "13. Hash References / 13.4 Hash Reference Usage",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-14-EVIDENCE-BUNDLE-REFERENCES-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.2 Primary Evidence Bundle Reference",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-14-EVIDENCE-BUNDLE-REFERENCES-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.2 Primary Evidence Bundle Reference",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-14-EVIDENCE-BUNDLE-REFERENCES-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.3 Supplementary Evidence Bundle References",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-14-EVIDENCE-BUNDLE-REFERENCES-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.4 Reference Integrity",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-14-EVIDENCE-BUNDLE-REFERENCES-D05",
+      "specification_id": "MCC-CM-001",
+      "section": "14. Evidence Bundle References / 14.4 Reference Integrity",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-15-CERTIFICATION-METADATA-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.2 Subject and Scope Metadata",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-15-CERTIFICATION-METADATA-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.3 Certification Result",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-15-CERTIFICATION-METADATA-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.3 Certification Result",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-15-CERTIFICATION-METADATA-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.4 Requirement Results",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-15-CERTIFICATION-METADATA-D05",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.4 Requirement Results",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-15-CERTIFICATION-METADATA-D06",
+      "specification_id": "MCC-CM-001",
+      "section": "15. Certification Metadata / 15.5 Generation Metadata",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-16-VERSIONING-RULES-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.2 Schema Version Declaration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-16-VERSIONING-RULES-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.2 Schema Version Declaration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-16-VERSIONING-RULES-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.3 Schema Version Scope",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-16-VERSIONING-RULES-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "16. Versioning Rules / 16.4 Version Evolution",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-17-COMPATIBILITY-RULES-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.3 Forward Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-17-COMPATIBILITY-RULES-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.3 Forward Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-17-COMPATIBILITY-RULES-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.4 Breaking Changes",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-17-COMPATIBILITY-RULES-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "17. Compatibility Rules / 17.5 Cross-Specification Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.2 Structural Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.2 Structural Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.3 Hash Reference Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D05",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.3 Hash Reference Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D06",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.4 Evidence Bundle Reference Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D07",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.4 Evidence Bundle Reference Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D08",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.5 Metadata Consistency Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D09",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.6 Fail-Closed Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-18-VALIDATION-RULES-D10",
+      "specification_id": "MCC-CM-001",
+      "section": "18. Validation Rules / 18.6 Fail-Closed Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-19-SECURITY-CONSIDERATIONS-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.2 Threat Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-19-SECURITY-CONSIDERATIONS-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.4 Sensitive Data",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-19-SECURITY-CONSIDERATIONS-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "19. Security Considerations / 19.4 Sensitive Data",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
       "requirement_id": "MCC-CM-001-2-ABSTRACT-D01",
       "specification_id": "MCC-CM-001",
       "section": "2. Abstract",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-20-EXTENSION-MODEL-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "20. Extension Model / 20.2 Extension Points",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-20-EXTENSION-MODEL-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-20-EXTENSION-MODEL-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-22-CONFORMANCE-REQUIREMENTS-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.2 Conforming Manifest Producer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-22-CONFORMANCE-REQUIREMENTS-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.2 Conforming Manifest Producer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-22-CONFORMANCE-REQUIREMENTS-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.3 Conforming Manifest Validator",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-22-CONFORMANCE-REQUIREMENTS-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.3 Conforming Manifest Validator",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-22-CONFORMANCE-REQUIREMENTS-D05",
+      "specification_id": "MCC-CM-001",
+      "section": "22. Conformance Requirements / 22.4 Conformance Independence",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D01",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.2 Namespace Convention",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D02",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.4 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D03",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.4 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CM-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D04",
+      "specification_id": "MCC-CM-001",
+      "section": "23. Requirement Identifier Registry / 23.4 Registry Requirements",
       "conformance_status": "NOT_APPLICABLE",
       "implementation_references": [],
       "test_references": [],
@@ -2201,6 +2942,1407 @@
       "evidence_references": []
     },
     {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.2 Normative Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.2 Normative Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.2 Normative Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.3 Requirement Classification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.3 Requirement Classification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.3 Requirement Classification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.3 Requirement Classification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D10",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.4 Conformance Evaluation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D11",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.5 Overall Conformance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D12",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.5 Overall Conformance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-10-CONFORMANCE-MODEL-D13",
+      "specification_id": "MCC-CP-001",
+      "section": "10. Conformance Model / 10.5 Overall Conformance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.2 Capability Profile Identifier",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.2 Capability Profile Identifier",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.2 Capability Profile Identifier",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.3 Capability Definition",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.3 Capability Definition",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.4 Capability Evaluation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.4 Capability Evaluation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.4 Capability Evaluation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.5 Capability Dependencies",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D10",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.5 Capability Dependencies",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D11",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.6 Capability Claims",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-11-CAPABILITY-PROFILES-D12",
+      "specification_id": "MCC-CP-001",
+      "section": "11. Capability Profiles / 11.6 Capability Claims",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/capability_profile.py"
+      ],
+      "test_references": [
+        "tests/test_capability_profile.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.2 Requirement Identifier",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.2 Requirement Identifier",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.3 Requirement Applicability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.3 Requirement Applicability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.4 Requirement Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.4 Requirement Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D10",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.4 Requirement Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D11",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.5 Requirement Traceability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-12-CERTIFICATION-REQUIREMENTS-D12",
+      "specification_id": "MCC-CP-001",
+      "section": "12. Certification Requirements / 12.5 Requirement Traceability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.2 Classification Categories",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.2 Classification Categories",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.3 REQUIRED Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.3 REQUIRED Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.4 OPTIONAL Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.5 CONDITIONAL Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-13-REQUIREMENT-CLASSIFICATION-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "13. Requirement Classification / 13.5 CONDITIONAL Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.2 Evidence Sources",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.3 Evidence Properties",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.3 Evidence Properties",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.4 Evidence Traceability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.4 Evidence Traceability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.5 Evidence Retention",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-14-EVIDENCE-REQUIREMENTS-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "14. Evidence Requirements / 14.5 Evidence Retention",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.2 Manifest Contents",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.3 Manifest Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.3 Manifest Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.3 Manifest Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.4 Manifest Traceability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.5 Manifest Versioning",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-15-CERTIFICATION-MANIFEST-REQUIREMENTS-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "15. Certification Manifest Requirements / 15.5 Manifest Versioning",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.2 Certificate Contents",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.3 Certificate Issuance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.3 Certificate Issuance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.4 Certificate Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.4 Certificate Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.4 Certificate Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-16-TECHNICAL-CERTIFICATE-REQUIREMENTS-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "16. Technical Certificate Requirements / 16.5 Certificate Traceability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.2 Specification Versions",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.2 Specification Versions",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.2 Specification Versions",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.3 Version Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.3 Version Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.3 Version Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.4 Certification Revalidation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-17-VERSIONING-D10",
+      "specification_id": "MCC-CP-001",
+      "section": "17. Versioning / 17.4 Certification Revalidation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.2 Security Objectives",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.2 Security Objectives",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.3 Threat Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.3 Threat Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.3 Threat Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-18-SECURITY-CONSIDERATIONS-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "18. Security Considerations / 18.3 Threat Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-19-REGISTRY-CONSIDERATIONS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-19-REGISTRY-CONSIDERATIONS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.2 Registry Scope",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-19-REGISTRY-CONSIDERATIONS-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.3 Registry Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-19-REGISTRY-CONSIDERATIONS-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.3 Registry Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-19-REGISTRY-CONSIDERATIONS-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.3 Registry Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-19-REGISTRY-CONSIDERATIONS-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "19. Registry Considerations / 19.3 Registry Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
       "requirement_id": "MCC-CP-001-2-GOALS-D01",
       "specification_id": "MCC-CP-001",
       "section": "2. Goals / G1. Framework Neutrality",
@@ -2255,6 +4397,60 @@
       "evidence_references": []
     },
     {
+      "requirement_id": "MCC-CP-001-20-CONFORMANCE-STATEMENT-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.1 Purpose",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-20-CONFORMANCE-STATEMENT-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.2 Conformance Claims",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-20-CONFORMANCE-STATEMENT-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.2 Conformance Claims",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-20-CONFORMANCE-STATEMENT-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "20. Conformance Statement / 20.2 Conformance Claims",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-21-REFERENCES-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.2 Normative References",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-21-REFERENCES-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "21. References / 21.3 Informative References",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
       "requirement_id": "MCC-CP-001-3-NON-GOALS-D01",
       "specification_id": "MCC-CP-001",
       "section": "3. Non-Goals",
@@ -2297,6 +4493,186 @@
       "conformance_status": "GAP",
       "implementation_references": [],
       "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.1 Certification Authority",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D07",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.2 Certification Subject",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D08",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.3 Certification Inputs",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D09",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.3 Certification Inputs",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D10",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.4 Certification Outputs",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D11",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.4 Certification Outputs",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-7-CERTIFICATION-MODEL-D12",
+      "specification_id": "MCC-CP-001",
+      "section": "7. Certification Model / 7.5 Certification Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
       "evidence_references": []
     },
     {
@@ -2645,12 +5021,402 @@
       "evidence_references": []
     },
     {
+      "requirement_id": "MCC-CP-001-9-CERTIFICATION-PIPELINE-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-9-CERTIFICATION-PIPELINE-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-9-CERTIFICATION-PIPELINE-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.2 Stage 2 \u2014 Environment Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-9-CERTIFICATION-PIPELINE-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.8 Stage 8 \u2014 Publication",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-9-CERTIFICATION-PIPELINE-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "9. Certification Pipeline / 9.9 Pipeline Invariants",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
       "requirement_id": "MCC-CP-001-ABSTRACT-D01",
       "specification_id": "MCC-CP-001",
       "section": "Abstract",
       "conformance_status": "NOT_APPLICABLE",
       "implementation_references": [],
       "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-A-CERTIFICATION-STATE-MACHINE-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.2 States",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-A-CERTIFICATION-STATE-MACHINE-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.3 State Transitions",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-A-CERTIFICATION-STATE-MACHINE-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.3 State Transitions",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-A-CERTIFICATION-STATE-MACHINE-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.3 State Transitions",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-A-CERTIFICATION-STATE-MACHINE-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix A \u2014 Certification State Machine / A.3 State Transitions",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-B-CERTIFICATION-DECISION-MATRIX-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.1 Overview",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-B-CERTIFICATION-DECISION-MATRIX-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.2 Decision Outcomes",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-B-CERTIFICATION-DECISION-MATRIX-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.2 Decision Outcomes",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-B-CERTIFICATION-DECISION-MATRIX-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.3 Decision Rules",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-B-CERTIFICATION-DECISION-MATRIX-D05",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.3 Decision Rules",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-B-CERTIFICATION-DECISION-MATRIX-D06",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix B \u2014 Certification Decision Matrix / B.3 Decision Rules",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-C-REQUIREMENT-IDENTIFIER-REGIST-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.1 Purpose",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-C-REQUIREMENT-IDENTIFIER-REGIST-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.2 Identifier Structure",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-C-REQUIREMENT-IDENTIFIER-REGIST-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.3 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-C-REQUIREMENT-IDENTIFIER-REGIST-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix C \u2014 Requirement Identifier Registry / C.3 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-D-REVISION-HISTORY-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.1 Purpose",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-D-REVISION-HISTORY-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.3 Future Revisions",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-D-REVISION-HISTORY-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.3 Future Revisions",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-D-REVISION-HISTORY-D04",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix D \u2014 Revision History / D.3 Future Revisions",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-E-EXAMPLE-CERTIFICATION-FLOW-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix E \u2014 Example Certification Flow / E.1 Purpose",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-F-FUTURE-EXTENSIONS-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.1 Purpose",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-F-FUTURE-EXTENSIONS-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix F \u2014 Future Extensions / F.2 Potential Extensions",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-G-CONFORMANCE-RESULT-REQUIREMEN-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.2 Conformance Result Content",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-G-CONFORMANCE-RESULT-REQUIREMEN-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.3 Relationship to the Certification Manifest",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-G-CONFORMANCE-RESULT-REQUIREMEN-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix G \u2014 Conformance Result Requirements / G.3 Relationship to the Certification Manifest",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/runner.py",
+        "src/mcc_compliance/registry.py",
+        "src/mcc_compliance/vectors/v1/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-H-CERTIFICATION-REPORT-REQUIREM-D01",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.2 Certification Report Content",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-H-CERTIFICATION-REPORT-REQUIREM-D02",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.3 Certification Report Properties",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-CP-001-APPENDIX-H-CERTIFICATION-REPORT-REQUIREM-D03",
+      "specification_id": "MCC-CP-001",
+      "section": "Appendix H \u2014 Certification Report Requirements / H.5 Certification Report Applicability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/reporting.py"
+      ],
+      "test_references": [
+        "tests/test_compliance_suite.py",
+        "tests/test_sdk_certification.py"
+      ],
       "evidence_references": []
     },
     {
@@ -4282,9 +7048,1112 @@
       "evidence_references": []
     },
     {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.1 Bundle Root",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.1 Bundle Root",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.2 Top-Level Layout",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.3 Evidence Directory",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D05",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.3 Evidence Directory",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D06",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.3 Evidence Directory",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D07",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.4 Path Rules",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D08",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.4 Path Rules",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-10-BUNDLE-DIRECTORY-STRUCTURE-D09",
+      "specification_id": "MCC-EB-001",
+      "section": "10. Bundle Directory Structure / 10.4 Path Rules",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.1 Bundle Descriptor",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.1 Bundle Descriptor",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.2 Integrity Record",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.2 Integrity Record",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D05",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.2 Integrity Record",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D06",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.3 Provenance Record",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D07",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.3 Provenance Record",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-11-REQUIRED-FILES-D08",
+      "specification_id": "MCC-EB-001",
+      "section": "11. Required Files / 11.4 Evidence Items",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-12-REQUIRED-METADATA-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.1 Bundle-Level Metadata",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-12-REQUIRED-METADATA-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.2 Evidence Item Metadata",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-12-REQUIRED-METADATA-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.3 Metadata Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-12-REQUIRED-METADATA-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "12. Required Metadata / 12.3 Metadata Integrity",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.2 Canonical Form",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.2 Canonical Form",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.3 Hash Algorithm",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.3 Hash Algorithm",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D05",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.3 Hash Algorithm",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D06",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.4 Digest Coverage",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D07",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.4 Digest Coverage",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D08",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.5 Integrity Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D09",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.5 Integrity Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-13-HASH-AND-INTEGRITY-MODEL-D10",
+      "specification_id": "MCC-EB-001",
+      "section": "13. Hash and Integrity Model / 13.5 Integrity Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-14-PROVENANCE-REQUIREMENTS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-14-PROVENANCE-REQUIREMENTS-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.2 Required Provenance Fields",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-14-PROVENANCE-REQUIREMENTS-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.3 Chain of Custody",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-14-PROVENANCE-REQUIREMENTS-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "14. Provenance Requirements / 14.3 Chain of Custody",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-15-REPRODUCIBILITY-REQUIREMENTS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "15. Reproducibility Requirements / 15.2 Deterministic Generation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-15-REPRODUCIBILITY-REQUIREMENTS-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "15. Reproducibility Requirements / 15.3 Prohibited Non-Determinism",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-15-REPRODUCIBILITY-REQUIREMENTS-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "15. Reproducibility Requirements / 15.4 Regeneration Equivalence",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.2 Structural Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.2 Structural Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.3 Metadata Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D05",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.4 Integrity Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D06",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.4 Integrity Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D07",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.5 Provenance Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D08",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.6 Fail-Closed Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-16-VALIDATION-RULES-D09",
+      "specification_id": "MCC-EB-001",
+      "section": "16. Validation Rules / 16.6 Fail-Closed Validation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-17-VERSIONING-RULES-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.2 Schema Version Declaration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-17-VERSIONING-RULES-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.2 Schema Version Declaration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-17-VERSIONING-RULES-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.3 Schema Version Scope",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-17-VERSIONING-RULES-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "17. Versioning Rules / 17.4 Version Evolution",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-18-COMPATIBILITY-REQUIREMENTS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "18. Compatibility Requirements / 18.3 Forward Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-18-COMPATIBILITY-REQUIREMENTS-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "18. Compatibility Requirements / 18.3 Forward Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-18-COMPATIBILITY-REQUIREMENTS-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "18. Compatibility Requirements / 18.4 Breaking Changes",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-19-SECURITY-CONSIDERATIONS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.2 Threat Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-19-SECURITY-CONSIDERATIONS-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.3 Tamper Detection",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-19-SECURITY-CONSIDERATIONS-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.4 Sensitive Data",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-19-SECURITY-CONSIDERATIONS-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "19. Security Considerations / 19.4 Sensitive Data",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
       "requirement_id": "MCC-EB-001-2-ABSTRACT-D01",
       "specification_id": "MCC-EB-001",
       "section": "2. Abstract",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-20-EXTENSION-MODEL-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.2 Extension Points",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-20-EXTENSION-MODEL-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-20-EXTENSION-MODEL-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-20-EXTENSION-MODEL-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-22-CONFORMANCE-REQUIREMENTS-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.2 Conforming Bundle Producer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-22-CONFORMANCE-REQUIREMENTS-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.2 Conforming Bundle Producer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-22-CONFORMANCE-REQUIREMENTS-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.3 Conforming Bundle Validator",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-22-CONFORMANCE-REQUIREMENTS-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.3 Conforming Bundle Validator",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-22-CONFORMANCE-REQUIREMENTS-D05",
+      "specification_id": "MCC-EB-001",
+      "section": "22. Conformance Requirements / 22.4 Conformance Independence",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D01",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.2 Namespace Convention",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D02",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.4 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D03",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.4 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-EB-001-23-REQUIREMENT-IDENTIFIER-REGISTRY-D04",
+      "specification_id": "MCC-EB-001",
+      "section": "23. Requirement Identifier Registry / 23.4 Registry Requirements",
       "conformance_status": "NOT_APPLICABLE",
       "implementation_references": [],
       "test_references": [],
@@ -4404,23 +8273,6 @@
       "evidence_references": []
     },
     {
-      "requirement_id": "MCC-EB-001-9-EVIDENCE-BUNDLE-OVERVIEW-D05",
-      "specification_id": "MCC-EB-001",
-      "section": "9. Evidence Bundle Overview / 9.3 Relationship to Certification Requirements",
-      "conformance_status": "PARTIAL",
-      "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
-      ],
-      "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
-      ],
-      "evidence_references": []
-    },
-    {
       "requirement_id": "MCC-TC-001-1-PURPOSE-D01",
       "specification_id": "MCC-TC-001",
       "section": "1. Purpose",
@@ -4454,6 +8306,1410 @@
       "conformance_status": "GAP",
       "implementation_references": [],
       "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-10-ISSUER-INFORMATION-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "10. Issuer Information / 10.2 Issuer Fields",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-10-ISSUER-INFORMATION-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "10. Issuer Information / 10.3 Issuer Authority",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-11-VALIDITY-PERIOD-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "11. Validity Period / 11.2 Issuance Timestamp",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-11-VALIDITY-PERIOD-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "11. Validity Period / 11.3 Expiration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-11-VALIDITY-PERIOD-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "11. Validity Period / 11.3 Expiration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.2 Immutability and Revocation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.2 Immutability and Revocation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.2 Immutability and Revocation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.3 Revocation Record",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.4 Revocation Authority",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D06",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.5 Revocation Effect",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D07",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.5 Revocation Effect",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-12-REVOCATION-MODEL-D08",
+      "specification_id": "MCC-TC-001",
+      "section": "12. Revocation Model / 12.6 Revocation Check Requirement",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-13-CRYPTOGRAPHIC-INTEGRITY-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "13. Cryptographic Integrity / 13.2 Digest Requirements",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-14-SIGNATURE-REQUIREMENTS-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.2 Signature Algorithm",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-14-SIGNATURE-REQUIREMENTS-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.2 Signature Algorithm",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-14-SIGNATURE-REQUIREMENTS-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.3 Signature Coverage",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-14-SIGNATURE-REQUIREMENTS-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.3 Signature Coverage",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-14-SIGNATURE-REQUIREMENTS-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "14. Signature Requirements / 14.4 Signature Declaration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_core/signing.py"
+      ],
+      "test_references": [
+        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
+        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.2 Structural Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.2 Structural Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.3 Signature Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.3 Signature Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D06",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.4 Manifest Reference Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D07",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.4 Manifest Reference Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D08",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.5 Evidence Bundle Reference Consistency Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D09",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.5 Evidence Bundle Reference Consistency Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D10",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.5 Evidence Bundle Reference Consistency Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D11",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.5 Evidence Bundle Reference Consistency Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D12",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.6 Subject and Result Consistency Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D13",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.7 Validity and Revocation Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D14",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.7 Validity and Revocation Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D15",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.8 Fail-Closed Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-15-VERIFICATION-PROCEDURE-D16",
+      "specification_id": "MCC-TC-001",
+      "section": "15. Verification Procedure / 15.8 Fail-Closed Verification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_evidence/schema.py",
+        "src/mcc_evidence/export.py",
+        "src/mcc_evidence/verify.py"
+      ],
+      "test_references": [
+        "tests/test_evidence_bundle.py",
+        "tests/test_evidence_tamper.py",
+        "tests/test_evidence_security.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-16-TRUST-MODEL-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.2 Trust Anchors",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-16-TRUST-MODEL-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.3 Trust Anchor Recognition",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-16-TRUST-MODEL-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.3 Trust Anchor Recognition",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-16-TRUST-MODEL-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.4 Trust Anchor Rotation and Revocation",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-16-TRUST-MODEL-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "16. Trust Model / 16.5 Multiple Trust Domains",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-17-COMPATIBILITY-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.3 Forward Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-17-COMPATIBILITY-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.3 Forward Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-17-COMPATIBILITY-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.4 Cross-Specification Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-17-COMPATIBILITY-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "17. Compatibility / 17.4 Cross-Specification Compatibility",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-18-VERSIONING-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.2 Schema Version Declaration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-18-VERSIONING-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.2 Schema Version Declaration",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-18-VERSIONING-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.3 Schema Version Scope",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-18-VERSIONING-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "18. Versioning / 18.4 Version Evolution",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-19-SECURITY-CONSIDERATIONS-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.2 Threat Model",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-19-SECURITY-CONSIDERATIONS-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.3 Forgery and Tamper Resistance",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-19-SECURITY-CONSIDERATIONS-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.4 Sensitive Data",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-19-SECURITY-CONSIDERATIONS-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.4 Sensitive Data",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-19-SECURITY-CONSIDERATIONS-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.5 Runtime Governance Boundary",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-19-SECURITY-CONSIDERATIONS-D06",
+      "specification_id": "MCC-TC-001",
+      "section": "19. Security Considerations / 19.5 Runtime Governance Boundary",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "gateway/trust.py"
+      ],
+      "test_references": [
+        "tests/test_trust.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-20-EXTENSION-MODEL-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.2 Extension Points",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-20-EXTENSION-MODEL-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-20-EXTENSION-MODEL-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-20-EXTENSION-MODEL-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "20. Extension Model / 20.3 Extension Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-21-CONFORMANCE-REQUIREMENTS-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.2 Conforming Certificate Issuer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-21-CONFORMANCE-REQUIREMENTS-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.2 Conforming Certificate Issuer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-21-CONFORMANCE-REQUIREMENTS-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.2 Conforming Certificate Issuer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-21-CONFORMANCE-REQUIREMENTS-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.2 Conforming Certificate Issuer",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-21-CONFORMANCE-REQUIREMENTS-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.3 Conforming Certificate Verifier",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-21-CONFORMANCE-REQUIREMENTS-D06",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.3 Conforming Certificate Verifier",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-21-CONFORMANCE-REQUIREMENTS-D07",
+      "specification_id": "MCC-TC-001",
+      "section": "21. Conformance Requirements / 21.4 Conformance Independence",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-22-REQUIREMENT-IDENTIFIER-REGISTRY-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.2 Namespace Convention",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-22-REQUIREMENT-IDENTIFIER-REGISTRY-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.4 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-22-REQUIREMENT-IDENTIFIER-REGISTRY-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.4 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-22-REQUIREMENT-IDENTIFIER-REGISTRY-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "22. Requirement Identifier Registry / 22.4 Registry Requirements",
+      "conformance_status": "NOT_APPLICABLE",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-3-CERTIFICATE-MODEL-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.2 Role in Certification",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-3-CERTIFICATE-MODEL-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.3 Relationship to Other Certification Artifacts",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-3-CERTIFICATE-MODEL-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.3 Relationship to Other Certification Artifacts",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-3-CERTIFICATE-MODEL-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.3 Relationship to Other Certification Artifacts",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-3-CERTIFICATE-MODEL-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "3. Certificate Model / 3.3 Relationship to Other Certification Artifacts",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-4-CERTIFICATE-SCHEMA-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.2 Top-Level Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-4-CERTIFICATE-SCHEMA-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.3 Field Typing",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-4-CERTIFICATE-SCHEMA-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.3 Field Typing",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-4-CERTIFICATE-SCHEMA-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.4 Canonical Form",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-4-CERTIFICATE-SCHEMA-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "4. Certificate Schema / 4.4 Canonical Form",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-5-CERTIFICATE-IDENTITY-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "5. Certificate Identity / 5.2 Identity Fields",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-5-CERTIFICATE-IDENTITY-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "5. Certificate Identity / 5.3 Identifier Stability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-5-CERTIFICATE-IDENTITY-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "5. Certificate Identity / 5.3 Identifier Stability",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.1 Purpose",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.2 Baseline Required Fields",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.3 Additional Required Fields",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.4 Field Presence Rule",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.4 Field Presence Rule",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D06",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.5 Manifest Reference Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D07",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.6 Evidence Bundle Reference Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D08",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.6 Evidence Bundle Reference Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D09",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.6 Evidence Bundle Reference Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-6-REQUIRED-FIELDS-D10",
+      "specification_id": "MCC-TC-001",
+      "section": "6. Required Fields / 6.6 Evidence Bundle Reference Structure",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-7-OPTIONAL-FIELDS-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "7. Optional Fields / 7.3 Optional Field Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-7-OPTIONAL-FIELDS-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "7. Optional Fields / 7.3 Optional Field Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-7-OPTIONAL-FIELDS-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "7. Optional Fields / 7.3 Optional Field Constraints",
+      "conformance_status": "GAP",
+      "implementation_references": [],
+      "test_references": [],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-8-SUBJECT-IDENTIFICATION-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "8. Subject Identification / 8.2 Subject Field",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-8-SUBJECT-IDENTIFICATION-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "8. Subject Identification / 8.2 Subject Field",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-8-SUBJECT-IDENTIFICATION-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "8. Subject Identification / 8.3 Subject Consistency",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-8-SUBJECT-IDENTIFICATION-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "8. Subject Identification / 8.3 Subject Consistency",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-9-CERTIFICATION-RESULT-REPRESENTATION-D01",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.2 Result Value",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-9-CERTIFICATION-RESULT-REPRESENTATION-D02",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.2 Result Value",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-9-CERTIFICATION-RESULT-REPRESENTATION-D03",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.3 Result Consistency",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-9-CERTIFICATION-RESULT-REPRESENTATION-D04",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.3 Result Consistency",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-9-CERTIFICATION-RESULT-REPRESENTATION-D05",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.4 Certified Capability Profiles",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
+      "evidence_references": []
+    },
+    {
+      "requirement_id": "MCC-TC-001-9-CERTIFICATION-RESULT-REPRESENTATION-D06",
+      "specification_id": "MCC-TC-001",
+      "section": "9. Certification Result Representation / 9.4 Certified Capability Profiles",
+      "conformance_status": "PARTIAL",
+      "implementation_references": [
+        "src/mcc_compliance/program.py",
+        "certifications/manifest.json"
+      ],
+      "test_references": [
+        "tests/test_certified_adapter_program.py"
+      ],
       "evidence_references": []
     },
     {

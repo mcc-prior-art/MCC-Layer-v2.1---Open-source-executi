@@ -31,16 +31,26 @@ def test_discovers_requirements_from_all_four_specs():
     reqs = extract_all(REPO_ROOT)
     found_specs = {r.specification_id for r in reqs}
     assert found_specs == set(SPEC_FILES)
-    assert len(reqs) > 300  # sanity floor; the corpus has ~430 as of baseline
+    # Exact total from the corrected deterministic extraction (see
+    # conformance/normative-v1.0/remediation/wave-1-execution-boundary-scope-manifest.md,
+    # Finding 1, and extraction_coverage_audit.json for the full
+    # reconciliation). Not an advance estimate: this is the actual output of
+    # extract_all() as of this corrected extractor, re-asserted here so a
+    # future regression in extraction coverage is a test failure rather than
+    # a silently-passing floor check.
+    assert len(reqs) == 810
 
 
 def test_discovers_canonical_and_derived_requirements():
     reqs = extract_all(REPO_ROOT)
     origins = {r.id_origin for r in reqs}
     assert origins == {"canonical", "derived"}
-    # Canonical count matches the specs' own standalone-line ID convention.
+    # Canonical extraction (Pass 1) is untouched by the extraction
+    # correction: exactly the same 361 canonical requirements as before.
     canonical = [r for r in reqs if r.id_origin == "canonical"]
-    assert len(canonical) >= 350
+    assert len(canonical) == 361
+    derived = [r for r in reqs if r.id_origin == "derived"]
+    assert len(derived) == 449
 
 
 def test_canonical_ids_use_the_specifications_own_identifiers():
@@ -115,6 +125,7 @@ def _sample_requirement(**overrides) -> Requirement:
         requirement_text="Test requirement.",
         requirement_category="Signature Requirements",
         id_origin="canonical",
+        source_line=1,
         conformance_status="GAP",
         rationale="test rationale",
     )
@@ -215,6 +226,7 @@ def test_requirement_schema_rejects_unknown_field():
         "requirement_text": "x",
         "requirement_category": "x",
         "id_origin": "canonical",
+        "source_line": 1,
         "implementation_references": [],
         "test_references": [],
         "evidence_references": [],
@@ -241,6 +253,7 @@ def test_requirement_schema_rejects_invalid_enum():
         "requirement_text": "x",
         "requirement_category": "x",
         "id_origin": "canonical",
+        "source_line": 1,
         "implementation_references": [],
         "test_references": [],
         "evidence_references": [],
