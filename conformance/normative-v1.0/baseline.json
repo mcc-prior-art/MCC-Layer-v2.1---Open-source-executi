@@ -1,0 +1,36 @@
+{
+  "release_title": "MCC Specification Program \u2014 Normative v1.0",
+  "tag": "mcc-spec-v1.0.0",
+  "baseline_commit": "a65b2f375408dfbe8df86fbfc09724c5c45d3ba4",
+  "declaration_status": "Normative",
+  "final_disposition": "APPROVE FOR NORMATIVE v1.0",
+  "declaration_document": "docs/MCC_SPECIFICATION_PROGRAM_NORMATIVE_V1_0.md",
+  "review_document": "docs/reviews/MCC_SPECIFICATION_PROGRAM_NORMATIVE_V1_REVIEW.md",
+  "specifications": [
+    {
+      "specification_id": "MCC-CP-001",
+      "source_file": "specs/MCC-CP-001.md",
+      "version": "1.0",
+      "status": "Normative"
+    },
+    {
+      "specification_id": "MCC-EB-001",
+      "source_file": "specs/MCC-EB-001.md",
+      "version": "1.0",
+      "status": "Normative"
+    },
+    {
+      "specification_id": "MCC-CM-001",
+      "source_file": "specs/MCC-CM-001.md",
+      "version": "1.0",
+      "status": "Normative"
+    },
+    {
+      "specification_id": "MCC-TC-001",
+      "source_file": "specs/MCC-TC-001.md",
+      "version": "1.0",
+      "status": "Normative"
+    }
+  ],
+  "generated_at_note": "This record carries no wall-clock timestamp so that generation remains byte-for-byte deterministic. Provenance is anchored to baseline_commit and tag above, not to generation time."
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcc-prior-art/schemas/normative-v1.0/requirement.schema.json",
+  "title": "MCC Normative v1.0 Conformance Requirement Record",
+  "description": "One normatively-binding requirement extracted from MCC-CP-001, MCC-EB-001, MCC-CM-001, or MCC-TC-001, with its conformance assessment. The pure-Python generator/validator (mcc_conformance) is authoritative for cross-field invariants this schema cannot express.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "requirement_id",
+    "specification_id",
+    "specification_version",
+    "source_file",
+    "section",
+    "normative_keyword",
+    "requirement_text",
+    "requirement_category",
+    "id_origin",
+    "implementation_references",
+    "test_references",
+    "evidence_references",
+    "conformance_status",
+    "rationale",
+    "notes"
+  ],
+  "properties": {
+    "requirement_id": { "type": "string", "minLength": 1 },
+    "specification_id": {
+      "type": "string",
+      "enum": ["MCC-CP-001", "MCC-EB-001", "MCC-CM-001", "MCC-TC-001"]
+    },
+    "specification_version": { "type": "string", "minLength": 1 },
+    "source_file": { "type": "string", "minLength": 1 },
+    "section": { "type": "string" },
+    "normative_keyword": {
+      "type": "string",
+      "enum": [
+        "MUST NOT", "SHALL NOT", "MUST", "SHALL", "REQUIRED",
+        "SHOULD NOT", "SHOULD", "RECOMMENDED", "MAY", ""
+      ]
+    },
+    "requirement_text": { "type": "string", "minLength": 1 },
+    "requirement_category": { "type": "string" },
+    "id_origin": { "type": "string", "enum": ["canonical", "derived"] },
+    "implementation_references": { "type": "array", "items": { "type": "string" } },
+    "test_references": { "type": "array", "items": { "type": "string" } },
+    "evidence_references": { "type": "array", "items": { "type": "string" } },
+    "conformance_status": {
+      "type": "string",
+      "enum": ["CONFORMANT", "PARTIAL", "GAP", "NOT_APPLICABLE", "NOT_ASSESSED"]
+    },
+    "rationale": { "type": "string", "minLength": 1 },
+    "notes": { "type": ["string", "null"] }
+  }
+}
