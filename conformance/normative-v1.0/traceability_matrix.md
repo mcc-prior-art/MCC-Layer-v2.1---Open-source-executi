@@ -29,13 +29,13 @@ python -m mcc_conformance generate
 
 | Status | Count | % of total |
 |---|---|---|
-| CONFORMANT | 18 | 2.2% |
-| PARTIAL | 592 | 73.1% |
-| GAP | 110 | 13.6% |
+| CONFORMANT | 91 | 11.2% |
+| PARTIAL | 527 | 65.1% |
+| GAP | 102 | 12.6% |
 | NOT_APPLICABLE | 90 | 11.1% |
 | NOT_ASSESSED | 0 | 0.0% |
 
-**Conformance coverage (CONFORMANT / applicable requirements): 2.5% (18/720)**
+**Conformance coverage (CONFORMANT / applicable requirements): 12.6% (91/720)**
 
 ## Full Traceability Matrix
 
@@ -767,90 +767,90 @@ python -m mcc_conformance generate
 | MCC-TC-001-ABSTRACT-D01 | MCC-TC-001 | Abstract | NOT_APPLICABLE | — | — |
 | MCC-TC-001-ABSTRACT-D02 | MCC-TC-001 | Abstract | NOT_APPLICABLE | — | — |
 | MCC-TC-001-STATUS-OF-THIS-SPECIFICATION-D01 | MCC-TC-001 | Status of This Specification | NOT_APPLICABLE | — | — |
-| TC-COMPAT-001 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-COMPAT-002 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-COMPAT-003 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-COMPAT-004 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-CONF-001 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | GAP | — | — |
-| TC-CONF-002 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | GAP | — | — |
-| TC-CONF-003 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | GAP | — | — |
-| TC-CONF-004 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | GAP | — | — |
-| TC-CONF-005 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | GAP | — | — |
+| TC-COMPAT-001 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-COMPAT-002 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-COMPAT-003 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-COMPAT-004 | MCC-TC-001 | 17. Compatibility / 17.5 Compatibility Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-CONF-001 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-CONF-002 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-CONF-003 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-CONF-004 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-CONF-005 | MCC-TC-001 | 21. Conformance Requirements / 21.5 Conformance Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
 | TC-EXT-001 | MCC-TC-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | TC-EXT-002 | MCC-TC-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | TC-EXT-003 | MCC-TC-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | TC-EXT-004 | MCC-TC-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
-| TC-HASH-001 | MCC-TC-001 | 13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-HASH-002 | MCC-TC-001 | 13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-HASH-003 | MCC-TC-001 | 13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-ID-001 | MCC-TC-001 | 5. Certificate Identity / 5.4 Certificate Identity Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-ID-002 | MCC-TC-001 | 5. Certificate Identity / 5.4 Certificate Identity Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-ID-003 | MCC-TC-001 | 5. Certificate Identity / 5.4 Certificate Identity Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-ISS-001 | MCC-TC-001 | 10. Issuer Information / 10.4 Issuer Information Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-ISS-002 | MCC-TC-001 | 10. Issuer Information / 10.4 Issuer Information Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-ISS-003 | MCC-TC-001 | 10. Issuer Information / 10.4 Issuer Information Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-MODEL-001 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-MODEL-002 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-MODEL-003 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-MODEL-004 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-OPTF-001 | MCC-TC-001 | 7. Optional Fields / 7.4 Optional Fields Invariants | GAP | — | — |
-| TC-OPTF-002 | MCC-TC-001 | 7. Optional Fields / 7.4 Optional Fields Invariants | GAP | — | — |
-| TC-OPTF-003 | MCC-TC-001 | 7. Optional Fields / 7.4 Optional Fields Invariants | GAP | — | — |
-| TC-RES-001 | MCC-TC-001 | 9. Certification Result Representation / 9.5 Certification Result Representation Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
+| TC-HASH-001 | MCC-TC-001 | 13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-HASH-002 | MCC-TC-001 | 13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-HASH-003 | MCC-TC-001 | 13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-ID-001 | MCC-TC-001 | 5. Certificate Identity / 5.4 Certificate Identity Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-ID-002 | MCC-TC-001 | 5. Certificate Identity / 5.4 Certificate Identity Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-ID-003 | MCC-TC-001 | 5. Certificate Identity / 5.4 Certificate Identity Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-ISS-001 | MCC-TC-001 | 10. Issuer Information / 10.4 Issuer Information Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-ISS-002 | MCC-TC-001 | 10. Issuer Information / 10.4 Issuer Information Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-ISS-003 | MCC-TC-001 | 10. Issuer Information / 10.4 Issuer Information Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-MODEL-001 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-MODEL-002 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-MODEL-003 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-MODEL-004 | MCC-TC-001 | 3. Certificate Model / 3.5 Certificate Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-OPTF-001 | MCC-TC-001 | 7. Optional Fields / 7.4 Optional Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-OPTF-002 | MCC-TC-001 | 7. Optional Fields / 7.4 Optional Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-OPTF-003 | MCC-TC-001 | 7. Optional Fields / 7.4 Optional Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-RES-001 | MCC-TC-001 | 9. Certification Result Representation / 9.5 Certification Result Representation Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
 | TC-RES-002 | MCC-TC-001 | 9. Certification Result Representation / 9.5 Certification Result Representation Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-RES-003 | MCC-TC-001 | 9. Certification Result Representation / 9.5 Certification Result Representation Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-REV-001 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-REV-002 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-REV-003 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-REV-004 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-REV-005 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-REV-006 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-RFLD-001 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-RFLD-002 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-RFLD-003 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-RFLD-004 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-RFLD-005 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-RFLD-006 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
+| TC-RES-003 | MCC-TC-001 | 9. Certification Result Representation / 9.5 Certification Result Representation Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-REV-001 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-REV-002 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-REV-003 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-REV-004 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-REV-005 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-REV-006 | MCC-TC-001 | 12. Revocation Model / 12.7 Revocation Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-RFLD-001 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-RFLD-002 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-RFLD-003 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-RFLD-004 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-RFLD-005 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-RFLD-006 | MCC-TC-001 | 6. Required Fields / 6.7 Required Fields Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
 | TC-RID-001 | MCC-TC-001 | 22. Requirement Identifier Registry / 22.5 Registry Invariants | NOT_APPLICABLE | — | — |
 | TC-RID-002 | MCC-TC-001 | 22. Requirement Identifier Registry / 22.5 Registry Invariants | NOT_APPLICABLE | — | — |
 | TC-RID-003 | MCC-TC-001 | 22. Requirement Identifier Registry / 22.5 Registry Invariants | NOT_APPLICABLE | — | — |
 | TC-RID-004 | MCC-TC-001 | 22. Requirement Identifier Registry / 22.5 Registry Invariants | NOT_APPLICABLE | — | — |
-| TC-SCHEMA-001 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-SCHEMA-002 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-SCHEMA-003 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-SCHEMA-004 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-SCHEMA-005 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-SEC-001 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-SEC-002 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-SEC-003 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-SEC-004 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-SEC-005 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-SIG-001 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-SIG-002 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-SIG-003 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-SIG-004 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-SIG-005 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | PARTIAL | src/mcc_core/signing.py | tests/test_mcc_core.py::test_sign_and_verify_roundtrip; tests/test_mcc_core.py::test_canonical_serialization_is_deterministic |
-| TC-SUBJ-001 | MCC-TC-001 | 8. Subject Identification / 8.4 Subject Identification Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
+| TC-SCHEMA-001 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SCHEMA-002 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SCHEMA-003 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SCHEMA-004 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SCHEMA-005 | MCC-TC-001 | 4. Certificate Schema / 4.5 Certificate Schema Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SEC-001 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SEC-002 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SEC-003 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SEC-004 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SEC-005 | MCC-TC-001 | 19. Security Considerations / 19.6 Security Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SIG-001 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SIG-002 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SIG-003 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SIG-004 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SIG-005 | MCC-TC-001 | 14. Signature Requirements / 14.5 Signature Requirements Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-SUBJ-001 | MCC-TC-001 | 8. Subject Identification / 8.4 Subject Identification Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
 | TC-SUBJ-002 | MCC-TC-001 | 8. Subject Identification / 8.4 Subject Identification Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
 | TC-SUBJ-003 | MCC-TC-001 | 8. Subject Identification / 8.4 Subject Identification Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-TRUST-001 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-TRUST-002 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-TRUST-003 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-TRUST-004 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-VALID-001 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-VALID-002 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-VALID-003 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-VALID-004 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | PARTIAL | gateway/trust.py | tests/test_trust.py |
-| TC-VERIFY-001 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| TC-VERIFY-002 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| TC-VERIFY-003 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| TC-VERIFY-004 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| TC-VERIFY-005 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| TC-VERIFY-006 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | PARTIAL | src/mcc_evidence/schema.py; src/mcc_evidence/export.py; src/mcc_evidence/verify.py | tests/test_evidence_bundle.py; tests/test_evidence_tamper.py; tests/test_evidence_security.py |
-| TC-VSN-001 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-VSN-002 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-VSN-003 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
-| TC-VSN-004 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
+| TC-TRUST-001 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-TRUST-002 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-TRUST-003 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-TRUST-004 | MCC-TC-001 | 16. Trust Model / 16.6 Trust Model Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VALID-001 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VALID-002 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VALID-003 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VALID-004 | MCC-TC-001 | 11. Validity Period / 11.4 Validity Period Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VERIFY-001 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VERIFY-002 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VERIFY-003 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VERIFY-004 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VERIFY-005 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VERIFY-006 | MCC-TC-001 | 15. Verification Procedure / 15.9 Verification Procedure Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VSN-001 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VSN-002 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VSN-003 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
+| TC-VSN-004 | MCC-TC-001 | 18. Versioning / 18.5 Versioning Invariants | CONFORMANT | src/mcc_evidence/tc001_certificate.py | tests/test_tc001_technical_certificate.py |
 
 ## Limitations of This Assessment
 

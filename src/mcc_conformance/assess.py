@@ -107,6 +107,10 @@ EV_HASH_REFERENCE = (
     ["src/mcc_evidence/hash_reference.py"],
     ["tests/test_hash_reference.py"],
 )
+EV_TC001_CERTIFICATE = (
+    ["src/mcc_evidence/tc001_certificate.py"],
+    ["tests/test_tc001_technical_certificate.py"],
+)
 EV_EVIDENCE_BUNDLE = (
     ["src/mcc_evidence/schema.py", "src/mcc_evidence/export.py", "src/mcc_evidence/verify.py"],
     ["tests/test_evidence_bundle.py", "tests/test_evidence_tamper.py", "tests/test_evidence_security.py"],
@@ -382,6 +386,16 @@ _WAVE_A_EVIDENCE = ["conformance/normative-v1.0/remediation/wave-a-evidence.json
 # rationale specific to those five IDs.
 _WAVE_B_EVIDENCE = ["conformance/normative-v1.0/remediation/wave-b-evidence.json"]
 
+# Wave C (PR #65) adds 73 MCC-TC-001 Technical Certificate requirement IDs.
+# See conformance/normative-v1.0/remediation/wave-c-technical-certificate-scope-manifest.md
+# for the full selection/exclusion rationale (including the 7 genuinely
+# excluded IDs: TC-SUBJ-002/003, TC-RES-002 -- Wave B's minimal CM001Manifest
+# carries no Certification Metadata (subject/result) to cross-check against
+# -- and TC-EXT-001..004, which fall through to the pre-existing repository-
+# wide "Extension Model" RULES entry unchanged, since no extension-
+# declaration mechanism exists anywhere in this repository yet).
+_WAVE_C_EVIDENCE = ["conformance/normative-v1.0/remediation/wave-c-evidence.json"]
+
 IDOverride = Tuple[str, Tuple[List[str], List[str]], List[str], str]
 
 ID_OVERRIDES: Dict[str, IDOverride] = {
@@ -550,6 +564,487 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "array. Directly tested by test_cm_hash_003_at_least_one_hash_reference_present, "
         "test_cm_hash_003_from_dict_rejects_zero_hash_references, and "
         "test_cm_hash_003_missing_hash_reference_field_rejected.",
+    ),
+    # --- Wave C (PR #65): MCC-TC-001 Technical Certificate (73 IDs) ---------- #
+    # Requirement-ID scoped, not category-scoped, exactly like Waves A/B.
+    # TC-SUBJ-002/003, TC-RES-002 (Manifest-side Subject/Result cross-check)
+    # and TC-EXT-001..004 (Extension Model) are deliberately NOT here -- see
+    # the Wave C scope manifest for why each is a genuine, documented
+    # exclusion rather than an oversight. TC-RID-001..004 remain untouched
+    # NOT_APPLICABLE, consistent with EB-RID/CM-RID in Waves A/B.
+    "TC-MODEL-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): build_technical_certificate has no certification_result "
+        "parameter at all -- CertificationResult has only a PASS member, so a FAIL "
+        "Certificate cannot be constructed. Directly tested by "
+        "test_tc_model_001_certificate_represents_exactly_one_pass_outcome and "
+        "test_tc_conf_002_issuer_never_issues_for_a_non_pass_result.",
+    ),
+    "TC-MODEL-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TechnicalCertificate.manifest_reference is a single required "
+        "field, not a collection. Directly tested by "
+        "test_tc_model_002_certificate_references_exactly_one_manifest.",
+    ),
+    "TC-MODEL-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): tc001_certificate.py imports nothing from mcc_core.gate / "
+        "mcc_core.authority / gateway, and the Certificate schema has no verdict/decision "
+        "field -- only certification_result (PASS-only). Directly tested by "
+        "test_tc_model_003_certificate_is_not_a_runtime_execution_authorization and "
+        "test_tc_sec_005_valid_certificate_not_treated_as_runtime_execution_authorization.",
+    ),
+    "TC-MODEL-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): every issued Certificate carries subject_id, "
+        "cp001_specification_version, manifest_reference, and evidence_bundle_reference as "
+        "direct fields. Directly tested by "
+        "test_tc_model_004_certificate_traceable_to_subject_spec_manifest_bundle.",
+    ),
+    "TC-SCHEMA-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): write_tc001_certificate writes exactly one JSON document; "
+        "read_tc001_certificate parses it back. Directly tested by "
+        "test_tc_schema_001_certificate_is_a_single_structured_document.",
+    ),
+    "TC-SCHEMA-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TechnicalCertificate.from_dict enforces an explicit type for "
+        "every field (str/int/list/dict), rejecting ambiguous or wrong-typed values. "
+        "Directly tested by test_tc_schema_002_every_field_has_an_unambiguous_type and "
+        "test_tc_optf_002_optional_fields_conform_to_type_rules_when_present.",
+    ),
+    "TC-SCHEMA-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): every top-level field group from Section 4.2 is present on a "
+        "signed Certificate except the correctly-absent optional ones. Directly tested by "
+        "test_tc_schema_003_top_level_groups_all_present_except_optional.",
+    ),
+    "TC-SCHEMA-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TechnicalCertificate.unsigned_dict() is the exact Canonical Form "
+        "input to signing and excludes kid/sig. Directly tested by "
+        "test_tc_schema_004_signing_canonical_form_excludes_signature_field.",
+    ),
+    "TC-SCHEMA-005": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): to_dict()/from_dict() round-trip independent of any file writer "
+        "or transport. Directly tested by "
+        "test_tc_schema_005_schema_independent_of_serialization_technology.",
+    ),
+    "TC-ID-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): every Certificate carries a required, non-empty certificate_id. "
+        "Directly tested by test_tc_id_001_certificate_has_a_unique_identifier. Global "
+        "uniqueness across independent Issuers is a documented, out-of-scope deployment "
+        "concern (see CertificateIdRegistry's docstring).",
+    ),
+    "TC-ID-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): CertificateIdRegistry.reserve fails closed on a reused "
+        "certificate_id. Directly tested by "
+        "test_tc_id_002_identifier_reuse_is_rejected_including_after_revocation and "
+        "test_scenario_19_reused_certificate_id_rejected.",
+    ),
+    "TC-ID-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): a revalidation is built as a distinct Certificate with a new "
+        "certificate_id (optionally declaring superseded_certificate_ids); there is no "
+        "in-place re-issuance entrypoint. Directly tested by "
+        "test_tc_id_003_revalidation_produces_a_new_certificate_with_a_new_id.",
+    ),
+    "TC-RFLD-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): all Section 6.2 baseline fields are present on every issued "
+        "Certificate. Directly tested by test_tc_rfld_001_baseline_required_fields_present.",
+    ),
+    "TC-RFLD-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): issuer_id, issuance_timestamp, and a Signature (kid+sig) are "
+        "always present on a signed Certificate. Directly tested by "
+        "test_tc_rfld_002_issuer_validity_and_signature_present.",
+    ),
+    "TC-RFLD-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TechnicalCertificate.from_dict raises TC001StructuralError on any "
+        "missing Required Field. Directly tested by "
+        "test_tc_rfld_003_certificate_omitting_a_required_field_is_rejected and "
+        "test_scenario_01_missing_required_field_rejected.",
+    ),
+    "TC-RFLD-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): ManifestReference carries manifest_id, manifest_schema_version, "
+        "and a Hash Reference. Directly tested by "
+        "test_tc_rfld_004_manifest_reference_structure.",
+    ),
+    "TC-RFLD-005": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): CertEvidenceBundleReference carries bundle_id, schema_version, "
+        "and a Hash Reference. Directly tested by "
+        "test_tc_rfld_005_evidence_bundle_reference_structure.",
+    ),
+    "TC-RFLD-006": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): evidence_bundle_reference is a direct top-level Certificate "
+        "field, never resolved only through manifest_reference. Directly tested by "
+        "test_tc_rfld_006_evidence_bundle_reference_is_direct_not_transitive_only.",
+    ),
+    "TC-OPTF-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): label, expiration_timestamp, and superseded_certificate_ids are "
+        "all optional and a Certificate omitting them still verifies VALID. Directly tested "
+        "by test_tc_optf_001_optional_fields_may_be_omitted.",
+    ),
+    "TC-OPTF-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): from_dict enforces the declared type for every present optional "
+        "field. Directly tested by "
+        "test_tc_optf_002_optional_fields_conform_to_type_rules_when_present.",
+    ),
+    "TC-OPTF-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): populating every optional field never substitutes for a missing "
+        "Required Field -- structural verification still independently requires each one. "
+        "Directly tested by "
+        "test_tc_optf_003_optional_fields_do_not_satisfy_required_field_obligations.",
+    ),
+    "TC-SUBJ-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): subject_id is a single required non-empty string field -- a "
+        "Certificate cannot declare more than one Subject. Directly tested by "
+        "test_tc_subj_001_certificate_identifies_exactly_one_subject. TC-SUBJ-002/003 "
+        "(Manifest-side Subject cross-check) are explicitly excluded -- see the Wave C "
+        "scope manifest.",
+    ),
+    "TC-RES-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): certification_result is required and from_dict rejects any value "
+        "other than \"PASS\". Directly tested by test_tc_res_001_result_field_present_and_pass, "
+        "test_tc_res_001_negative_result_field_rejects_non_pass, and "
+        "test_scenario_03_non_pass_result_rejected. TC-RES-002 (Manifest-side result "
+        "cross-check) is explicitly excluded -- see the Wave C scope manifest.",
+    ),
+    "TC-RES-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): certified_capability_profiles records exactly the caller-supplied "
+        "profiles -- the producer never adds an unverified profile. Directly tested by "
+        "test_tc_res_003_certified_profiles_limited_to_those_verified.",
+    ),
+    "TC-ISS-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): issuer_id is a required field on every Certificate. Directly "
+        "tested by test_tc_iss_001_certificate_identifies_its_issuer.",
+    ),
+    "TC-ISS-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TrustAnchorRegistry.resolve maps the signing kid to a TrustAnchor "
+        "carrying an issuer_id. Directly tested by "
+        "test_tc_iss_002_issuer_identifier_associated_with_resolvable_trust_anchor.",
+    ),
+    "TC-ISS-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verify_technical_certificate rejects a Certificate whose kid does "
+        "not resolve in the supplied TrustAnchorRegistry. Directly tested by "
+        "test_tc_iss_003_unrecognized_issuer_causes_verification_failure and "
+        "test_scenario_12_unknown_signing_kid_rejected.",
+    ),
+    "TC-VALID-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): issuance_timestamp is a required integer field on every "
+        "Certificate. Directly tested by test_tc_valid_001_issuance_timestamp_recorded.",
+    ),
+    "TC-VALID-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verify_technical_certificate's validity_period check rejects "
+        "``now < issuance_timestamp``. Directly tested by "
+        "test_tc_valid_002_not_valid_before_issuance and "
+        "test_scenario_17_not_yet_valid_certificate_rejected.",
+    ),
+    "TC-VALID-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): the validity_period check rejects ``now > expiration_timestamp`` "
+        "when declared. Directly tested by "
+        "test_tc_valid_003_expired_certificate_not_treated_as_valid and "
+        "test_scenario_16_expired_certificate_rejected.",
+    ),
+    "TC-VALID-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): a Certificate with no expiration_timestamp remains valid "
+        "indefinitely (absent revocation). Directly tested by "
+        "test_tc_valid_004_absence_of_expiration_is_not_a_failure.",
+    ),
+    "TC-REV-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): revoke_certificate never mutates the Certificate object; its "
+        "to_dict() is byte-identical before and after revocation. Directly tested by "
+        "test_tc_rev_001_certificate_content_never_mutated_to_represent_revocation.",
+    ),
+    "TC-REV-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): revocation is represented exclusively by an external "
+        "RevocationRecord in a RevocationRegistry, never by editing the Certificate. "
+        "Directly tested by test_tc_rev_002_revocation_represented_by_an_external_record.",
+    ),
+    "TC-REV-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): RevocationRecord requires certificate_id, revoked_at, and "
+        "issuer_id (reason optional). Directly tested by "
+        "test_tc_rev_003_revocation_record_identifies_required_fields.",
+    ),
+    "TC-REV-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): RevocationRegistry.revoke refuses a record whose issuer_id does "
+        "not match the authorizing TrustAnchor's issuer_id. Directly tested by "
+        "test_tc_rev_004_only_the_issuer_may_produce_a_valid_revocation and "
+        "test_scenario_21_revoke_with_mismatched_issuer_rejected.",
+    ),
+    "TC-REV-005": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verify_technical_certificate always checks the "
+        "RevocationRegistry before returning VALID. Directly tested by "
+        "test_tc_rev_005_verifier_checks_revocation_before_treating_as_valid and "
+        "test_scenario_18_revoked_certificate_rejected.",
+    ),
+    "TC-REV-006": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): RevocationRegistry.get/is_revoked are plain, non-destructive "
+        "lookups, and a revoked Certificate remains fully parseable. Directly tested by "
+        "test_tc_rev_006_revoked_certificates_remain_available_for_audit.",
+    ),
+    "TC-HASH-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): both Manifest Reference and Evidence Bundle Reference Hash "
+        "References use algorithm=\"sha256\", reusing hash_reference.py's closed, "
+        "collision-resistant algorithm set unchanged. Directly tested by "
+        "test_tc_hash_001_manifest_and_bundle_hash_references_use_sha256.",
+    ),
+    "TC-HASH-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verify_technical_certificate independently recomputes both "
+        "bindings (manifest_reference_verification, evidence_bundle_reference_consistency) "
+        "rather than trusting a stored flag. Directly tested by "
+        "test_tc_hash_002_bindings_are_independently_recomputable.",
+    ),
+    "TC-HASH-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): the Certificate schema has no separate self-digest field -- "
+        "whole-Certificate integrity is provided only by the Signature. Directly tested by "
+        "test_tc_hash_003_whole_certificate_integrity_via_signature_not_a_self_digest.",
+    ),
+    "TC-SIG-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): sign_technical_certificate signs exclusively via "
+        "mcc_core.signing.SigningKey (Ed25519, asymmetric). Directly tested by "
+        "test_tc_sig_001_certificate_signed_with_asymmetric_scheme.",
+    ),
+    "TC-SIG-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): tc001_certificate.py imports no symmetric-key/shared-secret "
+        "signing module -- Ed25519 via mcc_core.signing is the only signing path. "
+        "Directly tested by test_tc_sig_002_symmetric_key_mechanisms_never_used.",
+    ),
+    "TC-SIG-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): the signature covers unsigned_dict() (the complete Canonical "
+        "Form excluding kid/sig); modifying any covered field invalidates verification. "
+        "Directly tested by "
+        "test_tc_sig_003_signature_covers_complete_canonical_form_excluding_itself.",
+    ),
+    "TC-SIG-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): every Certificate declares signature_algorithm (\"Ed25519\") and "
+        "issuer_id alongside the signing kid. Directly tested by "
+        "test_tc_sig_004_certificate_declares_algorithm_and_issuer_identity.",
+    ),
+    "TC-SIG-005": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): modifying certificate_id, issuance_timestamp, or "
+        "certified_capability_profiles post-signing each independently invalidates the "
+        "signature. Directly tested by "
+        "test_tc_sig_005_modification_of_any_signed_field_invalidates_signature and "
+        "test_scenario_13_forged_signature_rejected.",
+    ),
+    "TC-VERIFY-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verify_technical_certificate never returns a partial-pass "
+        "status -- only VALID, INVALID, or UNSUPPORTED_SCHEMA. Directly tested by "
+        "test_tc_verify_001_verification_is_fail_closed.",
+    ),
+    "TC-VERIFY-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): structural verification runs first and a structurally-invalid "
+        "Certificate never reaches signature verification. Directly tested by "
+        "test_tc_verify_002_structural_verification_precedes_everything_else.",
+    ),
+    "TC-VERIFY-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): signature verification resolves the signing kid through the "
+        "supplied TrustAnchorRegistry, never trusting an unresolved key. Directly tested "
+        "by test_tc_verify_003_signature_verified_against_a_trust_anchor.",
+    ),
+    "TC-VERIFY-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): validity_period and revocation_check are each independently "
+        "evaluated and recorded as distinct checks. Directly tested by "
+        "test_tc_verify_004_validity_and_revocation_both_checked.",
+    ),
+    "TC-VERIFY-005": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): any single failing check (e.g. an invalid signature) yields "
+        "overall_status=INVALID for the whole Certificate. Directly tested by "
+        "test_tc_verify_005_any_failing_step_rejects_the_whole_certificate.",
+    ),
+    "TC-VERIFY-006": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): evidence_bundle_reference_consistency explicitly rejects a "
+        "Certificate whose direct Evidence Bundle Reference identifies a different Bundle "
+        "than the referenced Manifest's own primary reference. Directly tested by "
+        "test_tc_verify_006_mismatched_direct_and_manifest_evidence_bundle_references_rejected "
+        "and test_scenario_10_verifier_rejects_mismatched_direct_and_manifest_bundle_references.",
+    ),
+    "TC-TRUST-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TrustAnchorRegistry.resolve returns None for any kid outside its "
+        "own recognized set -- an empty registry trusts nothing. Directly tested by "
+        "test_tc_trust_001_verifier_relies_only_on_recognized_trust_anchors.",
+    ),
+    "TC-TRUST-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verification cross-checks the resolved TrustAnchor's issuer_id "
+        "against the Certificate's declared issuer_id -- a self-declared issuer_id is never "
+        "trusted on its own (and is itself covered by the Signature, so changing it without "
+        "re-signing invalidates verification). Directly tested by "
+        "test_tc_trust_002_trust_not_inferred_from_self_declared_issuer_alone and "
+        "test_scenario_14_issuer_id_mismatch_with_trust_anchor_rejected.",
+    ),
+    "TC-TRUST-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TrustAnchorRegistry.revoke_key stops future resolution of a kid "
+        "without altering any previously-issued Certificate's content. Directly tested by "
+        "test_tc_trust_003_rotation_does_not_retroactively_invalidate_historical_issuance "
+        "and test_scenario_15_revoked_trust_anchor_key_rejected.",
+    ),
+    "TC-TRUST-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TrustAnchorRegistry holds multiple Trust Anchors across multiple "
+        "issuer_ids simultaneously. Directly tested by "
+        "test_tc_trust_004_verifier_may_recognize_multiple_trust_anchors.",
+    ),
+    "TC-COMPAT-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TC001_CERT_SCHEMA_VERSION is an explicit, single-valued constant "
+        "-- no forward-compatibility is assumed for any other value. Directly tested by "
+        "test_tc_compat_001_schema_version_compatibility_is_explicit.",
+    ),
+    "TC-COMPAT-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verify_technical_certificate returns UNSUPPORTED_SCHEMA, never "
+        "VALID, for an unrecognized certificate_schema_version. Directly tested by "
+        "test_tc_compat_002_unrecognized_schema_version_not_silently_accepted.",
+    ),
+    "TC-COMPAT-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): manifest_reference_verification reuses verify_cm001_manifest, "
+        "which itself rejects an unrecognized manifest_schema_version. Directly tested by "
+        "test_tc_compat_003_validity_accounts_for_manifest_schema_version_compatibility.",
+    ),
+    "TC-COMPAT-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): evidence_bundle_reference_consistency reuses "
+        "verify_evidence_bundle_reference / verify_eb001_bundle, which reject an "
+        "unrecognized Evidence Bundle schema_version. Directly tested by "
+        "test_tc_compat_004_validity_accounts_for_evidence_bundle_schema_version_compatibility.",
+    ),
+    "TC-VSN-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): certificate_schema_version is a required Identity field on every "
+        "Certificate. Directly tested by "
+        "test_tc_vsn_001_certificate_declares_a_schema_version.",
+    ),
+    "TC-VSN-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): TC001_CERT_SCHEMA_VERSION is a fixed module-level constant, never "
+        "computed or mutated at runtime. Directly tested by "
+        "test_tc_vsn_002_schema_version_constant_is_immutable_string.",
+    ),
+    "TC-VSN-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): certificate_schema_version, cp001_specification_version, "
+        "manifest_schema_version, and Evidence Bundle schema_version are four distinct "
+        "fields, never conflated. Directly tested by "
+        "test_tc_vsn_003_schema_version_tracked_independently_of_other_specs.",
+    ),
+    "TC-VSN-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): an unrecognized certificate_schema_version causes "
+        "verify_technical_certificate to return UNSUPPORTED_SCHEMA, never VALID. Directly "
+        "tested by test_tc_vsn_004_unrecognized_schema_version_causes_verification_failure "
+        "and test_scenario_04_unrecognized_schema_version_yields_unsupported_schema.",
+    ),
+    "TC-SEC-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): a fully forged Certificate dict (fabricated fields, invalid "
+        "signature) is rejected -- verification never assumes good faith from the source. "
+        "Directly tested by test_tc_sec_001_verification_assumes_untrusted_source.",
+    ),
+    "TC-SEC-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): forgery/tamper detection is provided exclusively by Ed25519 "
+        "signature verification against a recognized Trust Anchor. Directly tested by "
+        "test_tc_sec_002_forgery_resistance_via_signature_only.",
+    ),
+    "TC-SEC-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): the closed field set (_ALL_ALLOWED_FIELDS) has no "
+        "secret/credential-shaped field, and any undeclared field is rejected at parse "
+        "time. Directly tested by "
+        "test_tc_sec_003_certificate_contains_no_secrets_or_credentials and "
+        "test_scenario_02_undeclared_extra_field_rejected.",
+    ),
+    "TC-SEC-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): the Manifest and Evidence Bundle are referenced exclusively by "
+        "Hash Reference (digest/algorithm/content_ref) -- their raw content is never "
+        "embedded in the Certificate. Directly tested by "
+        "test_tc_sec_004_sensitive_data_referenced_only_via_hash_reference.",
+    ),
+    "TC-SEC-005": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): tc001_certificate.py imports no gate/authority/coordinator/egress "
+        "internals -- a valid Certificate has no code path into runtime execution. Directly "
+        "tested by test_tc_sec_005_valid_certificate_not_treated_as_runtime_execution_authorization.",
+    ),
+    "TC-CONF-001": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): issuer-side (build/sign) and verifier-side (verify) are distinct "
+        "functions with distinct fail-closed contracts. Directly tested by "
+        "test_tc_conf_001_conformance_defined_separately_for_issuer_and_verifier.",
+    ),
+    "TC-CONF-002": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): build_technical_certificate's signature has no "
+        "certification_result parameter -- a non-PASS Certificate cannot be constructed. "
+        "Directly tested by test_tc_conf_002_issuer_never_issues_for_a_non_pass_result.",
+    ),
+    "TC-CONF-003": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): verify_technical_certificate implements every Section 15 step in "
+        "order, including the Revocation Check. Directly tested by "
+        "test_tc_conf_003_verifier_implements_fail_closed_verification_including_revocation.",
+    ),
+    "TC-CONF-004": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): tc001_certificate.py has no framework-specific dependency "
+        "(langgraph/autogen/crewai/voltagent/web framework). Directly tested by "
+        "test_tc_conf_004_conformance_is_framework_neutral.",
+    ),
+    "TC-CONF-005": (
+        "CONFORMANT", EV_TC001_CERTIFICATE, _WAVE_C_EVIDENCE,
+        "Wave C (PR #65): build_technical_certificate refuses to issue when its direct "
+        "Evidence Bundle Reference and the Manifest's primary reference disagree, checked "
+        "before signing. Directly tested by "
+        "test_tc_conf_005_issuer_ensures_reference_consistency_before_issuance and "
+        "test_scenario_09_producer_refuses_mismatched_direct_and_manifest_bundle_references.",
     ),
 }
 

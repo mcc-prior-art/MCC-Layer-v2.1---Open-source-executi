@@ -1,0 +1,1193 @@
+{
+  "wave": "Wave C \u2014 Technical Certificate",
+  "requirement_count": 73,
+  "records": [
+    {
+      "requirement_id": "TC-MODEL-001",
+      "specification": "MCC-TC-001",
+      "source_section": "3.5 Certificate Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertificationResult, build_technical_certificate",
+      "proving_tests": [
+        "test_tc_model_001_certificate_represents_exactly_one_pass_outcome",
+        "test_tc_conf_002_issuer_never_issues_for_a_non_pass_result"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-MODEL-002",
+      "specification": "MCC-TC-001",
+      "source_section": "3.5 Certificate Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.manifest_reference",
+      "proving_tests": [
+        "test_tc_model_002_certificate_references_exactly_one_manifest"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-MODEL-003",
+      "specification": "MCC-TC-001",
+      "source_section": "3.5 Certificate Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (import graph)",
+      "proving_tests": [
+        "test_tc_model_003_certificate_is_not_a_runtime_execution_authorization",
+        "test_tc_sec_005_valid_certificate_not_treated_as_runtime_execution_authorization"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-MODEL-004",
+      "specification": "MCC-TC-001",
+      "source_section": "3.5 Certificate Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate",
+      "proving_tests": [
+        "test_tc_model_004_certificate_traceable_to_subject_spec_manifest_bundle"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-001",
+      "specification": "MCC-TC-001",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:write_tc001_certificate",
+      "proving_tests": [
+        "test_tc_schema_001_certificate_is_a_single_structured_document"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-002",
+      "specification": "MCC-TC-001",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "test_tc_schema_002_every_field_has_an_unambiguous_type",
+        "test_tc_optf_002_optional_fields_conform_to_type_rules_when_present"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-003",
+      "specification": "MCC-TC-001",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.to_dict",
+      "proving_tests": [
+        "test_tc_schema_003_top_level_groups_all_present_except_optional"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-004",
+      "specification": "MCC-TC-001",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.unsigned_dict",
+      "proving_tests": [
+        "test_tc_schema_004_signing_canonical_form_excludes_signature_field"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-005",
+      "specification": "MCC-TC-001",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.to_dict/from_dict",
+      "proving_tests": [
+        "test_tc_schema_005_schema_independent_of_serialization_technology"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-ID-001",
+      "specification": "MCC-TC-001",
+      "source_section": "5.4 Certificate Identity Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.certificate_id",
+      "proving_tests": [
+        "test_tc_id_001_certificate_has_a_unique_identifier"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-ID-002",
+      "specification": "MCC-TC-001",
+      "source_section": "5.4 Certificate Identity Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertificateIdRegistry.reserve",
+      "proving_tests": [
+        "test_tc_id_002_identifier_reuse_is_rejected_including_after_revocation",
+        "test_scenario_19_reused_certificate_id_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a reused certificate_id",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: refusing to issue: certificate_id 'wave-c-evidence-cert' has already been used by this Issuer (TC-ID-002: identifiers MUST NOT be reused, including after revocation)",
+      "verification_outcome": "PASS",
+      "rejection_reason": "refusing to issue: certificate_id 'wave-c-evidence-cert' has already been used by this Issuer (TC-ID-002: identifiers MUST NOT be reused, including after revocation)",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-ID-003",
+      "specification": "MCC-TC-001",
+      "source_section": "5.4 Certificate Identity Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "test_tc_id_003_revalidation_produces_a_new_certificate_with_a_new_id"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RFLD-001",
+      "specification": "MCC-TC-001",
+      "source_section": "6.7 Required Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (_REQUIRED_FIELDS)",
+      "proving_tests": [
+        "test_tc_rfld_001_baseline_required_fields_present"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RFLD-002",
+      "specification": "MCC-TC-001",
+      "source_section": "6.7 Required Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (_REQUIRED_FIELDS)",
+      "proving_tests": [
+        "test_tc_rfld_002_issuer_validity_and_signature_present"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RFLD-003",
+      "specification": "MCC-TC-001",
+      "source_section": "6.7 Required Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "test_tc_rfld_003_certificate_omitting_a_required_field_is_rejected",
+        "test_scenario_01_missing_required_field_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a Certificate omitting a Required Field",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: Technical Certificate missing required field(s): ['subject_id']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "Technical Certificate missing required field(s): ['subject_id']",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RFLD-004",
+      "specification": "MCC-TC-001",
+      "source_section": "6.7 Required Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:ManifestReference",
+      "proving_tests": [
+        "test_tc_rfld_004_manifest_reference_structure"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RFLD-005",
+      "specification": "MCC-TC-001",
+      "source_section": "6.7 Required Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertEvidenceBundleReference",
+      "proving_tests": [
+        "test_tc_rfld_005_evidence_bundle_reference_structure"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RFLD-006",
+      "specification": "MCC-TC-001",
+      "source_section": "6.7 Required Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.evidence_bundle_reference",
+      "proving_tests": [
+        "test_tc_rfld_006_evidence_bundle_reference_is_direct_not_transitive_only"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-OPTF-001",
+      "specification": "MCC-TC-001",
+      "source_section": "7.4 Optional Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (optional fields)",
+      "proving_tests": [
+        "test_tc_optf_001_optional_fields_may_be_omitted"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-OPTF-002",
+      "specification": "MCC-TC-001",
+      "source_section": "7.4 Optional Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "test_tc_optf_002_optional_fields_conform_to_type_rules_when_present"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-OPTF-003",
+      "specification": "MCC-TC-001",
+      "source_section": "7.4 Optional Fields Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "test_tc_optf_003_optional_fields_do_not_satisfy_required_field_obligations"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SUBJ-001",
+      "specification": "MCC-TC-001",
+      "source_section": "8.4 Subject Identification Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.subject_id",
+      "proving_tests": [
+        "test_tc_subj_001_certificate_identifies_exactly_one_subject"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RES-001",
+      "specification": "MCC-TC-001",
+      "source_section": "9.5 Certification Result Representation Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertificationResult",
+      "proving_tests": [
+        "test_tc_res_001_result_field_present_and_pass",
+        "test_tc_res_001_negative_result_field_rejects_non_pass",
+        "test_scenario_03_non_pass_result_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a Certificate declaring certification_result=FAIL",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: certification_result must be 'PASS' \u2014 no Certificate model exists for a non-PASS result (Section 9.2); got 'FAIL'",
+      "verification_outcome": "PASS",
+      "rejection_reason": "certification_result must be 'PASS' \u2014 no Certificate model exists for a non-PASS result (Section 9.2); got 'FAIL'",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-RES-003",
+      "specification": "MCC-TC-001",
+      "source_section": "9.5 Certification Result Representation Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "test_tc_res_003_certified_profiles_limited_to_those_verified"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-ISS-001",
+      "specification": "MCC-TC-001",
+      "source_section": "10.4 Issuer Information Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.issuer_id",
+      "proving_tests": [
+        "test_tc_iss_001_certificate_identifies_its_issuer"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-ISS-002",
+      "specification": "MCC-TC-001",
+      "source_section": "10.4 Issuer Information Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry.resolve",
+      "proving_tests": [
+        "test_tc_iss_002_issuer_identifier_associated_with_resolvable_trust_anchor"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-ISS-003",
+      "specification": "MCC-TC-001",
+      "source_section": "10.4 Issuer Information Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_iss_003_unrecognized_issuer_causes_verification_failure",
+        "test_scenario_12_unknown_signing_kid_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: an unresolvable signing kid",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=[\"signature_verification: kid 'wave-c-evidence-key' does not resolve to a recognized, currently-active Trust Anchor\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "signature_verification: kid 'wave-c-evidence-key' does not resolve to a recognized, currently-active Trust Anchor",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VALID-001",
+      "specification": "MCC-TC-001",
+      "source_section": "11.4 Validity Period Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.issuance_timestamp",
+      "proving_tests": [
+        "test_tc_valid_001_issuance_timestamp_recorded"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VALID-002",
+      "specification": "MCC-TC-001",
+      "source_section": "11.4 Validity Period Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_valid_002_not_valid_before_issuance",
+        "test_scenario_17_not_yet_valid_certificate_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: verification before issuance_timestamp",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=['validity_period: now (1699999900) precedes issuance_timestamp (1700000000); not yet valid']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "validity_period: now (1699999900) precedes issuance_timestamp (1700000000); not yet valid",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VALID-003",
+      "specification": "MCC-TC-001",
+      "source_section": "11.4 Validity Period Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_valid_003_expired_certificate_not_treated_as_valid",
+        "test_scenario_16_expired_certificate_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: verification after expiration_timestamp",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=['validity_period: now (1700001000) is after expiration_timestamp (1700000050); expired']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "validity_period: now (1700001000) is after expiration_timestamp (1700000050); expired",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VALID-004",
+      "specification": "MCC-TC-001",
+      "source_section": "11.4 Validity Period Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_valid_004_absence_of_expiration_is_not_a_failure"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-REV-001",
+      "specification": "MCC-TC-001",
+      "source_section": "12.7 Revocation Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:revoke_certificate",
+      "proving_tests": [
+        "test_tc_rev_001_certificate_content_never_mutated_to_represent_revocation"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-REV-002",
+      "specification": "MCC-TC-001",
+      "source_section": "12.7 Revocation Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRegistry",
+      "proving_tests": [
+        "test_tc_rev_002_revocation_represented_by_an_external_record"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-REV-003",
+      "specification": "MCC-TC-001",
+      "source_section": "12.7 Revocation Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRecord",
+      "proving_tests": [
+        "test_tc_rev_003_revocation_record_identifies_required_fields"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-REV-004",
+      "specification": "MCC-TC-001",
+      "source_section": "12.7 Revocation Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRegistry.revoke",
+      "proving_tests": [
+        "test_tc_rev_004_only_the_issuer_may_produce_a_valid_revocation",
+        "test_scenario_21_revoke_with_mismatched_issuer_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a Revocation Record whose issuer_id mismatches the authorizing Trust Anchor",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: revocation refused: record issuer_id 'wave-c-evidence-issuer' does not match the authorizing Trust Anchor's issuer_id 'wrong-issuer'",
+      "verification_outcome": "PASS",
+      "rejection_reason": "revocation refused: record issuer_id 'wave-c-evidence-issuer' does not match the authorizing Trust Anchor's issuer_id 'wrong-issuer'",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-REV-005",
+      "specification": "MCC-TC-001",
+      "source_section": "12.7 Revocation Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_rev_005_verifier_checks_revocation_before_treating_as_valid",
+        "test_scenario_18_revoked_certificate_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: verification of a revoked certificate_id",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=[\"revocation_check: a Revocation Record exists (revoked_at=1700000005, issuer_id='wave-c-evidence-issuer')\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "revocation_check: a Revocation Record exists (revoked_at=1700000005, issuer_id='wave-c-evidence-issuer')",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-REV-006",
+      "specification": "MCC-TC-001",
+      "source_section": "12.7 Revocation Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRegistry.get/is_revoked",
+      "proving_tests": [
+        "test_tc_rev_006_revoked_certificates_remain_available_for_audit"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-HASH-001",
+      "specification": "MCC-TC-001",
+      "source_section": "13.4 Cryptographic Integrity Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (reuses hash_reference.py)",
+      "proving_tests": [
+        "test_tc_hash_001_manifest_and_bundle_hash_references_use_sha256"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-HASH-002",
+      "specification": "MCC-TC-001",
+      "source_section": "13.4 Cryptographic Integrity Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_hash_002_bindings_are_independently_recomputable"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-HASH-003",
+      "specification": "MCC-TC-001",
+      "source_section": "13.4 Cryptographic Integrity Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (schema)",
+      "proving_tests": [
+        "test_tc_hash_003_whole_certificate_integrity_via_signature_not_a_self_digest"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SIG-001",
+      "specification": "MCC-TC-001",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:sign_technical_certificate",
+      "proving_tests": [
+        "test_tc_sig_001_certificate_signed_with_asymmetric_scheme"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SIG-002",
+      "specification": "MCC-TC-001",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (import graph)",
+      "proving_tests": [
+        "test_tc_sig_002_symmetric_key_mechanisms_never_used"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SIG-003",
+      "specification": "MCC-TC-001",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:sign_technical_certificate",
+      "proving_tests": [
+        "test_tc_sig_003_signature_covers_complete_canonical_form_excluding_itself"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SIG-004",
+      "specification": "MCC-TC-001",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate",
+      "proving_tests": [
+        "test_tc_sig_004_certificate_declares_algorithm_and_issuer_identity"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SIG-005",
+      "specification": "MCC-TC-001",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_sig_005_modification_of_any_signed_field_invalidates_signature",
+        "test_scenario_13_forged_signature_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a modified certificate_id after signing",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=['signature_verification: Ed25519 signature does not verify against the resolved Trust Anchor']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "signature_verification: Ed25519 signature does not verify against the resolved Trust Anchor",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VERIFY-001",
+      "specification": "MCC-TC-001",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_verify_001_verification_is_fail_closed"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VERIFY-002",
+      "specification": "MCC-TC-001",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_verify_002_structural_verification_precedes_everything_else"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a structurally-invalid certificate (missing required fields)",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=[\"structural_verification: Technical Certificate missing required field(s): ['certificate_id', 'cp001_specification_version', 'subject_id', 'certification_result', 'certified_capability_profiles', 'manifest_reference', 'evidence_bundle_reference', 'issuer_id', 'signature_algorithm', 'issuance_timestamp', 'kid', 'sig']\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "structural_verification: Technical Certificate missing required field(s): ['certificate_id', 'cp001_specification_version', 'subject_id', 'certification_result', 'certified_capability_profiles', 'manifest_reference', 'evidence_bundle_reference', 'issuer_id', 'signature_algorithm', 'issuance_timestamp', 'kid', 'sig']",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VERIFY-003",
+      "specification": "MCC-TC-001",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_verify_003_signature_verified_against_a_trust_anchor"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VERIFY-004",
+      "specification": "MCC-TC-001",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_verify_004_validity_and_revocation_both_checked"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VERIFY-005",
+      "specification": "MCC-TC-001",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_verify_005_any_failing_step_rejects_the_whole_certificate"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VERIFY-006",
+      "specification": "MCC-TC-001",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_verify_006_mismatched_direct_and_manifest_evidence_bundle_references_rejected",
+        "test_scenario_10_verifier_rejects_mismatched_direct_and_manifest_bundle_references"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a direct Evidence Bundle Reference pointing at a different Bundle than the Manifest's",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=[\"evidence_bundle_reference_consistency: direct Evidence Bundle Reference ('wave-c-evidence-bundle-other', 'mcc-eb-001/1') does not identify the same Evidence Bundle as the Manifest's primary reference ('wave-c-evidence-bundle', 'mcc-eb-001/1')\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "evidence_bundle_reference_consistency: direct Evidence Bundle Reference ('wave-c-evidence-bundle-other', 'mcc-eb-001/1') does not identify the same Evidence Bundle as the Manifest's primary reference ('wave-c-evidence-bundle', 'mcc-eb-001/1')",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-TRUST-001",
+      "specification": "MCC-TC-001",
+      "source_section": "16.6 Trust Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry.resolve",
+      "proving_tests": [
+        "test_tc_trust_001_verifier_relies_only_on_recognized_trust_anchors"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: verification against an empty Trust Anchor registry",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=[\"signature_verification: kid 'wave-c-evidence-key' does not resolve to a recognized, currently-active Trust Anchor\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "signature_verification: kid 'wave-c-evidence-key' does not resolve to a recognized, currently-active Trust Anchor",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-TRUST-002",
+      "specification": "MCC-TC-001",
+      "source_section": "16.6 Trust Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_trust_002_trust_not_inferred_from_self_declared_issuer_alone",
+        "test_scenario_14_issuer_id_mismatch_with_trust_anchor_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a tampered issuer_id field",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=['signature_verification: Ed25519 signature does not verify against the resolved Trust Anchor']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "signature_verification: Ed25519 signature does not verify against the resolved Trust Anchor",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-TRUST-003",
+      "specification": "MCC-TC-001",
+      "source_section": "16.6 Trust Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry.revoke_key",
+      "proving_tests": [
+        "test_tc_trust_003_rotation_does_not_retroactively_invalidate_historical_issuance",
+        "test_scenario_15_revoked_trust_anchor_key_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: verification after Trust Anchor key rotation/revocation",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=[\"signature_verification: kid 'wave-c-evidence-key' does not resolve to a recognized, currently-active Trust Anchor\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "signature_verification: kid 'wave-c-evidence-key' does not resolve to a recognized, currently-active Trust Anchor",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-TRUST-004",
+      "specification": "MCC-TC-001",
+      "source_section": "16.6 Trust Model Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry",
+      "proving_tests": [
+        "test_tc_trust_004_verifier_may_recognize_multiple_trust_anchors"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-COMPAT-001",
+      "specification": "MCC-TC-001",
+      "source_section": "17.5 Compatibility Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TC001_CERT_SCHEMA_VERSION",
+      "proving_tests": [
+        "test_tc_compat_001_schema_version_compatibility_is_explicit"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-COMPAT-002",
+      "specification": "MCC-TC-001",
+      "source_section": "17.5 Compatibility Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_compat_002_unrecognized_schema_version_not_silently_accepted"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: an unrecognized certificate_schema_version",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=UNSUPPORTED_SCHEMA, failures=[\"schema_version_supported: unsupported or missing certificate_schema_version 'mcc-tc-001/99'\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "schema_version_supported: unsupported or missing certificate_schema_version 'mcc-tc-001/99'",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-COMPAT-003",
+      "specification": "MCC-TC-001",
+      "source_section": "17.5 Compatibility Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (reuses verify_cm001_manifest)",
+      "proving_tests": [
+        "test_tc_compat_003_validity_accounts_for_manifest_schema_version_compatibility"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: issuance against a Manifest with an unrecognized manifest_schema_version",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: refusing to issue a Technical Certificate for an unverifiable Certification Manifest: [\"unsupported manifest_schema_version 'mcc-cm-001/99'\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "refusing to issue a Technical Certificate for an unverifiable Certification Manifest: [\"unsupported manifest_schema_version 'mcc-cm-001/99'\"]",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-COMPAT-004",
+      "specification": "MCC-TC-001",
+      "source_section": "17.5 Compatibility Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (reuses verify_eb001_bundle)",
+      "proving_tests": [
+        "test_tc_compat_004_validity_accounts_for_evidence_bundle_schema_version_compatibility"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: issuance against an Evidence Bundle with an unrecognized schema_version",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: refusing to issue a Technical Certificate for an unverifiable Certification Manifest: ['primary Evidence Bundle Reference unverifiable: [\\'bundle_structural_validity: referenced bundle is not a structurally valid MCC-EB-001 Bundle: [\"schema_support: unsupported schema version \\\\\\'mcc-eb-001/99\\\\\\'\"]\\']']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "refusing to issue a Technical Certificate for an unverifiable Certification Manifest: ['primary Evidence Bundle Reference unverifiable: [\\'bundle_structural_validity: referenced bundle is not a structurally valid MCC-EB-001 Bundle: [\"schema_support: unsupported schema version \\\\\\'mcc-eb-001/99\\\\\\'\"]\\']']",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VSN-001",
+      "specification": "MCC-TC-001",
+      "source_section": "18.5 Versioning Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.certificate_schema_version",
+      "proving_tests": [
+        "test_tc_vsn_001_certificate_declares_a_schema_version"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VSN-002",
+      "specification": "MCC-TC-001",
+      "source_section": "18.5 Versioning Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TC001_CERT_SCHEMA_VERSION",
+      "proving_tests": [
+        "test_tc_vsn_002_schema_version_constant_is_immutable_string"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VSN-003",
+      "specification": "MCC-TC-001",
+      "source_section": "18.5 Versioning Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate",
+      "proving_tests": [
+        "test_tc_vsn_003_schema_version_tracked_independently_of_other_specs"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-VSN-004",
+      "specification": "MCC-TC-001",
+      "source_section": "18.5 Versioning Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_vsn_004_unrecognized_schema_version_causes_verification_failure",
+        "test_scenario_04_unrecognized_schema_version_yields_unsupported_schema"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: an unrecognized certificate_schema_version",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=UNSUPPORTED_SCHEMA, failures=[\"schema_version_supported: unsupported or missing certificate_schema_version 'mcc-tc-001/99'\"]",
+      "verification_outcome": "PASS",
+      "rejection_reason": "schema_version_supported: unsupported or missing certificate_schema_version 'mcc-tc-001/99'",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SEC-001",
+      "specification": "MCC-TC-001",
+      "source_section": "19.6 Security Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_sec_001_verification_assumes_untrusted_source"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: a fully forged certificate with a fabricated signature",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "overall_status=INVALID, failures=['signature_verification: Ed25519 signature does not verify against the resolved Trust Anchor']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "signature_verification: Ed25519 signature does not verify against the resolved Trust Anchor",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SEC-002",
+      "specification": "MCC-TC-001",
+      "source_section": "19.6 Security Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_sec_002_forgery_resistance_via_signature_only"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SEC-003",
+      "specification": "MCC-TC-001",
+      "source_section": "19.6 Security Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (_ALL_ALLOWED_FIELDS)",
+      "proving_tests": [
+        "test_tc_sec_003_certificate_contains_no_secrets_or_credentials",
+        "test_scenario_02_undeclared_extra_field_rejected"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: an undeclared extra field",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: Technical Certificate contains undeclared field(s): ['secret_field']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "Technical Certificate contains undeclared field(s): ['secret_field']",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SEC-004",
+      "specification": "MCC-TC-001",
+      "source_section": "19.6 Security Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (Hash Reference fields only)",
+      "proving_tests": [
+        "test_tc_sec_004_sensitive_data_referenced_only_via_hash_reference"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-SEC-005",
+      "specification": "MCC-TC-001",
+      "source_section": "19.6 Security Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (import graph)",
+      "proving_tests": [
+        "test_tc_sec_005_valid_certificate_not_treated_as_runtime_execution_authorization"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-CONF-001",
+      "specification": "MCC-TC-001",
+      "source_section": "21.5 Conformance Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (build/sign vs. verify)",
+      "proving_tests": [
+        "test_tc_conf_001_conformance_defined_separately_for_issuer_and_verifier"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-CONF-002",
+      "specification": "MCC-TC-001",
+      "source_section": "21.5 Conformance Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "test_tc_conf_002_issuer_never_issues_for_a_non_pass_result"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-CONF-003",
+      "specification": "MCC-TC-001",
+      "source_section": "21.5 Conformance Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "test_tc_conf_003_verifier_implements_fail_closed_verification_including_revocation"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-CONF-004",
+      "specification": "MCC-TC-001",
+      "source_section": "21.5 Conformance Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (no framework dependency)",
+      "proving_tests": [
+        "test_tc_conf_004_conformance_is_framework_neutral"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed)",
+      "expected_result": "the positive end-to-end certificate verifies VALID",
+      "actual_result": "overall_status=VALID",
+      "verification_outcome": "PASS",
+      "rejection_reason": "",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    },
+    {
+      "requirement_id": "TC-CONF-005",
+      "specification": "MCC-TC-001",
+      "source_section": "21.5 Conformance Invariants",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "test_tc_conf_005_issuer_ensures_reference_consistency_before_issuance",
+        "test_scenario_09_producer_refuses_mismatched_direct_and_manifest_bundle_references"
+      ],
+      "input_fixture": "wave-c-evidence-bundle -> wave-c-evidence-manifest -> wave-c-evidence-cert (fixed inputs, fixed Ed25519 seed); negative case: mismatched direct vs. Manifest Evidence Bundle References at issuance",
+      "expected_result": "the negative case is rejected (INVALID/UNSUPPORTED_SCHEMA or a raised error), never treated as valid",
+      "actual_result": "rejected: refusing to issue a Technical Certificate for an unverifiable Certification Manifest: ['primary Evidence Bundle Reference unverifiable: [\"bundle_id_binding: Reference bundle_id \\'wave-c-evidence-bundle\\' does not match the actual Bundle\\'s bundle_id \\'wave-c-evidence-bundle-other\\' (wrong bundle or substitution)\", \\'hash_reference_integrity: primary Hash Reference digest does not match the actual Integrity Record content (tampering, regeneration, or substitution)\\']']",
+      "verification_outcome": "PASS",
+      "rejection_reason": "refusing to issue a Technical Certificate for an unverifiable Certification Manifest: ['primary Evidence Bundle Reference unverifiable: [\"bundle_id_binding: Reference bundle_id \\'wave-c-evidence-bundle\\' does not match the actual Bundle\\'s bundle_id \\'wave-c-evidence-bundle-other\\' (wrong bundle or substitution)\", \\'hash_reference_integrity: primary Hash Reference digest does not match the actual Integrity Record content (tampering, regeneration, or substitution)\\']']",
+      "reproduction_command": "PYTHONPATH=src python3 conformance/normative-v1.0/remediation/generate_wave_c_evidence.py",
+      "certificate_schema_version": "mcc-tc-001/1"
+    }
+  ]
+}
