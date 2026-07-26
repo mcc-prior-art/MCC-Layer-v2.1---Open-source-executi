@@ -1,6 +1,10 @@
 # MCC Official Certification of the Five Reference Ecosystems
 
-PR #69. Builds on [`CERTIFICATION_PIPELINE.md`](CERTIFICATION_PIPELINE.md)
+PR #69 (production issuer, official-eligibility gate, and release
+publication added in PR #70 — see
+[`docs/certification/OFFICIAL_SIGNING_CEREMONY.md`](certification/OFFICIAL_SIGNING_CEREMONY.md)
+and [`docs/certification/OFFICIAL_CERTIFICATION_RELEASE_CHECKLIST.md`](certification/OFFICIAL_CERTIFICATION_RELEASE_CHECKLIST.md)).
+Builds on [`CERTIFICATION_PIPELINE.md`](CERTIFICATION_PIPELINE.md)
 (PR #67, the one certification pipeline) and
 [`CERTIFICATION_TRUST_AND_PUBLICATION.md`](CERTIFICATION_TRUST_AND_PUBLICATION.md)
 (PR #68, Issuer Identity / Trust Store / Signing-Key Provider / Publication).
@@ -14,9 +18,13 @@ certificates** — see "Candidate versus official status" below.
 > environment this PR was built in. Every artifact this PR's own CI
 > produces is signed by an explicit, disclosed, deterministic **CI
 > candidate issuer** (`mcc-ci-candidate-issuer`) and is NON_OFFICIAL by
-> construction. The protected signing ceremony
-> (`.github/workflows/mcc-official-certification.yml`) is implemented and
-> ready, but has not been run against a real production Issuer key. This
+> construction. PR #70 implements the full production-issuer activation,
+> centralized official-eligibility gate, and protected signing/release
+> workflow (`.github/workflows/mcc-official-certification.yml`) — but an
+> authorized operator (AX) must still generate the real production key,
+> configure the `mcc-production-signing` GitHub Environment, and run the
+> protected ceremony for real before any ecosystem is OFFICIALLY CERTIFIED.
+> See the Signing Ceremony runbook for the exact manual steps. This
 > milestone is therefore code-complete and candidate-certification-complete,
 > **not** officially-certification-complete.
 
@@ -188,43 +196,54 @@ python -m mcc_certify verify-aggregate \
 
 ## 13. Candidate versus official status
 
-An ecosystem is **CANDIDATE / NON_OFFICIAL** (this PR's own CI state) when
-its Technical Certificate is signed by the disclosed, deterministic CI
-candidate issuer (`mcc-ci-candidate-issuer`,
-`scripts/generate_ci_candidate_issuer.py`) — a real, non-fixture Ed25519
-key (so the full official-mode code path genuinely runs), but one whose
-`issuer_id` unambiguously identifies it as non-production. An ecosystem is
-**OFFICIALLY CERTIFIED** only when: (a) it was signed via the protected
+An ecosystem is **CANDIDATE / NON_OFFICIAL** (the state produced by the
+`certification-<ecosystem>` CI jobs) when its Technical Certificate is
+signed by the disclosed, deterministic CI candidate issuer
+(`mcc-ci-candidate-issuer`, `scripts/generate_ci_candidate_issuer.py`) — a
+real, non-fixture Ed25519 key (so the full official-mode code path
+genuinely runs), but one whose `issuer_id` unambiguously identifies it as
+non-production. An ecosystem is **OFFICIALLY CERTIFIED** only when
+`mcc_certify.official.evaluate_official_eligibility` (PR #70 — the one
+centralized, cryptographic eligibility gate) reports `eligible: True`,
+which requires: (a) it was signed via the protected
 `mcc-official-certification.yml` workflow using the real, separately-held
-production Issuer key; (b) that Issuer is present and active in the
-committed, real production Trust Store; (c) trusted offline verification
-against that real Trust Store passes; (d) it is present in the real
-aggregate Publication Set built from five such runs. **No ecosystem
-reaches state (d) in this PR** — see the banner at the top of this
-document and the certification report matrix (§19).
+production Issuer key; (b) that Issuer (`mcc-official-certification-issuer-v1`)
+is present and active in the committed, real production Trust Store; (c)
+trusted offline verification against that real Trust Store passes; (d) a
+`publication-record.json` exists (official mode only); (e) the run's
+recorded `source_commit_sha` matches the ceremony's requested commit. **No
+ecosystem reaches this state yet** — see the banner at the top of this
+document, §19 below, and the certification report matrix.
 
 ## 14. Secure signing ceremony
 
-`.github/workflows/mcc-official-certification.yml`: `workflow_dispatch`
-only, gated by a GitHub Environment (`mcc-official-signing`) the repository
-owner configures with required reviewers; requires an exact 40-character
-commit SHA (never a branch name); verifies the checked-out commit matches
-that SHA and the working tree is clean; accepts the real Issuer private
-key only via `secrets.MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM`, written to a
-`0600` file under `$RUNNER_TEMP` and deleted in an `if: always()` step;
-scans the resulting artifact tree for private-key material before
-uploading; uploads only the public certification artifacts. It does not
-publish a GitHub Release (deferred to PR #70).
+Fully implemented in PR #70 —
+[`docs/certification/OFFICIAL_SIGNING_CEREMONY.md`](certification/OFFICIAL_SIGNING_CEREMONY.md)
+is the complete operator runbook. Summary:
+`.github/workflows/mcc-official-certification.yml` runs `workflow_dispatch`
+only, only from `main`, gated by the GitHub Environment
+`mcc-production-signing` (required reviewers); validates the requested
+commit is an exact 40-character SHA already merged into `main`; runs the
+five ecosystems in isolated jobs (mirroring the candidate jobs' dependency
+isolation), each independently decoding the real Issuer private key from
+the `MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64` secret into a `0600` temp file
+(never a command-line argument, deleted `if: always()`); rejects a
+non-production issuer configuration before signing; only proceeds to
+`official-release-publish` once all five succeed; supports `dry_run: true`
+(default) to run the complete real signing chain without ever publishing a
+GitHub Release; refuses to overwrite an existing release tag.
 
 ## 15. How the production Issuer key stays outside the repository
 
 No PEM, private key, or key-shaped secret is committed anywhere in this
-PR (verified: `tests/test_mcc_certify_ecosystem_guards.py::test_ecosystems_module_never_contains_pem_material`,
-plus a repo-wide `grep -R "PRIVATE KEY"` in the final validation checklist
-below). The real Issuer key is expected to live only in the GitHub
-Environment secret `MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM`, provisioned
-out-of-band by the repository owner — this PR neither generates nor
-requests one.
+repository (verified by the repo-wide `grep -R "PRIVATE KEY"` scan in the
+final validation checklist, plus `tests/test_mcc_certify_pr70.py::test_production_only_claims_remain_disabled_without_real_key_material`,
+which asserts `config/official-issuer.json` itself does not exist yet).
+The real Issuer key lives only in the GitHub Environment secret
+`MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64`, provisioned out-of-band by an
+authorized operator — this repository neither generates nor requests one
+automatically. See §7 of the Signing Ceremony runbook for the exact manual
+GitHub configuration steps.
 
 ## 16. How to reproduce the non-official certification candidates
 
@@ -254,21 +273,17 @@ python -m mcc_certify aggregate-publish --trust-store /tmp/mcc-ci-trust/trust-st
 
 ## 17. How authorized operators issue the official certificates
 
-1. Generate (once, offline, outside CI) a real Ed25519 Issuer key and its
-   public `IssuerIdentity`/`TrustStore` documents; commit only the public
-   documents.
-2. Store the private key PEM as the `MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM`
-   secret on the `mcc-official-signing` GitHub Environment, with required
-   reviewer protection configured.
-3. Dispatch `MCC Official Certification (Five Reference Ecosystems)` with
-   the approved commit SHA, the committed issuer/trust-store paths, and an
-   explicit issuance timestamp.
-4. Repeat the "Certify one ecosystem" step once per ecosystem, in that
-   ecosystem's own isolated job/runner (mirroring `certification-<ecosystem>`
-   in `mcc-runtime-ci.yml`), all pointed at the same real issuer/trust store.
-5. Run `mcc_certify aggregate-publish` / `verify-aggregate` against the
-   five resulting official run directories.
-6. Publication of a GitHub Release from the resulting artifacts is PR #70.
+See [`docs/certification/OFFICIAL_SIGNING_CEREMONY.md`](certification/OFFICIAL_SIGNING_CEREMONY.md)
+for the complete runbook and
+[`docs/certification/OFFICIAL_CERTIFICATION_RELEASE_CHECKLIST.md`](certification/OFFICIAL_CERTIFICATION_RELEASE_CHECKLIST.md)
+for the step-by-step checklist (PR #70). Summary: generate the production
+Issuer key offline (`scripts/generate_production_issuer_identity.py`),
+commit only the public `config/official-issuer.json`/
+`config/official-trust-store.json`, configure the `mcc-production-signing`
+GitHub Environment and its `MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64` secret,
+then dispatch `MCC Official Certification & Release` from `main` with
+`dry_run: true` first, then `dry_run: false` to publish the immutable
+GitHub Release once every ecosystem is confirmed eligible.
 
 ## 18. Known limitations
 
@@ -301,10 +316,14 @@ python -m mcc_certify aggregate-publish --trust-store /tmp/mcc-ci-trust/trust-st
 
 ## 19. PR #70 — MCC Official Certification Release
 
-Publishing a GitHub Release from the real, officially-signed five-
-ecosystem Publication Set is explicitly deferred to the next milestone,
-**PR #70 — MCC Official Certification Release**. This PR does not publish
-a Release and is not merged automatically.
+Implemented: production Issuer activation tooling, the centralized
+official-eligibility gate, the immutable release-packaging module, the
+protected signing-ceremony-and-release workflow, and full operator
+documentation (`docs/certification/`). **Not yet performed:** the actual
+protected ceremony against a real production Issuer key — see
+`docs/certification/OFFICIAL_SIGNING_CEREMONY.md` §15 "Exact milestone
+completion criteria" for what remains before any ecosystem is genuinely
+OFFICIALLY CERTIFIED AND RELEASED.
 
 ---
 

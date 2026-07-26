@@ -1,70 +1,132 @@
-name: MCC Official Certification (Five Reference Ecosystems)
+name: MCC Official Certification & Release (Five Reference Ecosystems)
 
-# PR #69. This is the PROTECTED, manually-authorized workflow that issues
+# PR #70. This is the PROTECTED, manually-authorized workflow that issues
 # REAL official Technical Certificates for the five production reference
-# ecosystems, using the real, separately-held Issuer signing key -- never
-# the disposable, deterministic CI candidate issuer the ordinary
-# `certification-<ecosystem>` jobs in mcc-runtime-ci.yml use (see
-# docs/CERTIFICATION_FIVE_ECOSYSTEMS.md, "Secure signing ceremony").
+# ecosystems, using the real, separately-held production Issuer signing
+# key -- never the disposable, deterministic CI candidate issuer the
+# ordinary `certification-<ecosystem>` jobs in mcc-runtime-ci.yml use (see
+# docs/certification/OFFICIAL_SIGNING_CEREMONY.md). It reuses, unchanged,
+# the existing PR #67/#68/#69 certification pipeline, SigningKeyProvider
+# contract, and Trust Store model -- there is no second signing system and
+# no ecosystem-specific certification path anywhere in this workflow.
 #
-# Safety properties enforced by this workflow (see the task governing PR
-# #69, "Release-Candidate and Official Workflows / B. Protected official-
-# certification workflow"):
-#   - workflow_dispatch ONLY -- never runs automatically on push/PR/schedule.
-#   - `environment: mcc-official-signing` -- gates the job behind whatever
-#     required-reviewer/protection rules the repository owner configures on
-#     that GitHub Environment (this workflow does not, and cannot, grant
-#     itself approval bypass).
-#   - the real Issuer private key is accepted ONLY via
-#     `secrets.MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM`, written to a 0600
-#     temporary file for the duration of signing, and deleted in an
-#     `if: always()` cleanup step -- it is never echoed, never committed,
-#     never uploaded as a workflow artifact.
-#   - verifies the checked-out commit is exactly the operator-supplied,
-#     explicit `ref` input (never "whatever HEAD happens to be").
-#   - verifies a clean working tree before and after certification.
-#   - only the public certification artifacts (Evidence Bundle, manifest,
-#     certificate, publication record/index, verification report) are
-#     uploaded; the temporary private-key file is excluded by construction
-#     (it never lives under `artifacts/`).
-#   - fails closed: any stage failure stops the workflow before publishing.
-#
-# This workflow does NOT publish a GitHub Release -- that remains PR #70
-# ("MCC Official Certification Release"), explicitly out of scope here.
+# Safety properties:
+#   - workflow_dispatch ONLY, and only from the `main` branch (checked at
+#     runtime via github.ref) -- never runs automatically, never on a PR.
+#   - narrow, validated inputs only: an exact 40-hex-character commit SHA
+#     (must already be merged into main), a semver release version, and an
+#     explicit RFC3339 ceremony timestamp. No arbitrary issuer id, target
+#     path, or shell input is ever accepted -- the production issuer id and
+#     the five target ids are fixed constants in code
+#     (mcc_certify.official.PRODUCTION_ISSUER_ID,
+#     mcc_certify.aggregate.REQUIRED_ECOSYSTEM_TARGET_IDS), and the
+#     issuer/trust-store paths are the fixed, committed
+#     config/official-issuer.json / config/official-trust-store.json.
+#   - `environment: mcc-production-signing` on every signing/publishing job
+#     -- gated by whatever required-reviewer protection the repository
+#     owner configures on that GitHub Environment (this workflow cannot
+#     grant itself approval bypass).
+#   - `concurrency` prevents two ceremonies running at once.
+#   - the real Issuer private key is accepted ONLY via the base64-encoded
+#     secret `MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64`, decoded into an env
+#     var (never a command-line argument, so it never appears in a process
+#     list) and written to a 0600 temporary file under $RUNNER_TEMP for the
+#     duration of signing, deleted in an `if: always()` step. It is never
+#     echoed, never logged, never committed, never uploaded.
+#   - config/official-issuer.json's own declared issuer_id is checked
+#     against the fixed PRODUCTION_ISSUER_ID constant before signing --
+#     a candidate/fixture/wrong issuer configuration fails closed.
+#   - every one of the five ecosystems must succeed before the release
+#     job runs at all (GitHub Actions' default `needs:` behavior) -- no
+#     partial release is ever published.
+#   - `dry_run: true` (the default) runs the complete real signing chain
+#     but stops before creating the GitHub Release -- a dry run never
+#     claims official status and is never published.
+#   - releases are immutable: the publish job refuses to overwrite an
+#     existing release tag.
 
 on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Exact commit SHA (not a branch name) to certify. Must be an approved, already-merged commit."
+        description: "Exact 40-character commit SHA to certify. Must already be merged into main."
         required: true
-      issuer_config_path:
-        description: "Repo-relative path to the committed, public Issuer Identity JSON (issuer.json) to sign with."
+      release_version:
+        description: "Release version, e.g. 1.0.0 (semver: MAJOR.MINOR.PATCH)"
         required: true
-      trust_store_path:
-        description: "Repo-relative path to the committed, public Trust Store JSON (trust-store.json) that recognizes that issuer."
+      ceremony_timestamp:
+        description: "Explicit RFC3339 ceremony timestamp, e.g. 2026-08-01T00:00:00Z (required for reproducibility)"
         required: true
-      issuance_timestamp:
-        description: "Explicit RFC3339 issuance timestamp for all five certificates (required for reproducible regeneration)."
+      dry_run:
+        description: "If true (default), run the full real signing chain but do NOT publish a GitHub Release."
+        type: boolean
         required: true
+        default: true
 
 permissions:
   contents: read
 
+concurrency:
+  group: mcc-official-certification-ceremony
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: "src:.:sdk/python/src"
+
 jobs:
-  official-certify-five-ecosystems:
+  validate-ceremony-inputs:
+    # Runs only from main; validates every input narrowly; confirms the
+    # requested commit is already merged into main (never an arbitrary,
+    # unmerged, or untrusted commit); confirms a clean tree.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: mcc-official-signing
-    env:
-      PYTHONPATH: "src:.:sdk/python/src"
+    outputs:
+      release_tag: ${{ steps.compute.outputs.release_tag }}
     steps:
-      - name: Verify the requested ref is a full commit SHA, not a branch/tag name
+      - name: Validate inputs.ref is an exact 40-character commit SHA
         run: |
           if ! [[ "${{ inputs.ref }}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "STOP: ref must be an exact 40-character commit SHA, got '${{ inputs.ref }}'"
             exit 1
           fi
 
+      - name: Validate inputs.release_version is semver (MAJOR.MINOR.PATCH)
+        run: |
+          if ! [[ "${{ inputs.release_version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "STOP: release_version must be MAJOR.MINOR.PATCH, got '${{ inputs.release_version }}'"
+            exit 1
+          fi
+
+      - name: Validate inputs.ceremony_timestamp is RFC3339
+        run: |
+          if ! [[ "${{ inputs.ceremony_timestamp }}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$ ]]; then
+            echo "STOP: ceremony_timestamp must be RFC3339, got '${{ inputs.ceremony_timestamp }}'"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Confirm the requested commit is already merged into main (not arbitrary/untrusted)
+        run: |
+          git rev-parse --verify "${{ inputs.ref }}^{commit}" >/dev/null 2>&1 || {
+            echo "STOP: ${{ inputs.ref }} is not a known commit in this repository"; exit 1; }
+          git merge-base --is-ancestor "${{ inputs.ref }}" origin/main || {
+            echo "STOP: ${{ inputs.ref }} is not an ancestor of main -- refusing to certify an unmerged/untrusted commit"
+            exit 1
+          }
+
+      - name: Compute the release tag
+        id: compute
+        run: echo "release_tag=mcc-certification-v${{ inputs.release_version }}" >> "$GITHUB_OUTPUT"
+
+  official-certify-generic-http:
+    needs: validate-ceremony-inputs
+    runs-on: ubuntu-latest
+    environment: mcc-production-signing
+    steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
@@ -73,76 +135,534 @@ jobs:
       - name: Confirm the checked-out commit matches the requested ref exactly
         run: |
           actual="$(git rev-parse HEAD)"
-          if [ "$actual" != "${{ inputs.ref }}" ]; then
-            echo "STOP: checked out $actual, expected ${{ inputs.ref }}"
-            exit 1
-          fi
+          [ "$actual" = "${{ inputs.ref }}" ] || { echo "STOP: checked out $actual, expected ${{ inputs.ref }}"; exit 1; }
 
       - name: Confirm a clean working tree
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "STOP: working tree is not clean before certification"
-            git status
-            exit 1
-          fi
+          [ -z "$(git status --porcelain)" ] || { echo "STOP: working tree is not clean"; git status; exit 1; }
 
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
-      - name: Install base dependencies
+      - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Write the real Issuer private key to a protected temporary file
-        env:
-          MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM: ${{ secrets.MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM }}
+      - name: Confirm the committed production issuer/trust-store documents exist
         run: |
-          if [ -z "$MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM" ]; then
-            echo "STOP: secrets.MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM is not configured for this environment"
+          test -f config/official-issuer.json || {
+            echo "STOP: config/official-issuer.json not found -- an authorized operator must run"
+            echo "scripts/generate_production_issuer_identity.py and commit the resulting public"
+            echo "issuer/trust-store documents before this ceremony can run."; exit 1; }
+          test -f config/official-trust-store.json || { echo "STOP: config/official-trust-store.json not found"; exit 1; }
+
+      - name: Reject a non-production issuer configuration
+        run: |
+          python -c "
+          import json
+          from mcc_certify.official import PRODUCTION_ISSUER_ID
+          d = json.loads(open('config/official-issuer.json', 'rb').read())
+          assert d['issuer_id'] == PRODUCTION_ISSUER_ID, f'config/official-issuer.json declares issuer_id={d[\"issuer_id\"]!r}, expected {PRODUCTION_ISSUER_ID!r}'
+          print('issuer_id OK:', d['issuer_id'])
+          "
+
+      - name: Write the real production Issuer private key to a protected temporary file
+        env:
+          MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64: ${{ secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 }}
+        run: |
+          if [ -z "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" ]; then
+            echo "STOP: secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 is not configured on the "
+            echo "mcc-production-signing environment"
             exit 1
           fi
           umask 077
-          printf '%s' "$MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM" > "$RUNNER_TEMP/mcc-official-issuer-key.pem"
+          echo "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" | base64 -d > "$RUNNER_TEMP/mcc-production-issuer-key.pem"
 
-      # NOTE: per-ecosystem framework dependencies (langgraph/crewai/
-      # autogen/@voltagent) must each be installed and certified in their
-      # own isolated environment, exactly as the certification-<ecosystem>
-      # candidate jobs do in mcc-runtime-ci.yml -- this skeleton documents
-      # the ONE shared invocation shape every ecosystem uses; a real
-      # signing ceremony run repeats the "Certify one ecosystem" step below
-      # once per ecosystem, in that ecosystem's own isolated job/runner,
-      # each pointed at the SAME committed --issuer-config/--trust-store.
-
-      - name: Certify one ecosystem (repeat per ecosystem, in its own isolated environment)
+      - name: Certify generic-http (official mode, production issuer)
         run: |
-          python -m mcc_certify certify "${TARGET_ID:?set TARGET_ID to one of generic-http/langgraph/crewai/autogen/voltagent}" \
+          python -m mcc_certify certify generic-http \
             --output artifacts/official-certification \
             --run-id "official-$(git rev-parse --short=12 HEAD)" \
-            --timestamp "${{ inputs.issuance_timestamp }}" \
-            --issuer-config "${{ inputs.issuer_config_path }}" \
-            --signing-key "$RUNNER_TEMP/mcc-official-issuer-key.pem" \
-            --trust-store "${{ inputs.trust_store_path }}" \
+            --timestamp "${{ inputs.ceremony_timestamp }}" \
+            --issuer-config config/official-issuer.json \
+            --signing-key "$RUNNER_TEMP/mcc-production-issuer-key.pem" \
+            --trust-store config/official-trust-store.json \
             --publication-dir artifacts/official-certification/publication \
-            --format json
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
 
       - name: Delete the temporary private-key file (always, even on failure)
         if: always()
-        run: rm -f "$RUNNER_TEMP/mcc-official-issuer-key.pem"
+        run: rm -f "$RUNNER_TEMP/mcc-production-issuer-key.pem"
 
       - name: Verify no private-key material reached the public artifact tree
         if: always()
         run: |
           if [ -d artifacts/official-certification ] && grep -R "PRIVATE KEY" artifacts/official-certification/ ; then
-            echo "STOP: private key material found in official certification artifacts"
-            exit 1
+            echo "STOP: private key material found in official certification artifacts"; exit 1
           fi
 
-      - name: Upload public official certification artifacts only
+      - name: Upload official certification package (public artifacts only)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mcc-official-certification
+          name: official-certification-generic-http
           path: artifacts/official-certification/
-          if-no-files-found: warn
+          if-no-files-found: error
+
+  official-certify-langgraph:
+    needs: validate-ceremony-inputs
+    runs-on: ubuntu-latest
+    environment: mcc-production-signing
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Confirm the checked-out commit matches the requested ref exactly
+        run: |
+          actual="$(git rev-parse HEAD)"
+          [ "$actual" = "${{ inputs.ref }}" ] || { echo "STOP: checked out $actual, expected ${{ inputs.ref }}"; exit 1; }
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated langgraph)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-langgraph.txt
+
+      - name: Assert the official LangGraph package is really importable
+        run: python -c "import langgraph; from langgraph.graph import StateGraph; print('langgraph native API present')"
+
+      - name: Confirm the committed production issuer/trust-store documents exist
+        run: |
+          test -f config/official-issuer.json || { echo "STOP: config/official-issuer.json not found"; exit 1; }
+          test -f config/official-trust-store.json || { echo "STOP: config/official-trust-store.json not found"; exit 1; }
+
+      - name: Reject a non-production issuer configuration
+        run: |
+          python -c "
+          import json
+          from mcc_certify.official import PRODUCTION_ISSUER_ID
+          d = json.loads(open('config/official-issuer.json', 'rb').read())
+          assert d['issuer_id'] == PRODUCTION_ISSUER_ID
+          print('issuer_id OK:', d['issuer_id'])
+          "
+
+      - name: Write the real production Issuer private key to a protected temporary file
+        env:
+          MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64: ${{ secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 }}
+        run: |
+          if [ -z "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" ]; then
+            echo "STOP: secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 is not configured"; exit 1
+          fi
+          umask 077
+          echo "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" | base64 -d > "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Certify langgraph (official mode, production issuer)
+        run: |
+          python -m mcc_certify certify langgraph \
+            --output artifacts/official-certification \
+            --run-id "official-$(git rev-parse --short=12 HEAD)" \
+            --timestamp "${{ inputs.ceremony_timestamp }}" \
+            --issuer-config config/official-issuer.json \
+            --signing-key "$RUNNER_TEMP/mcc-production-issuer-key.pem" \
+            --trust-store config/official-trust-store.json \
+            --publication-dir artifacts/official-certification/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Delete the temporary private-key file (always, even on failure)
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Verify no private-key material reached the public artifact tree
+        if: always()
+        run: |
+          if [ -d artifacts/official-certification ] && grep -R "PRIVATE KEY" artifacts/official-certification/ ; then
+            echo "STOP: private key material found in official certification artifacts"; exit 1
+          fi
+
+      - name: Upload official certification package (public artifacts only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-certification-langgraph
+          path: artifacts/official-certification/
+          if-no-files-found: error
+
+  official-certify-crewai:
+    needs: validate-ceremony-inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: mcc-production-signing
+    env:
+      CREWAI_DISABLE_TELEMETRY: "true"
+      CREWAI_TELEMETRY_OPT_OUT: "true"
+      CREWAI_TRACING_ENABLED: "false"
+      OTEL_SDK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Confirm the checked-out commit matches the requested ref exactly
+        run: |
+          actual="$(git rev-parse HEAD)"
+          [ "$actual" = "${{ inputs.ref }}" ] || { echo "STOP: checked out $actual, expected ${{ inputs.ref }}"; exit 1; }
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated crewai)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-crewai.txt
+
+      - name: Assert the official CrewAI package is really importable
+        run: python -c "import crewai; from crewai.flow.flow import Flow; print('crewai native API present')"
+
+      - name: Confirm the committed production issuer/trust-store documents exist
+        run: |
+          test -f config/official-issuer.json || { echo "STOP: config/official-issuer.json not found"; exit 1; }
+          test -f config/official-trust-store.json || { echo "STOP: config/official-trust-store.json not found"; exit 1; }
+
+      - name: Reject a non-production issuer configuration
+        run: |
+          python -c "
+          import json
+          from mcc_certify.official import PRODUCTION_ISSUER_ID
+          d = json.loads(open('config/official-issuer.json', 'rb').read())
+          assert d['issuer_id'] == PRODUCTION_ISSUER_ID
+          print('issuer_id OK:', d['issuer_id'])
+          "
+
+      - name: Write the real production Issuer private key to a protected temporary file
+        env:
+          MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64: ${{ secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 }}
+        run: |
+          if [ -z "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" ]; then
+            echo "STOP: secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 is not configured"; exit 1
+          fi
+          umask 077
+          echo "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" | base64 -d > "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Certify crewai (official mode, production issuer)
+        run: |
+          python -m mcc_certify certify crewai \
+            --output artifacts/official-certification \
+            --run-id "official-$(git rev-parse --short=12 HEAD)" \
+            --timestamp "${{ inputs.ceremony_timestamp }}" \
+            --issuer-config config/official-issuer.json \
+            --signing-key "$RUNNER_TEMP/mcc-production-issuer-key.pem" \
+            --trust-store config/official-trust-store.json \
+            --publication-dir artifacts/official-certification/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Delete the temporary private-key file (always, even on failure)
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Verify no private-key material reached the public artifact tree
+        if: always()
+        run: |
+          if [ -d artifacts/official-certification ] && grep -R "PRIVATE KEY" artifacts/official-certification/ ; then
+            echo "STOP: private key material found in official certification artifacts"; exit 1
+          fi
+
+      - name: Upload official certification package (public artifacts only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-certification-crewai
+          path: artifacts/official-certification/
+          if-no-files-found: error
+
+  official-certify-autogen:
+    needs: validate-ceremony-inputs
+    runs-on: ubuntu-latest
+    environment: mcc-production-signing
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Confirm the checked-out commit matches the requested ref exactly
+        run: |
+          actual="$(git rev-parse HEAD)"
+          [ "$actual" = "${{ inputs.ref }}" ] || { echo "STOP: checked out $actual, expected ${{ inputs.ref }}"; exit 1; }
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated autogen)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-autogen.txt
+
+      - name: Assert the official AutoGen packages are really importable
+        run: python -c "import autogen_core; from autogen_core import RoutedAgent; print('autogen native API present')"
+
+      - name: Confirm the committed production issuer/trust-store documents exist
+        run: |
+          test -f config/official-issuer.json || { echo "STOP: config/official-issuer.json not found"; exit 1; }
+          test -f config/official-trust-store.json || { echo "STOP: config/official-trust-store.json not found"; exit 1; }
+
+      - name: Reject a non-production issuer configuration
+        run: |
+          python -c "
+          import json
+          from mcc_certify.official import PRODUCTION_ISSUER_ID
+          d = json.loads(open('config/official-issuer.json', 'rb').read())
+          assert d['issuer_id'] == PRODUCTION_ISSUER_ID
+          print('issuer_id OK:', d['issuer_id'])
+          "
+
+      - name: Write the real production Issuer private key to a protected temporary file
+        env:
+          MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64: ${{ secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 }}
+        run: |
+          if [ -z "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" ]; then
+            echo "STOP: secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 is not configured"; exit 1
+          fi
+          umask 077
+          echo "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" | base64 -d > "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Certify autogen (official mode, production issuer)
+        run: |
+          python -m mcc_certify certify autogen \
+            --output artifacts/official-certification \
+            --run-id "official-$(git rev-parse --short=12 HEAD)" \
+            --timestamp "${{ inputs.ceremony_timestamp }}" \
+            --issuer-config config/official-issuer.json \
+            --signing-key "$RUNNER_TEMP/mcc-production-issuer-key.pem" \
+            --trust-store config/official-trust-store.json \
+            --publication-dir artifacts/official-certification/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Delete the temporary private-key file (always, even on failure)
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Verify no private-key material reached the public artifact tree
+        if: always()
+        run: |
+          if [ -d artifacts/official-certification ] && grep -R "PRIVATE KEY" artifacts/official-certification/ ; then
+            echo "STOP: private key material found in official certification artifacts"; exit 1
+          fi
+
+      - name: Upload official certification package (public artifacts only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-certification-autogen
+          path: artifacts/official-certification/
+          if-no-files-found: error
+
+  official-certify-voltagent:
+    needs: validate-ceremony-inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: mcc-production-signing
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Confirm the checked-out commit matches the requested ref exactly
+        run: |
+          actual="$(git rev-parse HEAD)"
+          [ "$actual" = "${{ inputs.ref }}" ] || { echo "STOP: checked out $actual, expected ${{ inputs.ref }}"; exit 1; }
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Install the real VoltAgent package (reproducible)
+        working-directory: integrations/voltagent
+        run: npm ci --no-audit --no-fund
+
+      - name: Assert the official VoltAgent package + Node runner are really present
+        working-directory: integrations/voltagent
+        run: node -e "require('@voltagent/core').Agent; require('fs').accessSync('node_modules/.bin/tsx'); console.log('voltagent native API + tsx present')"
+
+      - name: Confirm the committed production issuer/trust-store documents exist
+        run: |
+          test -f config/official-issuer.json || { echo "STOP: config/official-issuer.json not found"; exit 1; }
+          test -f config/official-trust-store.json || { echo "STOP: config/official-trust-store.json not found"; exit 1; }
+
+      - name: Reject a non-production issuer configuration
+        run: |
+          python -c "
+          import json
+          from mcc_certify.official import PRODUCTION_ISSUER_ID
+          d = json.loads(open('config/official-issuer.json', 'rb').read())
+          assert d['issuer_id'] == PRODUCTION_ISSUER_ID
+          print('issuer_id OK:', d['issuer_id'])
+          "
+
+      - name: Write the real production Issuer private key to a protected temporary file
+        env:
+          MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64: ${{ secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 }}
+        run: |
+          if [ -z "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" ]; then
+            echo "STOP: secrets.MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64 is not configured"; exit 1
+          fi
+          umask 077
+          echo "$MCC_PRODUCTION_ISSUER_PRIVATE_KEY_B64" | base64 -d > "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Certify voltagent (official mode, production issuer)
+        run: |
+          python -m mcc_certify certify voltagent \
+            --output artifacts/official-certification \
+            --run-id "official-$(git rev-parse --short=12 HEAD)" \
+            --timestamp "${{ inputs.ceremony_timestamp }}" \
+            --issuer-config config/official-issuer.json \
+            --signing-key "$RUNNER_TEMP/mcc-production-issuer-key.pem" \
+            --trust-store config/official-trust-store.json \
+            --publication-dir artifacts/official-certification/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Delete the temporary private-key file (always, even on failure)
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mcc-production-issuer-key.pem"
+
+      - name: Verify no private-key material reached the public artifact tree
+        if: always()
+        run: |
+          if [ -d artifacts/official-certification ] && grep -R "PRIVATE KEY" artifacts/official-certification/ ; then
+            echo "STOP: private key material found in official certification artifacts"; exit 1
+          fi
+
+      - name: Upload official certification package (public artifacts only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-certification-voltagent
+          path: artifacts/official-certification/
+          if-no-files-found: error
+
+  official-release-publish:
+    # All-or-nothing: this job requires all five official-certify-<ecosystem>
+    # jobs to have succeeded (GitHub Actions' default `needs:` behavior skips
+    # this job if any one of them failed) -- no partial release is ever built
+    # or published.
+    needs:
+      - validate-ceremony-inputs
+      - official-certify-generic-http
+      - official-certify-langgraph
+      - official-certify-crewai
+      - official-certify-autogen
+      - official-certify-voltagent
+    runs-on: ubuntu-latest
+    environment: mcc-production-signing
+    permissions:
+      contents: write  # only this job needs release-creation rights
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: official-certification-*
+          path: /tmp/official-runs
+          merge-multiple: false
+
+      - name: Build the immutable official release tree
+        run: |
+          python -m mcc_certify release-build \
+            --trust-store config/official-trust-store.json \
+            --release-version "${{ inputs.release_version }}" \
+            --release-tag "${{ needs.validate-ceremony-inputs.outputs.release_tag }}" \
+            --source-commit-sha "${{ inputs.ref }}" \
+            --ceremony-timestamp "${{ inputs.ceremony_timestamp }}" \
+            --output artifacts/official-release \
+            $( [ "${{ inputs.dry_run }}" = "true" ] && echo "--dry-run" ) \
+            --run generic-http=/tmp/official-runs/official-certification-generic-http/generic-http/official-$(git rev-parse --short=12 "${{ inputs.ref }}") \
+            --run langgraph=/tmp/official-runs/official-certification-langgraph/langgraph/official-$(git rev-parse --short=12 "${{ inputs.ref }}") \
+            --run crewai=/tmp/official-runs/official-certification-crewai/crewai/official-$(git rev-parse --short=12 "${{ inputs.ref }}") \
+            --run autogen=/tmp/official-runs/official-certification-autogen/autogen/official-$(git rev-parse --short=12 "${{ inputs.ref }}") \
+            --run voltagent=/tmp/official-runs/official-certification-voltagent/voltagent/official-$(git rev-parse --short=12 "${{ inputs.ref }}") \
+            --format json | tee /tmp/release-result.json
+
+      - name: Scan the release tree for private-key material
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/official-release/ ; then
+            echo "STOP: private key material found in the official release tree"; exit 1
+          fi
+
+      - name: Upload the official release tree as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-release-${{ inputs.release_version }}
+          path: artifacts/official-release/
+          if-no-files-found: error
+
+      - name: Stop here for a dry run -- never publish a GitHub Release
+        if: inputs.dry_run == 'true'
+        run: |
+          echo "DRY RUN complete. The full real signing chain ran and produced a genuinely-signed,"
+          echo "trusted-offline-verified release tree (uploaded as a workflow artifact above), but"
+          echo "no GitHub Release was created. Re-dispatch with dry_run=false to publish for real."
+
+      - name: Refuse to overwrite an existing release tag
+        if: inputs.dry_run == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ needs.validate-ceremony-inputs.outputs.release_tag }}" >/dev/null 2>&1; then
+            echo "STOP: release tag ${{ needs.validate-ceremony-inputs.outputs.release_tag }} already exists -- releases are immutable"
+            exit 1
+          fi
+
+      - name: Publish the official GitHub Release
+        if: inputs.dry_run == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_dir="artifacts/official-release/${{ inputs.release_version }}"
+          gh release create "${{ needs.validate-ceremony-inputs.outputs.release_tag }}" \
+            --title "MCC Official Certification — Five Reference Ecosystems v${{ inputs.release_version }}" \
+            --notes-file "$release_dir/README.md" \
+            --target "${{ inputs.ref }}" \
+            "$release_dir"/release-index.json \
+            "$release_dir"/checksums.sha256 \
+            "$release_dir"/verification-summary.json \
+            config/official-issuer.json \
+            config/official-trust-store.json

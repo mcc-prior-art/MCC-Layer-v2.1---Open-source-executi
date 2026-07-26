@@ -104,6 +104,26 @@ from .trust_store import (
     write_trust_store,
 )
 from .verify import RunVerificationError, verify_certification_run, verify_certification_run_trusted
+from .aggregate import (
+    REQUIRED_ECOSYSTEM_TARGET_IDS,
+    AggregatePublicationError,
+    EcosystemRunOutcome,
+    build_five_ecosystem_publication_set,
+    verify_aggregate_publication_set,
+)
+from .ecosystems import ECOSYSTEM_TARGET_IDS, EcosystemDependencyUnavailableError
+from .official import (
+    PRODUCTION_ISSUER_ID,
+    OfficialEligibility,
+    OfficialEligibilityError,
+    evaluate_official_eligibility,
+)
+from .release import (
+    OfficialReleaseError,
+    OfficialReleaseResult,
+    build_official_release,
+    verify_release_checksums,
+)
 
 __all__ = [
     "CertifyError",
@@ -157,4 +177,21 @@ __all__ = [
     "read_publication_record",
     "write_publication_record",
     "publish_certificate",
+    # PR #69 -- Ecosystem targets + aggregate publication
+    "ECOSYSTEM_TARGET_IDS",
+    "EcosystemDependencyUnavailableError",
+    "REQUIRED_ECOSYSTEM_TARGET_IDS",
+    "AggregatePublicationError",
+    "EcosystemRunOutcome",
+    "build_five_ecosystem_publication_set",
+    "verify_aggregate_publication_set",
+    # PR #70 -- Official-eligibility gate + release
+    "PRODUCTION_ISSUER_ID",
+    "OfficialEligibility",
+    "OfficialEligibilityError",
+    "evaluate_official_eligibility",
+    "OfficialReleaseError",
+    "OfficialReleaseResult",
+    "build_official_release",
+    "verify_release_checksums",
 ]

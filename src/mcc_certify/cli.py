@@ -126,6 +126,24 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_aggregate.add_argument("--trust-store", required=True, help="path to the Trust Store JSON document")
     verify_aggregate.add_argument("--format", choices=["json"], default=None)
 
+    release_build = sub.add_parser(
+        "release-build",
+        help="build the immutable official-certification release tree (PR #70) from five already-completed "
+             "official certification run directories, gated by the centralized official-eligibility check",
+    )
+    release_build.add_argument(
+        "--run", action="append", required=True, metavar="TARGET_ID=RUN_DIR", dest="runs",
+        help="repeatable; exactly one per required ecosystem target id",
+    )
+    release_build.add_argument("--trust-store", required=True, help="path to the OFFICIAL Trust Store JSON document")
+    release_build.add_argument("--release-version", required=True, help="e.g. 1.0.0")
+    release_build.add_argument("--release-tag", required=True, help="e.g. mcc-certification-v1.0.0")
+    release_build.add_argument("--source-commit-sha", required=True, help="the exact commit SHA every ecosystem must be bound to")
+    release_build.add_argument("--ceremony-timestamp", required=True, help="explicit RFC3339 ceremony timestamp")
+    release_build.add_argument("--output", required=True, help="directory to build <release-version>/ under")
+    release_build.add_argument("--dry-run", action="store_true", help="build and verify, but mark the release DRY_RUN (never OFFICIAL)")
+    release_build.add_argument("--format", choices=["json"], default=None)
+
     return parser
 
 
@@ -220,6 +238,35 @@ def main(argv=None) -> int:
             for f in failures:
                 print(f"  - {f}")
         return 0 if valid else 1
+
+    if args.command == "release-build":
+        from .release import OfficialReleaseError, build_official_release
+
+        try:
+            run_map = _parse_run_map(args.runs)
+            trust_store = read_trust_store(args.trust_store)
+        except (CertifyError, TrustStoreError) as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
+        try:
+            result = build_official_release(
+                run_map, trust_store=trust_store, release_version=args.release_version,
+                release_tag=args.release_tag, source_commit_sha=args.source_commit_sha,
+                ceremony_timestamp=args.ceremony_timestamp, output_dir=Path(args.output),
+                dry_run=args.dry_run,
+            )
+        except OfficialReleaseError as e:
+            print(f"NOT_RELEASED: {e}", file=sys.stderr)
+            return 1
+        payload = result.to_dict()
+        if args.format == "json":
+            print(json.dumps(payload, indent=2))
+        else:
+            print(f"release_dir: {payload['release_dir']}")
+            print(f"dry_run: {payload['dry_run']}")
+            for e in payload["eligibilities"]:
+                print(f"  {e['target_id']}: eligible={e['eligible']} certificate_id={e['certificate_id']}")
+        return 0
 
     if args.command == "verify":
         if args.require_published and not (args.trust_store and args.publication_index):
