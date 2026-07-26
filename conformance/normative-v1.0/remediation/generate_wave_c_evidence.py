@@ -586,7 +586,12 @@ def generate() -> list:
             "TC-CONF-005": ("mismatched direct vs. Manifest Evidence Bundle References at issuance", neg["conf_005"], "FAIL"),
         }
 
-        for requirement_id, (section, impl, tests) in META.items():
+        for requirement_id, (section, impl, raw_tests) in META.items():
+            # Fully-qualified test node references (file::test_name), the
+            # same convention Wave A/B's own evidence generators use --
+            # bare function names here were a Wave C generator defect,
+            # found and fixed by the PR #66 coverage reconciliation audit.
+            tests = [f"tests/test_tc001_technical_certificate.py::{t}" for t in raw_tests]
             if requirement_id in _NEGATIVE_IDS:
                 description, outcome, forced_status = neg_by_id[requirement_id]
                 if forced_status == "FAIL":

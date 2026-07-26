@@ -7,6 +7,7 @@ warning. Returns a list of error strings; an empty list means valid.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import List
 
@@ -55,6 +56,12 @@ def validate_requirements(reqs: List[Requirement], repo_root: Path) -> List[str]
                 errors.append(
                     f"{r.requirement_id}: CONFORMANT requires at least one "
                     "test_reference"
+                )
+            if not r.evidence_references:
+                errors.append(
+                    f"{r.requirement_id}: CONFORMANT requires at least one "
+                    "evidence_reference (a deterministic, reproducible evidence "
+                    "record, not just an implementation/test file reference)"
                 )
 
         if r.conformance_status in REQUIRES_RATIONALE and not r.rationale.strip():
@@ -228,9 +235,53 @@ def validate_committed_matches_generated(repo_root: Path) -> List[str]:
     return errors
 
 
+def validate_evidence_test_nodes(repo_root: Path) -> List[str]:
+    """Every remediation wave's deterministic evidence record cites
+    ``proving_tests`` as fully-qualified pytest node ids
+    (``path/to/test_file.py::test_name``). This confirms each one actually
+    resolves -- the referenced file exists and defines that test function --
+    rather than trusting the string at face value. Fails closed: a missing
+    file, a bare (non-``::``-qualified) name, or an undefined test function is
+    an error, not a warning.
+    """
+    errors: List[str] = []
+    remediation_dir = repo_root / OUT_DIR / "remediation"
+    if not remediation_dir.exists():
+        return errors
+    for evidence_path in sorted(remediation_dir.glob("wave-*-evidence.json")):
+        payload = json.loads(evidence_path.read_text(encoding="utf-8"))
+        for record in payload.get("records", []):
+            rid = record.get("requirement_id", "?")
+            for node in record.get("proving_tests", []):
+                if "::" not in node:
+                    errors.append(
+                        f"{evidence_path.name}#{rid}: proving_tests entry {node!r} "
+                        "is not a fully-qualified pytest node id (missing '::')"
+                    )
+                    continue
+                file_part, test_name = node.split("::", 1)
+                test_path = repo_root / file_part
+                if not test_path.exists():
+                    errors.append(
+                        f"{evidence_path.name}#{rid}: proving_tests references a "
+                        f"missing file: {file_part!r}"
+                    )
+                    continue
+                simple_name = test_name.rsplit("::", 1)[-1]
+                content = test_path.read_text(encoding="utf-8")
+                if not re.search(rf"\bdef {re.escape(simple_name)}\b", content):
+                    errors.append(
+                        f"{evidence_path.name}#{rid}: proving_tests references "
+                        f"{node!r}, but no `def {simple_name}` was found in "
+                        f"{file_part}"
+                    )
+    return errors
+
+
 def validate_all(repo_root: Path) -> List[str]:
     errors: List[str] = []
     errors += validate_in_memory(repo_root)
     errors += validate_schemas(repo_root)
     errors += validate_committed_matches_generated(repo_root)
+    errors += validate_evidence_test_nodes(repo_root)
     return errors
