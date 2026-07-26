@@ -164,6 +164,157 @@ jobs:
           path: artifacts/certification-ci/
           if-no-files-found: error
 
+  certification-trust-publication:
+    # MCC Certification Trust Anchor, Issuer Key Management & Publication
+    # Foundation (PR #68): the Issuer Identity model, offline Trust Store,
+    # Signing-Key Provider contract, static Publication mechanism, and
+    # trusted offline verification against an explicit trust-anchor set —
+    # all built above the unchanged PR #67 mcc_certify pipeline. This job
+    # generates a throwaway Ed25519 issuer key AT RUNTIME (never committed
+    # to the repository, never a production key), builds an Issuer Identity
+    # + Trust Store from it, certifies the reference fixture through the
+    # packaged CLI in OFFICIAL mode, independently re-verifies the result
+    # against the explicit trust store + publication index, greps every
+    # generated artifact for private-key material (fails the job if any is
+    # found), confirms mcc_certify remains excluded from the curated
+    # mcc-core wheel (no packaging regression), and uploads only the
+    # non-secret run/publication artifacts — never the private key file.
+    # No allow-failure.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: "src:."
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ build for the packaging regression check)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install build
+
+      - name: Package/import smoke test (PR #68 public API)
+        run: |
+          python -c "from mcc_certify import (IssuerIdentity, TrustStore, LocalFileSigningKeyProvider, \
+            FixtureSigningKeyProvider, PublicationRecord, PublicationIndex, \
+            verify_certification_run_trusted, build_issuer_identity, build_trust_store); \
+            print('PR #68 public API OK')"
+
+      - name: Trust/Issuer/Publication unit tests + architecture guards
+        run: |
+          pytest tests/test_mcc_certify_pr68.py -v
+          pytest tests/test_mcc_certify_trust_publication_guards.py -v
+          pytest tests/test_mcc_certify_architecture_guards.py -v
+          pytest tests/test_mcc_certify_pipeline.py -v
+
+      - name: Packaging regression — mcc_certify still excluded from the curated wheel
+        run: |
+          python -m build --wheel --sdist --outdir /tmp/mcc-certify-ci-dist .
+          python - <<'PYEOF'
+          import zipfile, glob, sys
+          wheel = sorted(glob.glob("/tmp/mcc-certify-ci-dist/*.whl"))[-1]
+          with zipfile.ZipFile(wheel) as zf:
+              names = zf.namelist()
+          leaked = [n for n in names if n.startswith("mcc_certify/") or n.startswith("mcc_evidence/") or n.startswith("mcc_conformance/")]
+          if leaked:
+              print("STOP: curated wheel unexpectedly ships governance-adjacent packages:", leaked)
+              sys.exit(1)
+          print("OK: curated wheel does not ship mcc_certify/mcc_evidence/mcc_conformance")
+          PYEOF
+
+      - name: Generate a throwaway (non-production) Issuer signing key
+        run: |
+          mkdir -p /tmp/mcc-certify-ci-trust
+          python - <<'PYEOF'
+          from cryptography.hazmat.primitives import serialization
+          from mcc_core.signing import SigningKey
+          from mcc_certify.issuer import build_issuer_identity, write_issuer_identity
+          from mcc_certify.trust_store import build_trust_store, write_trust_store
+
+          key = SigningKey.generate("ci-issuer-key-1")
+          with open("/tmp/mcc-certify-ci-trust/issuer-key.pem", "wb") as f:
+              f.write(key._private_key.private_bytes(
+                  serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption(),
+              ))
+          issuer = build_issuer_identity(
+              issuer_id="mcc-ci-issuer", display_name="MCC Runtime CI Throwaway Issuer",
+              key_id="ci-issuer-key-1", public_key=key.public_key(),
+              valid_from=1785024000, created_at=1785024000,
+          )
+          write_issuer_identity(issuer, "/tmp/mcc-certify-ci-trust/issuer.json")
+          write_trust_store(build_trust_store((issuer,)), "/tmp/mcc-certify-ci-trust/trust-store.json")
+          print("CI throwaway issuer + trust store generated (never committed)")
+          PYEOF
+
+      - name: Official-mode certification through the CLI
+        run: |
+          python -m mcc_certify certify reference-fixture \
+            --output artifacts/certification-trust-ci/run \
+            --run-id ci-official-run \
+            --timestamp 2026-07-26T00:00:00Z \
+            --issuer-config /tmp/mcc-certify-ci-trust/issuer.json \
+            --signing-key /tmp/mcc-certify-ci-trust/issuer-key.pem \
+            --trust-store /tmp/mcc-certify-ci-trust/trust-store.json \
+            --publication-dir artifacts/certification-trust-ci/publication \
+            --format json | tee /tmp/ci-official-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/ci-official-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Trusted offline re-verification against the explicit trust store
+        run: |
+          python -m mcc_certify verify \
+            artifacts/certification-trust-ci/run/reference-fixture/ci-official-run \
+            --trust-store /tmp/mcc-certify-ci-trust/trust-store.json \
+            --publication-index artifacts/certification-trust-ci/publication/publication-index.json \
+            --require-published --format json | tee /tmp/ci-official-verify.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/ci-official-verify.json"))["valid"])')" = "True"
+
+      - name: Tamper-negative check — wrong trust store must fail verification
+        run: |
+          python - <<'PYEOF'
+          import sys
+          from cryptography.hazmat.primitives import serialization
+          from mcc_core.signing import SigningKey
+          from mcc_certify.issuer import build_issuer_identity, write_issuer_identity
+          from mcc_certify.trust_store import build_trust_store, write_trust_store
+          from mcc_certify.verify import verify_certification_run_trusted
+
+          wrong_key = SigningKey.generate("ci-issuer-key-1")
+          wrong_issuer = build_issuer_identity(
+              issuer_id="mcc-ci-issuer", display_name="Wrong Issuer", key_id="ci-issuer-key-1",
+              public_key=wrong_key.public_key(), valid_from=1785024000, created_at=1785024000,
+          )
+          wrong_store = build_trust_store((wrong_issuer,))
+          report = verify_certification_run_trusted(
+              "artifacts/certification-trust-ci/run/reference-fixture/ci-official-run",
+              trust_store=wrong_store,
+          )
+          if report["valid"]:
+              print("STOP: verification succeeded against a wrong trust store")
+              sys.exit(1)
+          print("OK: wrong trust store correctly fails verification")
+          PYEOF
+
+      - name: Verify no secrets in generated artifacts
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/certification-trust-ci/ ; then
+            echo "STOP: private key material found in generated certification artifacts"
+            exit 1
+          fi
+          echo "OK: no private key material in artifacts/certification-trust-ci/"
+
+      - name: Upload non-secret certification + publication evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcc-certify-trust-publication-evidence
+          path: artifacts/certification-trust-ci/
+          if-no-files-found: error
+
   protocol:
     # Canonical Governance Protocol & Canonical Ingress Pipeline (PR #49).
     # Offline unit tests + architecture/reconciliation guards prove one normative

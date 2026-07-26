@@ -37,11 +37,16 @@ import json
 import sys
 from pathlib import Path
 
+from .issuer import IssuerIdentityError, read_issuer_identity
 from .pipeline import CertificationOutcome, CertificationPipeline, CertificationRequest
-from .target import known_target_ids
-from .verify import RunVerificationError, verify_certification_run
+from .signing_provider import LocalFileSigningKeyProvider, SigningKeyProviderError
+from .target import CertifyError, known_target_ids
+from .trust_store import TrustStoreError, read_trust_store
+from .verify import RunVerificationError, verify_certification_run, verify_certification_run_trusted
 
 _EXIT = {CertificationOutcome.CERTIFIED: 0, CertificationOutcome.NOT_CERTIFIED: 1}
+
+_OFFICIAL_MODE_FLAGS = ("issuer_config", "signing_key", "trust_store", "publication_dir")
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -63,10 +68,35 @@ def _build_parser() -> argparse.ArgumentParser:
                           help="accepted for CLI-contract compatibility; offline verification is always performed "
                                "before a successful result is ever reported, and cannot be disabled")
     certify.add_argument("--force", action="store_true", help="overwrite an existing run directory for this target_id/run_id")
+    certify.add_argument("--issuer-config", default=None,
+                          help="path to an Issuer Identity JSON document (PR #68). Supplying ANY of "
+                               "--issuer-config/--signing-key/--trust-store/--publication-dir enables OFFICIAL "
+                               "mode and then REQUIRES all four -- there is no partial official configuration "
+                               "and no silent fallback to the fixture signing path.")
+    certify.add_argument("--signing-key", default=None,
+                          help="path to the Issuer's private key PEM file (official mode). Never committed to "
+                               "this repository, never written into any generated artifact.")
+    certify.add_argument("--trust-store", default=None,
+                          help="path to a Trust Store JSON document (official mode) -- the explicit trust-anchor "
+                               "set the final offline verification gate checks the freshly-issued certificate "
+                               "against before certification is ever reported as successful.")
+    certify.add_argument("--publication-dir", default=None,
+                          help="directory for the Publication Record/Index (official mode); never mutated "
+                               "until every other stage, including final offline verification, has passed.")
 
     verify = sub.add_parser("verify", help="independently re-verify an existing completed certification run directory")
     verify.add_argument("run_dir", help="path to a completed run directory (contains technical-certificate.json etc.)")
     verify.add_argument("--format", choices=["json"], default=None, help="print the machine-readable verification report to stdout")
+    verify.add_argument("--trust-store", default=None,
+                         help="path to a Trust Store JSON document. When supplied, verification checks the "
+                              "certificate against THIS explicit trust-anchor set (PR #68) instead of the "
+                              "reference pipeline's internal, self-consistency-only fixture check.")
+    verify.add_argument("--publication-index", default=None,
+                         help="path to a publication-index.json to additionally check that the certificate is "
+                              "present in the published set (requires --trust-store).")
+    verify.add_argument("--require-published", action="store_true",
+                         help="fail verification unless the certificate is present in --publication-index "
+                              "(requires --trust-store and --publication-index).")
 
     sub.add_parser("list-targets", help="list registered certification targets")
 
@@ -101,8 +131,22 @@ def main(argv=None) -> int:
         return 0
 
     if args.command == "verify":
+        if args.require_published and not (args.trust_store and args.publication_index):
+            print("ERROR: --require-published requires both --trust-store and --publication-index", file=sys.stderr)
+            return 2
+        if args.publication_index and not args.trust_store:
+            print("ERROR: --publication-index requires --trust-store", file=sys.stderr)
+            return 2
         try:
-            report = verify_certification_run(Path(args.run_dir))
+            if args.trust_store:
+                report = verify_certification_run_trusted(
+                    Path(args.run_dir),
+                    trust_store=Path(args.trust_store),
+                    publication_index=Path(args.publication_index) if args.publication_index else None,
+                    require_published=args.require_published,
+                )
+            else:
+                report = verify_certification_run(Path(args.run_dir))
         except RunVerificationError as e:
             print(f"ERROR: {e}", file=sys.stderr)
             return 2
@@ -119,6 +163,32 @@ def main(argv=None) -> int:
         return 0 if report["valid"] else 1
 
     # command == "certify"
+    official_flag_values = {name: getattr(args, name.replace("-", "_")) for name in _OFFICIAL_MODE_FLAGS}
+    supplied = {name: value for name, value in official_flag_values.items() if value is not None}
+    official_mode = bool(supplied)
+    if official_mode and len(supplied) != len(_OFFICIAL_MODE_FLAGS):
+        missing = sorted(set(_OFFICIAL_MODE_FLAGS) - set(supplied))
+        print(
+            "ERROR: official mode requires --issuer-config, --signing-key, --trust-store, and "
+            f"--publication-dir together; missing: {[m.replace('_', '-') for m in missing]}",
+            file=sys.stderr,
+        )
+        return 2
+
+    issuer_identity = None
+    signing_key_provider = None
+    trust_store = None
+    publication_dir = None
+    if official_mode:
+        try:
+            issuer_identity = read_issuer_identity(args.issuer_config)
+            trust_store = read_trust_store(args.trust_store)
+            signing_key_provider = LocalFileSigningKeyProvider(args.signing_key, issuer_identity)
+        except (IssuerIdentityError, TrustStoreError, SigningKeyProviderError, CertifyError) as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
+        publication_dir = Path(args.publication_dir)
+
     request = CertificationRequest(
         target_id=args.target,
         output_dir=Path(args.output),
@@ -127,6 +197,11 @@ def main(argv=None) -> int:
         profile=args.profile,
         verify=True,
         force=args.force,
+        official_mode=official_mode,
+        issuer_identity=issuer_identity,
+        signing_key_provider=signing_key_provider,
+        trust_store=trust_store,
+        publication_dir=publication_dir,
     )
     result = CertificationPipeline().run(request)
     result_dict = result.to_dict()

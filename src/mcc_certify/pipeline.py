@@ -49,11 +49,13 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from cryptography.hazmat.primitives import serialization as _serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from mcc_core.signing import SigningKey, canonical_bytes
+from mcc_core.signing import SigningKey, canonical_bytes, verify_token
 from mcc_evidence.cm001_manifest import build_cm001_manifest, verify_cm001_manifest, write_cm001_manifest
 from mcc_evidence.eb001_export import EB001BundleInput, EvidenceItemInput, build_eb001_bundle
+from mcc_evidence.eb001_schema import INTEGRITY_RECORD_NAME
 from mcc_evidence.eb001_verify import verify_eb001_bundle
 from mcc_evidence.tc001_certificate import (
     CertificateIdRegistry,
@@ -69,6 +71,17 @@ from mcc_evidence.tc001_certificate import (
     write_tc001_certificate,
 )
 
+from .issuer import IssuerIdentity
+from .publication import (
+    PUBLICATION_INDEX_FILE_NAME,
+    PublicationConflictError,
+    PublicationRecord,
+    build_publication_record,
+    publish_certificate,
+    read_publication_index,
+    verify_publication_record,
+)
+from .signing_provider import SigningKeyProvider
 from .target import (
     CertificationTarget,
     CertifyError,
@@ -77,6 +90,7 @@ from .target import (
     UnknownCertificationTargetError,
     resolve_target,
 )
+from .trust_store import TrustStore
 
 TOOL_NAME = "mcc-certify"
 TOOL_VERSION = "0.1.0"
@@ -90,6 +104,7 @@ VERIFICATION_REPORT_FILE = "verification-report.json"
 RESULT_FILE = "certification-result.json"
 RUN_METADATA_FILE = "run-metadata.json"
 README_FILE = "README.txt"
+PUBLICATION_RECORD_FILE = "publication-record.json"
 
 
 class CertificationOutcome(str, Enum):
@@ -144,6 +159,20 @@ class CertificationRequest:
     profile: Optional[str] = None
     verify: bool = True
     force: bool = False
+
+    # --- Official-mode trust/publication fields (PR #68). All four are
+    # optional and, left unset (the default), reproduce PR #67's reference/
+    # fixture behavior byte-for-byte -- no existing caller is affected.
+    # Setting official_mode=True makes all of issuer_identity,
+    # signing_key_provider, and trust_store REQUIRED, refuses a fixture
+    # signing key provider, and adds Publication (writing a Publication
+    # Record into publication_dir) as a mandatory stage before the final
+    # offline verification gate. ---
+    official_mode: bool = False
+    issuer_identity: Optional[IssuerIdentity] = None
+    signing_key_provider: Optional[SigningKeyProvider] = None
+    trust_store: Optional[TrustStore] = None
+    publication_dir: Optional[Path] = None
 
 
 @dataclass
@@ -302,6 +331,109 @@ class CertificationPipeline:
             artifacts={"run_metadata": RUN_METADATA_FILE},
         ))
 
+        # --- Official-mode preconditions (PR #68 Section H, steps 2-5): -------
+        # validate issuer config -> validate trust anchor set -> load signing
+        # provider -> verify signing key matches issuer trust anchor. Entirely
+        # skipped (no new stage, no behavior change) when official_mode is
+        # False, which is the default and preserves PR #67's fixture path
+        # byte-for-byte. ---------------------------------------------------------
+        if request.official_mode:
+            def official_fail(stage: str, reason: str) -> CertificationResult:
+                shutil.move(str(tmp_run_dir), str(failed_run_dir))
+                return fail(stage, reason)
+
+            issuer_identity = request.issuer_identity
+            if issuer_identity is None:
+                return official_fail("issuer_config", "official_mode requires an explicit issuer_identity")
+            stages.append(CertificationStageResult(
+                "issuer_config", StageStatus.PASS,
+                f"issuer_id={issuer_identity.issuer_id!r} key_id={issuer_identity.key_id!r}",
+            ))
+
+            trust_store = request.trust_store
+            if trust_store is None:
+                return official_fail("trust_anchor_set", "official_mode requires an explicit trust_store")
+            try:
+                resolved_anchor_identity = trust_store.resolve(issuer_identity.issuer_id, issuer_identity.key_id)
+            except CertifyError as e:
+                return official_fail(
+                    "trust_anchor_set",
+                    f"issuer_identity issuer_id={issuer_identity.issuer_id!r}/key_id={issuer_identity.key_id!r} "
+                    f"is not present in the supplied trust_store: {e}",
+                )
+            if resolved_anchor_identity.public_key_fingerprint != issuer_identity.public_key_fingerprint:
+                return official_fail(
+                    "trust_anchor_set",
+                    "issuer_identity's public key fingerprint does not match the Trust Store's entry for "
+                    f"the same issuer_id/key_id (issuer_id={issuer_identity.issuer_id!r}, "
+                    f"key_id={issuer_identity.key_id!r})",
+                )
+            trust_registry_now = trust_store.to_trust_anchor_registry(issuance_timestamp)
+            if trust_registry_now.resolve(issuer_identity.key_id) is None:
+                return official_fail(
+                    "trust_anchor_set",
+                    f"Trust Anchor issuer_id={issuer_identity.issuer_id!r} key_id={issuer_identity.key_id!r} "
+                    f"is not currently active at issuance_timestamp={issuance_timestamp} "
+                    "(not yet valid, expired, or revoked) -- refusing to issue a certificate no verifier "
+                    "using this trust_store could presently trust",
+                )
+            stages.append(CertificationStageResult(
+                "trust_anchor_set", StageStatus.PASS,
+                f"issuer_id={issuer_identity.issuer_id!r} key_id={issuer_identity.key_id!r} is an active Trust Anchor",
+            ))
+
+            signing_key_provider = request.signing_key_provider
+            if signing_key_provider is None:
+                return official_fail("signing_provider", "official_mode requires an explicit signing_key_provider")
+            if signing_key_provider.is_fixture:
+                return official_fail(
+                    "signing_provider",
+                    "the supplied signing_key_provider is a fixture/non-production provider "
+                    "(is_fixture=True) -- fixture signing is never permitted in official_mode; "
+                    "there is no silent fallback",
+                )
+            stages.append(CertificationStageResult("signing_provider", StageStatus.PASS, "signing key provider loaded"))
+
+            if signing_key_provider.expected_issuer_id() != issuer_identity.issuer_id:
+                return official_fail(
+                    "signing_key_match",
+                    f"signing_key_provider.expected_issuer_id() ({signing_key_provider.expected_issuer_id()!r}) "
+                    f"does not match issuer_identity.issuer_id ({issuer_identity.issuer_id!r})",
+                )
+            if signing_key_provider.expected_key_id() != issuer_identity.key_id:
+                return official_fail(
+                    "signing_key_match",
+                    f"signing_key_provider.expected_key_id() ({signing_key_provider.expected_key_id()!r}) "
+                    f"does not match issuer_identity.key_id ({issuer_identity.key_id!r})",
+                )
+            try:
+                official_signing_key = signing_key_provider.get_signing_key()
+            except CertifyError as e:
+                return official_fail("signing_key_match", f"signing_key_provider refused to yield a signing key: {e}")
+            if official_signing_key.kid != issuer_identity.key_id:
+                return official_fail(
+                    "signing_key_match",
+                    f"loaded signing key kid ({official_signing_key.kid!r}) does not match "
+                    f"issuer_identity.key_id ({issuer_identity.key_id!r})",
+                )
+            actual_public_raw = official_signing_key.public_key().public_bytes(
+                _serialization.Encoding.Raw, _serialization.PublicFormat.Raw
+            )
+            expected_public_raw = issuer_identity.resolved_public_key().public_bytes(
+                _serialization.Encoding.Raw, _serialization.PublicFormat.Raw
+            )
+            if actual_public_raw != expected_public_raw:
+                return official_fail(
+                    "signing_key_match",
+                    "the signing_key_provider's key does not match issuer_identity's published public key",
+                )
+            if request.publication_dir is None:
+                return official_fail("signing_key_match", "official_mode requires an explicit publication_dir")
+            stages.append(CertificationStageResult(
+                "signing_key_match", StageStatus.PASS,
+                f"signing key verified against issuer_id={issuer_identity.issuer_id!r} key_id={issuer_identity.key_id!r}",
+            ))
+
         # --- Stage 2: Conformance Run -------------------------------------------
         try:
             requirement_results = target.run_conformance_checks()
@@ -390,7 +522,12 @@ class CertificationPipeline:
         ))
 
         # --- Stage 5: Technical Certificate --------------------------------------
-        signing_key = _derive_signing_key(target.target_id, run_id)
+        if request.official_mode:
+            signing_key = official_signing_key
+            certificate_issuer_id = issuer_identity.issuer_id
+        else:
+            signing_key = _derive_signing_key(target.target_id, run_id)
+            certificate_issuer_id = f"mcc-certify-issuer-{target.target_id}"
         certificate_id = f"{target.target_id}-{run_id}-certificate"
         try:
             cert = build_technical_certificate(
@@ -401,7 +538,7 @@ class CertificationPipeline:
                 manifest_path=manifest_path,
                 manifest_id=f"{target.target_id}-{run_id}-manifest",
                 primary_evidence_bundle_path=bundle_path,
-                issuer_id=f"mcc-certify-issuer-{target.target_id}",
+                issuer_id=certificate_issuer_id,
                 issuance_timestamp=issuance_timestamp,
                 label=certification_profile,
                 id_registry=CertificateIdRegistry(),
@@ -417,11 +554,67 @@ class CertificationPipeline:
             artifacts={"technical_certificate": CERTIFICATE_FILE},
         ))
 
-        # --- Stage 6: Offline Verification ---------------------------------------
-        trust = TrustAnchorRegistry([TrustAnchor(
-            issuer_id=f"mcc-certify-issuer-{target.target_id}", kid=signing_key.kid,
-            public_key=signing_key.public_key(),
-        )])
+        # --- Official mode only: Step 10 (verify TC signature -- an immediate
+        # self-check, distinct from Step 12's full offline verification below)
+        # and Step 11 (Publication Record / Index). Both are no-ops (no new
+        # stage, no filesystem write) when official_mode is False. -------------
+        publication_record: Optional[PublicationRecord] = None
+        existing_publication_index = None
+        if request.official_mode:
+            if not verify_token(signed_cert.to_dict(), signing_key.public_key()):
+                shutil.move(str(tmp_run_dir), str(failed_run_dir))
+                return fail(
+                    "verify_tc_signature",
+                    "the freshly-issued Technical Certificate's own signature does not verify "
+                    "against the signing key just used to produce it",
+                )
+            stages.append(CertificationStageResult(
+                "verify_tc_signature", StageStatus.PASS,
+                "self-check: signature verifies against the signing key used to issue it",
+            ))
+
+            integrity_record_path = bundle_path / INTEGRITY_RECORD_NAME
+            try:
+                publication_record = build_publication_record(
+                    certificate_id=certificate_id,
+                    target_id=target.target_id,
+                    issuer_id=issuer_identity.issuer_id,
+                    key_id=issuer_identity.key_id,
+                    certification_manifest_path=manifest_path,
+                    technical_certificate_path=tmp_run_dir / CERTIFICATE_FILE,
+                    evidence_bundle_integrity_record_path=integrity_record_path,
+                    evidence_bundle_id=bundle_input.bundle_id,
+                    issuance_timestamp=issuance_timestamp,
+                    specification_version=CP001_SPECIFICATION_VERSION,
+                    artifact_location=f"{target.target_id}/{run_id}",
+                )
+            except CertifyError as e:
+                shutil.move(str(tmp_run_dir), str(failed_run_dir))
+                return fail("publication_record", f"Publication Record generation failed: {e}")
+
+            existing_publication_index = read_publication_index(
+                Path(request.publication_dir) / PUBLICATION_INDEX_FILE_NAME
+            )
+            try:
+                existing_publication_index.add(publication_record)
+            except PublicationConflictError as e:
+                shutil.move(str(tmp_run_dir), str(failed_run_dir))
+                return fail("publication_record", f"Publication conflict: {e}")
+
+            (tmp_run_dir / PUBLICATION_RECORD_FILE).write_bytes(canonical_bytes(publication_record.to_dict()))
+            stages.append(CertificationStageResult(
+                "publication_record", StageStatus.PASS, f"certificate_id={certificate_id!r}",
+                artifacts={"publication_record": PUBLICATION_RECORD_FILE},
+            ))
+
+        # --- Stage 6 / Step 12: (Final) Offline Verification ---------------------
+        if request.official_mode:
+            trust = trust_store.to_trust_anchor_registry(issuance_timestamp)
+        else:
+            trust = TrustAnchorRegistry([TrustAnchor(
+                issuer_id=f"mcc-certify-issuer-{target.target_id}", kid=signing_key.kid,
+                public_key=signing_key.public_key(),
+            )])
         verification = verify_technical_certificate(
             signed_cert.to_dict(), trust_anchors=trust, revocation_registry=RevocationRegistry(),
             manifest_path=manifest_path, primary_evidence_bundle_path=bundle_path,
@@ -430,15 +623,23 @@ class CertificationPipeline:
         identity_errors = _check_run_identity(
             signed_cert.to_dict(), run_metadata, certification_profile,
         )
+        publication_failures: List[str] = []
+        if request.official_mode and publication_record is not None:
+            publication_failures = verify_publication_record(
+                publication_record,
+                certification_manifest_path=manifest_path,
+                technical_certificate_path=tmp_run_dir / CERTIFICATE_FILE,
+                evidence_bundle_integrity_record_path=bundle_path / INTEGRITY_RECORD_NAME,
+            )
         verification_report = {
             "overall_status": verification.overall_status.value,
-            "valid": verification.valid and not identity_errors,
+            "valid": verification.valid and not identity_errors and not publication_failures,
             "checks": [c.to_dict() for c in verification.checks],
-            "failures": list(verification.failures) + identity_errors,
+            "failures": list(verification.failures) + identity_errors + publication_failures,
         }
         (tmp_run_dir / VERIFICATION_REPORT_FILE).write_bytes(canonical_bytes(verification_report))
 
-        if not verification.valid or identity_errors:
+        if not verification.valid or identity_errors or publication_failures:
             shutil.move(str(tmp_run_dir), str(failed_run_dir))
             return fail("offline_verification", f"offline verification failed: {verification_report['failures']}")
 
@@ -461,6 +662,19 @@ class CertificationPipeline:
 
         tmp_run_dir.rename(final_run_dir)
         result.run_dir = final_run_dir
+
+        # Step 13: report success only after all of the above passed -- and,
+        # in official mode, only NOW (after the run itself is durably
+        # committed) merge into the external, persistent Publication Index.
+        # This mutation is the last thing this method does; a failure at any
+        # earlier point never reaches here, so the external index is never
+        # updated for a run that did not fully succeed.
+        if request.official_mode and publication_record is not None:
+            publish_certificate(
+                existing_publication_index, publication_record,
+                publication_dir=Path(request.publication_dir),
+            )
+
         return result
 
 

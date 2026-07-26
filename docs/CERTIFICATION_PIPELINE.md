@@ -1,6 +1,10 @@
 # MCC End-to-End Certification Pipeline
 
-PR #67. This is a **different** system from
+PR #67 (trust and publication foundation added in PR #68 — see
+[`CERTIFICATION_TRUST_AND_PUBLICATION.md`](CERTIFICATION_TRUST_AND_PUBLICATION.md)
+for the Issuer Identity model, Trust Store, Signing-Key Provider contract,
+Publication mechanism, and trusted offline verification against an
+explicit trust-anchor set). This is a **different** system from
 [`docs/CERTIFICATION.md`](CERTIFICATION.md) / [`COMPLIANCE.md`](COMPLIANCE.md)
 (the pre-existing Integration-Contract-scoped adapter certification suite,
 `src/mcc_compliance/`). That system certifies an *adapter version* against
@@ -219,15 +223,20 @@ bytes directly.
   governance runtime; it never mints a Decision Token, evaluates
   operational policy, executes a governed action, bypasses the Execution
   Gate, or mutates the runtime audit chain.
-- **Trust Anchor limitation (disclosed):** MCC-TC-001 Section 16.2
-  explicitly leaves Trust Anchor distribution out of its own normative
-  scope. This pipeline does not implement a production PKI/CA or a
-  Trust-Anchor-distribution mechanism; its deterministic key derivation
-  proves the chain is internally self-consistent and untampered, not that
-  the *issuer identity* is independently, externally attested. A
-  production deployment issuing real reference-ecosystem certificates
-  will need a real, separately-distributed Issuer signing key and Trust
-  Anchor set — deferred to that milestone.
+- **Trust Anchor limitation (partially addressed by PR #68):** MCC-TC-001
+  Section 16.2 explicitly leaves Trust Anchor distribution out of its own
+  normative scope. This pipeline's *default* (fixture) path still derives
+  its signing key deterministically and proves only internal
+  self-consistency, not independent issuer attestation. PR #68 adds an
+  explicit, optional **official mode** (`--issuer-config` /
+  `--signing-key` / `--trust-store` / `--publication-dir`) with a real
+  Issuer Identity, an offline Trust Store, a pluggable
+  `SigningKeyProvider` (a local-file provider is included; no cloud
+  KMS/HSM/Vault yet), a static Publication mechanism, and trusted offline
+  verification against an explicit trust-anchor set — see
+  [`CERTIFICATION_TRUST_AND_PUBLICATION.md`](CERTIFICATION_TRUST_AND_PUBLICATION.md).
+  Trust Store *distribution* to verifiers remains manual/out-of-band, and
+  no official reference-ecosystem certificate has been issued yet.
 - No revocation registry is wired into this pipeline; `mcc_evidence`'s
   Wave C `RevocationRegistry` exists and is reused as an empty registry for
   every verification in this PR (no certificate issued by this pipeline is
@@ -239,9 +248,16 @@ bytes directly.
   PR.** `reference-fixture` is an internal, deterministic test fixture,
   not Generic HTTP, LangGraph, CrewAI, AutoGen, or VoltAgent. Certifying
   those five is the next, separate platform milestone.
-- No Trust Anchor distribution / production key management (see above).
-- No CP-001 §9.8 Publication mechanism (registry, distribution) — writing
-  to `--output` is the full extent of "publication" in this PR.
+- Trust Anchor / production key management: PR #68 adds an explicit,
+  optional official mode (Issuer Identity, Trust Store, Signing-Key
+  Provider) — see
+  [`CERTIFICATION_TRUST_AND_PUBLICATION.md`](CERTIFICATION_TRUST_AND_PUBLICATION.md).
+  Trust Store distribution to verifiers remains manual/out-of-band, and no
+  cloud KMS/HSM/Vault-backed signing-key provider exists yet.
+- CP-001 §9.8 Publication: PR #68 adds a static, offline Publication
+  Record/Index mechanism (see the same document) — writing to
+  `--output`/`--publication-dir` remains the full extent of "publication";
+  there is still no hosted registry or network-based distribution service.
 - The Conformance Run stage's requirement set, for `reference-fixture`, is
   a small, fixed, self-referential set (4 checks) intrinsic to the fixture
   itself — not the full MCC-CP-001/EB-001/CM-001/TC-001 requirement

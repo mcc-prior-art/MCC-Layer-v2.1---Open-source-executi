@@ -27,6 +27,17 @@ Public API:
     CertificationRequest, CertificationPipeline, CertificationResult, CertificationStageResult
     verify_certification_run
 
+PR #68 adds the trust and publication foundation required before official
+certification: a versioned Issuer Identity model (``issuer.py``), an
+offline Trust Store (``trust_store.py``) that converts into the existing,
+unchanged ``mcc_evidence`` Trust Anchor Registry, a pluggable Issuer
+signing-key contract (``signing_provider.py``) that replaces implicit
+fixture-key derivation in official mode, a static Publication mechanism
+(``publication.py``), and trusted offline verification against an explicit
+trust-anchor set (``verify_certification_run_trusted``). None of this
+issues an official certificate for any of the five production reference
+ecosystems -- that remains the next, separate platform milestone.
+
 Registered targets: exactly one, ``reference-fixture`` -- an internal,
 deterministic test/reference fixture. Certification of the five production
 reference ecosystems (Generic HTTP, LangGraph, CrewAI, AutoGen, VoltAgent)
@@ -36,6 +47,15 @@ them.
 
 from __future__ import annotations
 
+from .issuer import (
+    IssuerIdentity,
+    IssuerIdentityError,
+    IssuerStatus,
+    build_issuer_identity,
+    public_key_fingerprint,
+    read_issuer_identity,
+    write_issuer_identity,
+)
 from .pipeline import (
     CertificationOutcome,
     CertificationPipeline,
@@ -43,6 +63,27 @@ from .pipeline import (
     CertificationResult,
     CertificationStageResult,
     StageStatus,
+)
+from .publication import (
+    PublicationConflictError,
+    PublicationError,
+    PublicationIndex,
+    PublicationRecord,
+    PublicationStatus,
+    build_publication_record,
+    empty_publication_index,
+    publish_certificate,
+    read_publication_index,
+    read_publication_record,
+    verify_publication_record,
+    write_publication_index,
+    write_publication_record,
+)
+from .signing_provider import (
+    FixtureSigningKeyProvider,
+    LocalFileSigningKeyProvider,
+    SigningKeyProvider,
+    SigningKeyProviderError,
 )
 from .target import (
     CertificationTarget,
@@ -55,7 +96,14 @@ from .target import (
     known_target_ids,
     resolve_target,
 )
-from .verify import RunVerificationError, verify_certification_run
+from .trust_store import (
+    TrustStore,
+    TrustStoreError,
+    build_trust_store,
+    read_trust_store,
+    write_trust_store,
+)
+from .verify import RunVerificationError, verify_certification_run, verify_certification_run_trusted
 
 __all__ = [
     "CertifyError",
@@ -75,4 +123,38 @@ __all__ = [
     "CertificationResult",
     "CertificationPipeline",
     "verify_certification_run",
+    "verify_certification_run_trusted",
+    # PR #68 -- Issuer Identity
+    "IssuerIdentity",
+    "IssuerIdentityError",
+    "IssuerStatus",
+    "build_issuer_identity",
+    "public_key_fingerprint",
+    "read_issuer_identity",
+    "write_issuer_identity",
+    # PR #68 -- Trust Store
+    "TrustStore",
+    "TrustStoreError",
+    "build_trust_store",
+    "read_trust_store",
+    "write_trust_store",
+    # PR #68 -- Signing-Key Provider
+    "SigningKeyProvider",
+    "SigningKeyProviderError",
+    "LocalFileSigningKeyProvider",
+    "FixtureSigningKeyProvider",
+    # PR #68 -- Publication
+    "PublicationError",
+    "PublicationConflictError",
+    "PublicationStatus",
+    "PublicationRecord",
+    "PublicationIndex",
+    "build_publication_record",
+    "verify_publication_record",
+    "empty_publication_index",
+    "read_publication_index",
+    "write_publication_index",
+    "read_publication_record",
+    "write_publication_record",
+    "publish_certificate",
 ]
