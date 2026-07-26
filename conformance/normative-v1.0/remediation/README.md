@@ -17,6 +17,7 @@ would have misrepresented conformance rather than establishing it.
 | 1 | Execution Boundary | 0 | Blocked — target vocabulary is explicitly out of scope for all four Normative v1.0 specifications. Also documents two independent findings (extraction coverage gap; disconnected but real Integration Contract coverage) and three dependency-ordered candidate waves for future work. See manifest. |
 | A | Evidence Bundle Structure & Hash Reference | 13 (of 14 candidates; `CM-HASH-003` excluded — depended on Wave B at the time) | **Implemented.** `EB-STR-001..005`, `EB-FILE-001..005`, `CM-HASH-001/002/004` promoted `PARTIAL` → `CONFORMANT` via a real, tested extension of `src/mcc_evidence/` (PR #63). Global `CONFORMANT`: 0 → 13. See scope manifest and implementation report. |
 | B | Certification Manifest Evidence Bundle Reference | 5 (of 5 candidates; none excluded) | **Implemented.** `CM-EBREF-001..004` (`GAP`→`CONFORMANT`) and `CM-HASH-003` (`PARTIAL`→`CONFORMANT`, previously excluded from Wave A — its Wave A dependency now exists) via `src/mcc_evidence/cm001_manifest.py` (PR #64), reusing Wave A's Evidence Bundle producer/verifier and Hash Reference directly. Global `CONFORMANT`: 13 → 18. See scope manifest and implementation report. |
+| C | Technical Certificate | 73 (of 80 MCC-TC-001 candidates; 7 excluded — `TC-SUBJ-002/003`, `TC-RES-002` depend on Manifest-side Certification Metadata not yet built; `TC-EXT-001..004` depend on an Extension Model not yet built for any spec) | **Implemented.** The full transitive chain Evidence Bundle → Certification Manifest → Technical Certificate via `src/mcc_evidence/tc001_certificate.py` (PR #65), reusing Waves A/B's Hash Reference / Evidence Bundle verifier / Certification Manifest verifier and `mcc_core.signing` (Ed25519) directly; new minimal Trust Anchor and Revocation Registry constructs, scoped to Technical Certificates and never importing runtime governance internals. Global `CONFORMANT`: 18 → 91. See scope manifest and implementation report. |
 
 ## Wave A — status
 
@@ -45,7 +46,30 @@ is the anticipated, planned progression, not scope creep. See
 `wave-b-evidence-bundle-reference-implementation-report.md` for the full
 record.
 
-Wave C (Technical Certificate) remains not started.
+## Wave C — status
+
+Implemented in PR #65. `src/mcc_evidence/` gained `tc001_certificate.py`: a
+minimal Technical Certificate model, producer, and fail-closed verifier
+(`TechnicalCertificate`, `build_technical_certificate`,
+`sign_technical_certificate`, `verify_technical_certificate`), reusing
+Wave A's `HashReference` and Wave B's `verify_cm001_manifest` /
+`verify_evidence_bundle_reference` directly, plus `mcc_core.signing`
+(Ed25519) unchanged — no second Hash Reference type, no second Evidence
+Bundle or Certification Manifest model, no duplicate verifier, no parallel
+signing implementation. New minimal `TrustAnchor`/`TrustAnchorRegistry`
+(Section 16) and `RevocationRecord`/`RevocationRegistry` (Section 12)
+constructs are scoped specifically to Technical Certificates — deliberately
+distinct from `gateway.trust.TrustSet` and any runtime-governance
+revocation registry, and this module imports none of them. 103 new direct
+tests, including 24 numbered negative scenarios. 7 candidates were
+evaluated and explicitly excluded: `TC-SUBJ-002/003` and `TC-RES-002`
+depend on Certification Manifest Certification Metadata (Subject/Result
+fields) that Wave B's minimal `CM001Manifest` does not carry; `TC-EXT-001..004`
+depend on an Extension Model that does not exist for any of the four
+Normative v1.0 specifications yet. See
+`wave-c-technical-certificate-scope-manifest.{json,md}` and
+`wave-c-technical-certificate-implementation-report.md` for the full
+record.
 
 ## Wave 1 — what it actually is
 

@@ -9771,102 +9771,136 @@
       "requirement_id": "TC-COMPAT-001",
       "specification_id": "MCC-TC-001",
       "section": "17. Compatibility / 17.5 Compatibility Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-COMPAT-002",
       "specification_id": "MCC-TC-001",
       "section": "17. Compatibility / 17.5 Compatibility Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-COMPAT-003",
       "specification_id": "MCC-TC-001",
       "section": "17. Compatibility / 17.5 Compatibility Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-COMPAT-004",
       "specification_id": "MCC-TC-001",
       "section": "17. Compatibility / 17.5 Compatibility Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-CONF-001",
       "specification_id": "MCC-TC-001",
       "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-CONF-002",
       "specification_id": "MCC-TC-001",
       "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-CONF-003",
       "specification_id": "MCC-TC-001",
       "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-CONF-004",
       "specification_id": "MCC-TC-001",
       "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-CONF-005",
       "specification_id": "MCC-TC-001",
       "section": "21. Conformance Requirements / 21.5 Conformance Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-EXT-001",
@@ -9908,221 +9942,256 @@
       "requirement_id": "TC-HASH-001",
       "specification_id": "MCC-TC-001",
       "section": "13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-HASH-002",
       "specification_id": "MCC-TC-001",
       "section": "13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-HASH-003",
       "specification_id": "MCC-TC-001",
       "section": "13. Cryptographic Integrity / 13.4 Cryptographic Integrity Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-ID-001",
       "specification_id": "MCC-TC-001",
       "section": "5. Certificate Identity / 5.4 Certificate Identity Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-ID-002",
       "specification_id": "MCC-TC-001",
       "section": "5. Certificate Identity / 5.4 Certificate Identity Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-ID-003",
       "specification_id": "MCC-TC-001",
       "section": "5. Certificate Identity / 5.4 Certificate Identity Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-ISS-001",
       "specification_id": "MCC-TC-001",
       "section": "10. Issuer Information / 10.4 Issuer Information Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-ISS-002",
       "specification_id": "MCC-TC-001",
       "section": "10. Issuer Information / 10.4 Issuer Information Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-ISS-003",
       "specification_id": "MCC-TC-001",
       "section": "10. Issuer Information / 10.4 Issuer Information Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-MODEL-001",
       "specification_id": "MCC-TC-001",
       "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-MODEL-002",
       "specification_id": "MCC-TC-001",
       "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-MODEL-003",
       "specification_id": "MCC-TC-001",
       "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-MODEL-004",
       "specification_id": "MCC-TC-001",
       "section": "3. Certificate Model / 3.5 Certificate Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-OPTF-001",
       "specification_id": "MCC-TC-001",
       "section": "7. Optional Fields / 7.4 Optional Fields Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-OPTF-002",
       "specification_id": "MCC-TC-001",
       "section": "7. Optional Fields / 7.4 Optional Fields Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-OPTF-003",
       "specification_id": "MCC-TC-001",
       "section": "7. Optional Fields / 7.4 Optional Fields Invariants",
-      "conformance_status": "GAP",
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": []
+      "conformance_status": "CONFORMANT",
+      "implementation_references": [
+        "src/mcc_evidence/tc001_certificate.py"
+      ],
+      "test_references": [
+        "tests/test_tc001_technical_certificate.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RES-001",
       "specification_id": "MCC-TC-001",
       "section": "9. Certification Result Representation / 9.5 Certification Result Representation Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RES-002",
@@ -10142,177 +10211,196 @@
       "requirement_id": "TC-RES-003",
       "specification_id": "MCC-TC-001",
       "section": "9. Certification Result Representation / 9.5 Certification Result Representation Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-REV-001",
       "specification_id": "MCC-TC-001",
       "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-REV-002",
       "specification_id": "MCC-TC-001",
       "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-REV-003",
       "specification_id": "MCC-TC-001",
       "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-REV-004",
       "specification_id": "MCC-TC-001",
       "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-REV-005",
       "specification_id": "MCC-TC-001",
       "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-REV-006",
       "specification_id": "MCC-TC-001",
       "section": "12. Revocation Model / 12.7 Revocation Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RFLD-001",
       "specification_id": "MCC-TC-001",
       "section": "6. Required Fields / 6.7 Required Fields Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RFLD-002",
       "specification_id": "MCC-TC-001",
       "section": "6. Required Fields / 6.7 Required Fields Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RFLD-003",
       "specification_id": "MCC-TC-001",
       "section": "6. Required Fields / 6.7 Required Fields Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RFLD-004",
       "specification_id": "MCC-TC-001",
       "section": "6. Required Fields / 6.7 Required Fields Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RFLD-005",
       "specification_id": "MCC-TC-001",
       "section": "6. Required Fields / 6.7 Required Fields Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RFLD-006",
       "specification_id": "MCC-TC-001",
       "section": "6. Required Fields / 6.7 Required Fields Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-RID-001",
@@ -10354,220 +10442,241 @@
       "requirement_id": "TC-SCHEMA-001",
       "specification_id": "MCC-TC-001",
       "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SCHEMA-002",
       "specification_id": "MCC-TC-001",
       "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SCHEMA-003",
       "specification_id": "MCC-TC-001",
       "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SCHEMA-004",
       "specification_id": "MCC-TC-001",
       "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SCHEMA-005",
       "specification_id": "MCC-TC-001",
       "section": "4. Certificate Schema / 4.5 Certificate Schema Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SEC-001",
       "specification_id": "MCC-TC-001",
       "section": "19. Security Considerations / 19.6 Security Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SEC-002",
       "specification_id": "MCC-TC-001",
       "section": "19. Security Considerations / 19.6 Security Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SEC-003",
       "specification_id": "MCC-TC-001",
       "section": "19. Security Considerations / 19.6 Security Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SEC-004",
       "specification_id": "MCC-TC-001",
       "section": "19. Security Considerations / 19.6 Security Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SEC-005",
       "specification_id": "MCC-TC-001",
       "section": "19. Security Considerations / 19.6 Security Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SIG-001",
       "specification_id": "MCC-TC-001",
       "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SIG-002",
       "specification_id": "MCC-TC-001",
       "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SIG-003",
       "specification_id": "MCC-TC-001",
       "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SIG-004",
       "specification_id": "MCC-TC-001",
       "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SIG-005",
       "specification_id": "MCC-TC-001",
       "section": "14. Signature Requirements / 14.5 Signature Requirements Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_core/signing.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_mcc_core.py::test_sign_and_verify_roundtrip",
-        "tests/test_mcc_core.py::test_canonical_serialization_is_deterministic"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SUBJ-001",
       "specification_id": "MCC-TC-001",
       "section": "8. Subject Identification / 8.4 Subject Identification Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-SUBJ-002",
@@ -10601,263 +10710,271 @@
       "requirement_id": "TC-TRUST-001",
       "specification_id": "MCC-TC-001",
       "section": "16. Trust Model / 16.6 Trust Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-TRUST-002",
       "specification_id": "MCC-TC-001",
       "section": "16. Trust Model / 16.6 Trust Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-TRUST-003",
       "specification_id": "MCC-TC-001",
       "section": "16. Trust Model / 16.6 Trust Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-TRUST-004",
       "specification_id": "MCC-TC-001",
       "section": "16. Trust Model / 16.6 Trust Model Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VALID-001",
       "specification_id": "MCC-TC-001",
       "section": "11. Validity Period / 11.4 Validity Period Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VALID-002",
       "specification_id": "MCC-TC-001",
       "section": "11. Validity Period / 11.4 Validity Period Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VALID-003",
       "specification_id": "MCC-TC-001",
       "section": "11. Validity Period / 11.4 Validity Period Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VALID-004",
       "specification_id": "MCC-TC-001",
       "section": "11. Validity Period / 11.4 Validity Period Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "gateway/trust.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_trust.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VERIFY-001",
       "specification_id": "MCC-TC-001",
       "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VERIFY-002",
       "specification_id": "MCC-TC-001",
       "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VERIFY-003",
       "specification_id": "MCC-TC-001",
       "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VERIFY-004",
       "specification_id": "MCC-TC-001",
       "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VERIFY-005",
       "specification_id": "MCC-TC-001",
       "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VERIFY-006",
       "specification_id": "MCC-TC-001",
       "section": "15. Verification Procedure / 15.9 Verification Procedure Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_evidence/schema.py",
-        "src/mcc_evidence/export.py",
-        "src/mcc_evidence/verify.py"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_evidence_bundle.py",
-        "tests/test_evidence_tamper.py",
-        "tests/test_evidence_security.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VSN-001",
       "specification_id": "MCC-TC-001",
       "section": "18. Versioning / 18.5 Versioning Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VSN-002",
       "specification_id": "MCC-TC-001",
       "section": "18. Versioning / 18.5 Versioning Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VSN-003",
       "specification_id": "MCC-TC-001",
       "section": "18. Versioning / 18.5 Versioning Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     },
     {
       "requirement_id": "TC-VSN-004",
       "specification_id": "MCC-TC-001",
       "section": "18. Versioning / 18.5 Versioning Invariants",
-      "conformance_status": "PARTIAL",
+      "conformance_status": "CONFORMANT",
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/tc001_certificate.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_tc001_technical_certificate.py"
       ],
-      "evidence_references": []
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-c-evidence.json"
+      ]
     }
   ]
 }

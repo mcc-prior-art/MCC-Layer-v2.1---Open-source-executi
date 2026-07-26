@@ -26,6 +26,18 @@ primitive introduced for the MCC-EB-001 Integrity Record; the pre-existing
 Governance Evidence Bundle's own digest fields are unchanged (still bare
 ``sha256:<hex>`` strings in its manifest) to preserve exact backward
 compatibility.
+
+Since Wave C (PR #65), this package also produces and verifies MCC-TC-001
+Technical Certificates (``tc001_certificate.py``): a minimal Certificate
+model, producer, and fail-closed verifier binding one Technical Certificate
+to exactly one Certification Manifest (Wave B), which is itself bound to
+exactly one Evidence Bundle (Wave A) -- the full transitive chain Evidence
+Bundle → Certification Manifest → Technical Certificate. Reuses this
+package's own ``HashReference`` / ``verify_cm001_manifest`` /
+``verify_eb001_bundle`` and ``mcc_core.signing`` (Ed25519) directly; the
+Trust Anchor and Revocation Registry constructs are new, minimal,
+Technical-Certificate-scoped, and never import ``gateway`` / runtime
+governance internals -- see ``tc001_certificate.py``'s module docstring.
 """
 
 from __future__ import annotations
@@ -65,6 +77,32 @@ from .hash_reference import (
     HashReferenceError,
     compute_hash_reference,
     verify_hash_reference,
+)
+from .tc001_certificate import (
+    SUPPORTED_SIGNATURE_ALGORITHMS,
+    SUPPORTED_TC001_CERT_SCHEMA_VERSIONS,
+    TC001_CERT_SCHEMA_VERSION,
+    CertEvidenceBundleReference,
+    CertificationResult,
+    IncompleteTC001CertificateError,
+    CertificateIdRegistry,
+    ManifestReference,
+    RevocationRecord,
+    RevocationRegistry,
+    TC001Error,
+    TC001Status,
+    TC001StructuralError,
+    TC001VerificationResult,
+    TechnicalCertificate,
+    TrustAnchor,
+    TrustAnchorRegistry,
+    build_direct_evidence_bundle_reference,
+    build_technical_certificate,
+    read_tc001_certificate,
+    revoke_certificate,
+    sign_technical_certificate,
+    verify_technical_certificate,
+    write_tc001_certificate,
 )
 from .schema import (
     BUNDLE_SCHEMA_VERSION,
@@ -133,4 +171,31 @@ __all__ = [
     "read_cm001_manifest",
     "verify_evidence_bundle_reference",
     "verify_cm001_manifest",
+    # MCC-TC-001 Technical Certificate (Wave C). Minimal model only; see
+    # tc001_certificate.py's module docstring for what is explicitly
+    # deferred to a future wave.
+    "TC001_CERT_SCHEMA_VERSION",
+    "SUPPORTED_TC001_CERT_SCHEMA_VERSIONS",
+    "SUPPORTED_SIGNATURE_ALGORITHMS",
+    "TC001Error",
+    "IncompleteTC001CertificateError",
+    "TC001StructuralError",
+    "TC001Status",
+    "CertificationResult",
+    "ManifestReference",
+    "CertEvidenceBundleReference",
+    "build_direct_evidence_bundle_reference",
+    "TrustAnchor",
+    "TrustAnchorRegistry",
+    "RevocationRecord",
+    "RevocationRegistry",
+    "revoke_certificate",
+    "CertificateIdRegistry",
+    "TechnicalCertificate",
+    "build_technical_certificate",
+    "sign_technical_certificate",
+    "write_tc001_certificate",
+    "read_tc001_certificate",
+    "TC001VerificationResult",
+    "verify_technical_certificate",
 ]

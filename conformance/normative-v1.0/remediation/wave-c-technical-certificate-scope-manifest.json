@@ -1,0 +1,1081 @@
+{
+  "wave": "Wave C \u2014 Technical Certificate",
+  "objective": "Implement the MCC-TC-001 Technical Certificate model -- a minimal, real, cryptographically and structurally bound Technical Certificate producer and fail-closed verifier -- reusing Wave A's Hash Reference / Evidence Bundle verifier and Wave B's Certification Manifest / Evidence Bundle Reference verifier unchanged, so that the full transitive verification chain Evidence Bundle -> Certification Manifest -> Technical Certificate is genuinely provable end to end, without inventing a parallel PKI/CA system, a runtime revocation service, or a second Hash Reference / signing implementation.",
+  "source_baseline_commit_note": "Requirement IDs, statuses, and source_span line numbers below were re-verified against the current 810-requirement baseline (post-PR #64, main@5c1ba2b) and the current specs/MCC-TC-001.md text at conformance/normative-v1.0/requirements.json before any production code was written.",
+  "selected_requirements": [
+    {
+      "requirement_id": "TC-MODEL-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST represent exactly one successful (PASS) certification outcome.",
+      "source_section": "3.5 Certificate Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:164",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertificationResult, build_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_model_001_certificate_represents_exactly_one_pass_outcome",
+        "tests/test_tc001_technical_certificate.py::test_tc_conf_002_issuer_never_issues_for_a_non_pass_result"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-MODEL-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-MODEL-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST reference exactly one Certification Manifest.",
+      "source_section": "3.5 Certificate Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:168",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.manifest_reference",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_model_002_certificate_references_exactly_one_manifest"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-MODEL-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-MODEL-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST NOT be interpreted or used as a runtime execution authorization.",
+      "source_section": "3.5 Certificate Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:172",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (import graph)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_model_003_certificate_is_not_a_runtime_execution_authorization",
+        "tests/test_tc001_technical_certificate.py::test_tc_sec_005_valid_certificate_not_treated_as_runtime_execution_authorization"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-MODEL-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-MODEL-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST remain traceable to the Certification Subject, specification version, Certification Manifest, and Evidence Bundle, by direct reference in every case.",
+      "source_section": "3.5 Certificate Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:176",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_model_004_certificate_traceable_to_subject_spec_manifest_bundle"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-MODEL-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST be a single structured, machine-readable document.",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "source_span": "specs/MCC-TC-001.md:217",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:write_tc001_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_schema_001_certificate_is_a_single_structured_document"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SCHEMA-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Every Certificate field MUST have an unambiguous, defined type.",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "source_span": "specs/MCC-TC-001.md:221",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_schema_002_every_field_has_an_unambiguous_type",
+        "tests/test_tc001_technical_certificate.py::test_tc_optf_002_optional_fields_conform_to_type_rules_when_present"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SCHEMA-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "The top-level field groups defined in Section 4.2 MUST all be present, except where explicitly marked optional.",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "source_span": "specs/MCC-TC-001.md:225",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.to_dict",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_schema_003_top_level_groups_all_present_except_optional"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SCHEMA-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Signature computation MUST use a deterministic Canonical Form that excludes the Signature field.",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "source_span": "specs/MCC-TC-001.md:229",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.unsigned_dict",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_schema_004_signing_canonical_form_excludes_signature_field"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SCHEMA-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SCHEMA-005",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "The Certificate Schema MUST remain independent of any specific serialization technology.",
+      "source_section": "4.5 Certificate Schema Invariants",
+      "source_span": "specs/MCC-TC-001.md:233",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.to_dict/from_dict",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_schema_005_schema_independent_of_serialization_technology"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SCHEMA-005",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-ID-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Every Technical Certificate MUST have a globally unique certificate identifier.",
+      "source_section": "5.4 Certificate Identity Invariants",
+      "source_span": "specs/MCC-TC-001.md:261",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.certificate_id",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_id_001_certificate_has_a_unique_identifier"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-ID-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-ID-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certificate identifiers MUST NOT be reused, including after revocation.",
+      "source_section": "5.4 Certificate Identity Invariants",
+      "source_span": "specs/MCC-TC-001.md:265",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertificateIdRegistry.reserve",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_id_002_identifier_reuse_is_rejected_including_after_revocation",
+        "tests/test_tc001_technical_certificate.py::test_scenario_19_reused_certificate_id_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-ID-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-ID-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A revalidation MUST produce a new Technical Certificate with a new certificate identifier.",
+      "source_section": "5.4 Certificate Identity Invariants",
+      "source_span": "specs/MCC-TC-001.md:269",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_id_003_revalidation_produces_a_new_certificate_with_a_new_id"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-ID-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RFLD-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "All baseline Required Fields (Section 6.2) MUST be present.",
+      "source_section": "6.7 Required Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:328",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (_REQUIRED_FIELDS)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rfld_001_baseline_required_fields_present"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RFLD-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RFLD-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Issuer identity, Validity Period fields, and a Signature MUST be present.",
+      "source_section": "6.7 Required Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:332",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (_REQUIRED_FIELDS)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rfld_002_issuer_validity_and_signature_present"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RFLD-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RFLD-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Certificate omitting any Required Field MUST be rejected.",
+      "source_section": "6.7 Required Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:336",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rfld_003_certificate_omitting_a_required_field_is_rejected",
+        "tests/test_tc001_technical_certificate.py::test_scenario_01_missing_required_field_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RFLD-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RFLD-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "The Manifest Reference MUST include the Manifest identifier, the Manifest Schema Version, and a Hash Reference to the Certification Manifest.",
+      "source_section": "6.7 Required Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:340",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:ManifestReference",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rfld_004_manifest_reference_structure"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RFLD-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RFLD-005",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "The Evidence Bundle Reference MUST include the Evidence Bundle identifier, the Evidence Bundle Schema Version, and a Hash Reference to the Evidence Bundle.",
+      "source_section": "6.7 Required Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:344",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertEvidenceBundleReference",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rfld_005_evidence_bundle_reference_structure"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RFLD-005",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RFLD-006",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "The Evidence Bundle Reference MUST be direct Certificate content and MUST NOT be satisfied only by transitive resolution through the Certification Manifest.",
+      "source_section": "6.7 Required Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:348",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.evidence_bundle_reference",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rfld_006_evidence_bundle_reference_is_direct_not_transitive_only"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RFLD-006",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-OPTF-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Optional Fields MAY be omitted without affecting Certificate validity.",
+      "source_section": "7.4 Optional Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:378",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (optional fields)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_optf_001_optional_fields_may_be_omitted"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-OPTF-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-OPTF-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Optional Fields, where present, MUST conform to defined type rules.",
+      "source_section": "7.4 Optional Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:382",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_optf_002_optional_fields_conform_to_type_rules_when_present"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-OPTF-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-OPTF-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Optional Fields MUST NOT substitute for Required Fields.",
+      "source_section": "7.4 Optional Fields Invariants",
+      "source_span": "specs/MCC-TC-001.md:386",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.from_dict",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_optf_003_optional_fields_do_not_satisfy_required_field_obligations"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-OPTF-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SUBJ-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST identify exactly one Certification Subject.",
+      "source_section": "8.4 Subject Identification Invariants",
+      "source_span": "specs/MCC-TC-001.md:412",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.subject_id",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_subj_001_certificate_identifies_exactly_one_subject"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SUBJ-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RES-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "The certification result field MUST be present and MUST be PASS.",
+      "source_section": "9.5 Certification Result Representation Invariants",
+      "source_span": "specs/MCC-TC-001.md:452",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:CertificationResult",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_res_001_result_field_present_and_pass",
+        "tests/test_tc001_technical_certificate.py::test_tc_res_001_negative_result_field_rejects_non_pass",
+        "tests/test_tc001_technical_certificate.py::test_scenario_03_non_pass_result_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RES-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-RES-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certified capability profiles MUST be limited to those actually verified.",
+      "source_section": "9.5 Certification Result Representation Invariants",
+      "source_span": "specs/MCC-TC-001.md:460",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_res_003_certified_profiles_limited_to_those_verified"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-RES-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-ISS-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST identify its Issuer.",
+      "source_section": "10.4 Issuer Information Invariants",
+      "source_span": "specs/MCC-TC-001.md:482",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.issuer_id",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_iss_001_certificate_identifies_its_issuer"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-ISS-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-ISS-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "The Issuer identifier MUST be associated with a resolvable Trust Anchor.",
+      "source_section": "10.4 Issuer Information Invariants",
+      "source_span": "specs/MCC-TC-001.md:486",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry.resolve",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_iss_002_issuer_identifier_associated_with_resolvable_trust_anchor"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-ISS-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-ISS-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "An unrecognized Issuer MUST cause verification to fail.",
+      "source_section": "10.4 Issuer Information Invariants",
+      "source_span": "specs/MCC-TC-001.md:490",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_iss_003_unrecognized_issuer_causes_verification_failure",
+        "tests/test_tc001_technical_certificate.py::test_scenario_12_unknown_signing_kid_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-ISS-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VALID-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Every Technical Certificate MUST record an issuance timestamp.",
+      "source_section": "11.4 Validity Period Invariants",
+      "source_span": "specs/MCC-TC-001.md:518",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.issuance_timestamp",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_valid_001_issuance_timestamp_recorded"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VALID-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VALID-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Certificate MUST NOT be valid before its issuance timestamp.",
+      "source_section": "11.4 Validity Period Invariants",
+      "source_span": "specs/MCC-TC-001.md:522",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_valid_002_not_valid_before_issuance",
+        "tests/test_tc001_technical_certificate.py::test_scenario_17_not_yet_valid_certificate_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VALID-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VALID-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "An expired Certificate, where an expiration timestamp is declared and passed, MUST NOT be treated as valid.",
+      "source_section": "11.4 Validity Period Invariants",
+      "source_span": "specs/MCC-TC-001.md:526",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_valid_003_expired_certificate_not_treated_as_valid",
+        "tests/test_tc001_technical_certificate.py::test_scenario_16_expired_certificate_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VALID-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VALID-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Absence of an expiration timestamp MUST NOT be treated as a validation failure.",
+      "source_section": "11.4 Validity Period Invariants",
+      "source_span": "specs/MCC-TC-001.md:530",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_valid_004_absence_of_expiration_is_not_a_failure"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VALID-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-REV-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Technical Certificate MUST NOT be mutated to represent revocation.",
+      "source_section": "12.7 Revocation Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:576",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:revoke_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rev_001_certificate_content_never_mutated_to_represent_revocation"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-REV-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-REV-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Revocation MUST be represented by an external Revocation Record.",
+      "source_section": "12.7 Revocation Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:580",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRegistry",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rev_002_revocation_represented_by_an_external_record"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-REV-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-REV-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Revocation Record MUST identify the certificate identifier, revocation timestamp, and authorizing Issuer.",
+      "source_section": "12.7 Revocation Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:584",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRecord",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rev_003_revocation_record_identifies_required_fields"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-REV-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-REV-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Only the Issuer, or its designated authority under the Trust Model, MUST be able to produce a valid Revocation Record.",
+      "source_section": "12.7 Revocation Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:588",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRegistry.revoke",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rev_004_only_the_issuer_may_produce_a_valid_revocation",
+        "tests/test_tc001_technical_certificate.py::test_scenario_21_revoke_with_mismatched_issuer_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-REV-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-REV-005",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A verifier MUST check for revocation before treating a Certificate as valid.",
+      "source_section": "12.7 Revocation Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:592",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rev_005_verifier_checks_revocation_before_treating_as_valid",
+        "tests/test_tc001_technical_certificate.py::test_scenario_18_revoked_certificate_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-REV-005",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-REV-006",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Revoked Certificates MUST remain available for audit and traceability.",
+      "source_section": "12.7 Revocation Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:596",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:RevocationRegistry.get/is_revoked",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_rev_006_revoked_certificates_remain_available_for_audit"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-REV-006",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-HASH-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Hash Reference to the Certification Manifest or to the Evidence Bundle MUST use a collision-resistant hash algorithm.",
+      "source_section": "13.4 Cryptographic Integrity Invariants",
+      "source_span": "specs/MCC-TC-001.md:620",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (reuses hash_reference.py)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_hash_001_manifest_and_bundle_hash_references_use_sha256"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-HASH-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-HASH-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Manifest and Evidence Bundle binding MUST each be independently recomputable and verifiable.",
+      "source_section": "13.4 Cryptographic Integrity Invariants",
+      "source_span": "specs/MCC-TC-001.md:624",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_hash_002_bindings_are_independently_recomputable"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-HASH-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-HASH-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Whole-Certificate integrity MUST be provided by its Signature, not by a separate mechanism.",
+      "source_section": "13.4 Cryptographic Integrity Invariants",
+      "source_span": "specs/MCC-TC-001.md:628",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate (schema)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_hash_003_whole_certificate_integrity_via_signature_not_a_self_digest"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-HASH-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SIG-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Every Technical Certificate MUST be signed using an asymmetric digital signature scheme.",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "source_span": "specs/MCC-TC-001.md:660",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:sign_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sig_001_certificate_signed_with_asymmetric_scheme"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SIG-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SIG-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "HMAC and other symmetric-key authentication mechanisms MUST NOT be used to sign a Technical Certificate.",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "source_span": "specs/MCC-TC-001.md:664",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (import graph)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sig_002_hmac_or_symmetric_mechanisms_never_used"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SIG-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SIG-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Signature MUST cover the complete Canonical Form of the Certificate excluding the Signature field.",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "source_span": "specs/MCC-TC-001.md:668",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:sign_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sig_003_signature_covers_complete_canonical_form_excluding_itself"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SIG-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SIG-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Certificate MUST declare its signature algorithm and Issuer identity.",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "source_span": "specs/MCC-TC-001.md:672",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sig_004_certificate_declares_algorithm_and_issuer_identity"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SIG-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SIG-005",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Modification of any signed field MUST invalidate the Signature.",
+      "source_section": "14.5 Signature Requirements Invariants",
+      "source_span": "specs/MCC-TC-001.md:676",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sig_005_modification_of_any_signed_field_invalidates_signature",
+        "tests/test_tc001_technical_certificate.py::test_scenario_13_forged_signature_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SIG-005",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VERIFY-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Verification MUST be fail-closed.",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "source_span": "specs/MCC-TC-001.md:739",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_verify_001_verification_is_fail_closed"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VERIFY-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VERIFY-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Structural verification MUST precede signature, manifest reference, evidence bundle reference, and consistency verification.",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "source_span": "specs/MCC-TC-001.md:743",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_verify_002_structural_verification_precedes_everything_else"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VERIFY-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VERIFY-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Signature verification MUST use a Trust Anchor associated with the declared Issuer.",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "source_span": "specs/MCC-TC-001.md:747",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_verify_003_signature_verified_against_a_trust_anchor"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VERIFY-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VERIFY-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Validity and revocation MUST both be checked, independent of all other verification steps.",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "source_span": "specs/MCC-TC-001.md:751",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_verify_004_validity_and_revocation_both_checked"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VERIFY-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VERIFY-005",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A Certificate failing any verification step MUST be rejected in its entirety.",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "source_span": "specs/MCC-TC-001.md:755",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_verify_005_any_failing_step_rejects_the_whole_certificate"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VERIFY-005",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VERIFY-006",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A verifier MUST reject a Technical Certificate whose direct Evidence Bundle Reference identifies a different Evidence Bundle than the Evidence Bundle Reference contained in its referenced Certification Manifest.",
+      "source_section": "15.9 Verification Procedure Invariants",
+      "source_span": "specs/MCC-TC-001.md:759",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_verify_006_mismatched_direct_and_manifest_evidence_bundle_references_rejected",
+        "tests/test_tc001_technical_certificate.py::test_scenario_10_verifier_rejects_mismatched_direct_and_manifest_bundle_references"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VERIFY-006",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-TRUST-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A verifier MUST rely only on Trust Anchors it recognizes.",
+      "source_section": "16.6 Trust Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:797",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry.resolve",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_trust_001_verifier_relies_only_on_recognized_trust_anchors"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-TRUST-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-TRUST-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Trust MUST NOT be inferred from a Certificate's self-declared Issuer identity alone.",
+      "source_section": "16.6 Trust Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:801",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_trust_002_trust_not_inferred_from_self_declared_issuer_alone",
+        "tests/test_tc001_technical_certificate.py::test_scenario_14_issuer_id_mismatch_with_trust_anchor_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-TRUST-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-TRUST-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Trust Anchor rotation or revocation MUST NOT retroactively invalidate the historical record of issuance.",
+      "source_section": "16.6 Trust Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:805",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry.revoke_key",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_trust_003_rotation_does_not_retroactively_invalidate_historical_issuance",
+        "tests/test_tc001_technical_certificate.py::test_scenario_15_revoked_trust_anchor_key_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-TRUST-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-TRUST-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A verifier MAY recognize multiple Trust Anchors across multiple Issuers.",
+      "source_section": "16.6 Trust Model Invariants",
+      "source_span": "specs/MCC-TC-001.md:809",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TrustAnchorRegistry",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_trust_004_verifier_may_recognize_multiple_trust_anchors"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-TRUST-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-COMPAT-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Compatibility claims between Certificate Schema Versions MUST be explicit, not assumed.",
+      "source_section": "17.5 Compatibility Invariants",
+      "source_span": "specs/MCC-TC-001.md:839",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TC001_CERT_SCHEMA_VERSION",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_compat_001_schema_version_compatibility_is_explicit"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-COMPAT-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-COMPAT-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Unrecognized Certificate Schema Versions MUST NOT be silently accepted.",
+      "source_section": "17.5 Compatibility Invariants",
+      "source_span": "specs/MCC-TC-001.md:843",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_compat_002_unrecognized_schema_version_not_silently_accepted"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-COMPAT-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-COMPAT-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certificate validity MUST account for the compatibility of any referenced Manifest Schema Version.",
+      "source_section": "17.5 Compatibility Invariants",
+      "source_span": "specs/MCC-TC-001.md:847",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (reuses verify_cm001_manifest)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_compat_003_validity_accounts_for_manifest_schema_version_compatibility"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-COMPAT-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-COMPAT-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certificate validity MUST account for the compatibility of the Evidence Bundle Schema Version identified by the direct Evidence Bundle Reference.",
+      "source_section": "17.5 Compatibility Invariants",
+      "source_span": "specs/MCC-TC-001.md:851",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (reuses verify_eb001_bundle)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_compat_004_validity_accounts_for_evidence_bundle_schema_version_compatibility"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-COMPAT-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VSN-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Every Technical Certificate MUST declare a Certificate Schema Version.",
+      "source_section": "18.5 Versioning Invariants",
+      "source_span": "specs/MCC-TC-001.md:883",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate.certificate_schema_version",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_vsn_001_certificate_declares_a_schema_version"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VSN-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VSN-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certificate Schema Versions MUST be immutable once published.",
+      "source_section": "18.5 Versioning Invariants",
+      "source_span": "specs/MCC-TC-001.md:887",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TC001_CERT_SCHEMA_VERSION",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_vsn_002_schema_version_constant_is_immutable_string"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VSN-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VSN-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certificate Schema Version MUST be tracked independently of MCC-CP-001, MCC-EB-001, and MCC-CM-001 versions.",
+      "source_section": "18.5 Versioning Invariants",
+      "source_span": "specs/MCC-TC-001.md:891",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:TechnicalCertificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_vsn_003_schema_version_tracked_independently_of_other_specs"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VSN-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-VSN-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "An unrecognized Certificate Schema Version MUST cause verification to fail.",
+      "source_section": "18.5 Versioning Invariants",
+      "source_span": "specs/MCC-TC-001.md:895",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_vsn_004_unrecognized_schema_version_causes_verification_failure",
+        "tests/test_tc001_technical_certificate.py::test_scenario_04_unrecognized_schema_version_yields_unsupported_schema"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-VSN-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SEC-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certificate verification MUST assume an untrusted source.",
+      "source_section": "19.6 Security Invariants",
+      "source_span": "specs/MCC-TC-001.md:933",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sec_001_verification_assumes_untrusted_source"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SEC-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SEC-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Forgery and tamper detection MUST rely on Signature Verification against a recognized Trust Anchor.",
+      "source_section": "19.6 Security Invariants",
+      "source_span": "specs/MCC-TC-001.md:937",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sec_002_forgery_resistance_via_signature_only"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SEC-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SEC-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Certificates MUST NOT contain secrets or credentials.",
+      "source_section": "19.6 Security Invariants",
+      "source_span": "specs/MCC-TC-001.md:941",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (_ALL_ALLOWED_FIELDS)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sec_003_certificate_contains_no_secrets_or_credentials",
+        "tests/test_tc001_technical_certificate.py::test_scenario_02_undeclared_extra_field_rejected"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SEC-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SEC-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Sensitive underlying data MUST be redacted or hashed before inclusion in a Certificate field.",
+      "source_section": "19.6 Security Invariants",
+      "source_span": "specs/MCC-TC-001.md:945",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (Hash Reference fields only)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sec_004_sensitive_data_referenced_only_via_hash_reference"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SEC-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-SEC-005",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A valid Technical Certificate MUST NOT be treated as a runtime execution authorization.",
+      "source_section": "19.6 Security Invariants",
+      "source_span": "specs/MCC-TC-001.md:949",
+      "status_before": "PARTIAL",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (import graph)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_sec_005_valid_certificate_not_treated_as_runtime_execution_authorization"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-SEC-005",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-CONF-001",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Conformance is defined separately for Certificate issuers and Certificate verifiers.",
+      "source_section": "21.5 Conformance Invariants",
+      "source_span": "specs/MCC-TC-001.md:1023",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (build/sign vs. verify)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_conf_001_conformance_defined_separately_for_issuer_and_verifier"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-CONF-001",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-CONF-002",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A conforming issuer MUST NOT issue Certificates for a non-PASS result.",
+      "source_section": "21.5 Conformance Invariants",
+      "source_span": "specs/MCC-TC-001.md:1027",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_conf_002_issuer_never_issues_for_a_non_pass_result"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-CONF-002",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-CONF-003",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A conforming verifier MUST implement fail-closed verification in full, including revocation checking.",
+      "source_section": "21.5 Conformance Invariants",
+      "source_span": "specs/MCC-TC-001.md:1031",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:verify_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_conf_003_verifier_implements_fail_closed_verification_including_revocation"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-CONF-003",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-CONF-004",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "Conformance MUST remain framework-neutral and implementation-independent.",
+      "source_section": "21.5 Conformance Invariants",
+      "source_span": "specs/MCC-TC-001.md:1035",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py (no framework dependency)",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_conf_004_conformance_is_framework_neutral"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-CONF-004",
+      "status_after": "CONFORMANT"
+    },
+    {
+      "requirement_id": "TC-CONF-005",
+      "specification": "MCC-TC-001",
+      "normative_obligation": "A conforming issuer MUST ensure its direct Evidence Bundle Reference and its Certification Manifest's Evidence Bundle Reference identify the same Evidence Bundle before issuance.",
+      "source_section": "21.5 Conformance Invariants",
+      "source_span": "specs/MCC-TC-001.md:1039",
+      "status_before": "GAP",
+      "implementation_location": "src/mcc_evidence/tc001_certificate.py:build_technical_certificate",
+      "proving_tests": [
+        "tests/test_tc001_technical_certificate.py::test_tc_conf_005_issuer_ensures_reference_consistency_before_issuance",
+        "tests/test_tc001_technical_certificate.py::test_scenario_09_producer_refuses_mismatched_direct_and_manifest_bundle_references"
+      ],
+      "deterministic_evidence": "conformance/normative-v1.0/remediation/wave-c-evidence.json#TC-CONF-005",
+      "status_after": "CONFORMANT"
+    }
+  ],
+  "excluded_candidate_ids": [
+    "TC-SUBJ-002",
+    "TC-SUBJ-003",
+    "TC-RES-002",
+    "TC-EXT-001",
+    "TC-EXT-002",
+    "TC-EXT-003",
+    "TC-EXT-004"
+  ],
+  "global_status_delta": {
+    "before": {
+      "CONFORMANT": 18,
+      "PARTIAL": 592,
+      "GAP": 110,
+      "NOT_APPLICABLE": 90
+    },
+    "after": {
+      "CONFORMANT": 91,
+      "PARTIAL": 527,
+      "GAP": 102,
+      "NOT_APPLICABLE": 90
+    }
+  },
+  "unexpected_transitions_outside_selected_scope": [],
+  "not_implemented_in_this_pr": [
+    "TC-SUBJ-002/003 and TC-RES-002 (Manifest-side Subject/Result cross-verification) -- Wave B's minimal CM001Manifest carries no Certification Metadata (subject_id/certification_result) to check against; this is a genuine, documented dependency gap, not an oversight, exactly analogous to Wave A excluding CM-HASH-003 pending the Evidence Bundle Reference.",
+    "TC-EXT-001..004 (Extension Model) -- no extension-declaration mechanism exists anywhere in this repository yet for any of the four Normative v1.0 specifications; building one is a separate, cross-cutting future wave, not specific to Technical Certificates.",
+    "A persistent/distributed Revocation Registry backend (e.g. Redis-backed) -- MCC-TC-001 Section 12.6 explicitly declines to mandate a specific revocation registry technology; the in-memory RevocationRegistry implements only the normative content and effect.",
+    "A persistent/distributed Trust Anchor distribution or rotation-notification mechanism -- MCC-TC-001 Section 16.2/16.4 explicitly leaves this outside scope; TrustAnchorRegistry is an injectable, in-memory recognized-key set.",
+    "Cross-process/cross-issuer global certificate_id uniqueness (TC-ID-001) -- CertificateIdRegistry enforces non-reuse only within a single producer process; true global uniqueness is a deployment/distribution concern this specification does not mandate a mechanism for.",
+    "The executable MCC Normative v1.0 Certification Suite, adapter certification, MCC-RG-001, and Integration Contract integration -- unchanged, out of scope for this wave.",
+    "Any runtime governance behavior (Decision Token, Execution Gate, Policy Bundle, Canonical Ingress Pipeline, nonce/replay, audit chain, adapter authorization) -- unchanged; this module imports none of it."
+  ]
+}
