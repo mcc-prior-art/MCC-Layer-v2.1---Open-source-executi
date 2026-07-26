@@ -177,11 +177,17 @@
       "requirement_category": "14. Evidence Bundle References",
       "id_origin": "canonical",
       "source_line": 412,
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": [],
-      "conformance_status": "GAP",
-      "rationale": "certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave B (PR #64): CM001Manifest.primary_evidence_bundle_reference is a single, required field (not a list) -- build_cm001_manifest and CM001Manifest.from_dict both fail closed if no primary reference is supplied. Directly tested by test_cm_ebref_001_manifest_has_exactly_one_primary_reference and test_cm_ebref_001_manifest_from_dict_requires_a_primary_reference.",
       "notes": null
     },
     {
@@ -195,11 +201,17 @@
       "requirement_category": "14. Evidence Bundle References",
       "id_origin": "canonical",
       "source_line": 416,
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": [],
-      "conformance_status": "GAP",
-      "rationale": "certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave B (PR #64): build_evidence_bundle_reference reads the Evidence Bundle identifier and Schema Version from the referenced Bundle's own Bundle Descriptor and computes a Hash Reference binding to its Integrity Record; EvidenceBundleReference.from_dict fails closed if any of the three is missing. Directly tested by test_cm_ebref_002_valid_evidence_bundle_reference_creation, test_cm_ebref_002_reference_carries_correct_bundle_id, test_cm_ebref_002_reference_carries_correct_schema_version, test_cm_ebref_002_missing_bundle_id_rejected, and test_cm_ebref_002_missing_schema_version_rejected.",
       "notes": null
     },
     {
@@ -213,11 +225,17 @@
       "requirement_category": "14. Evidence Bundle References",
       "id_origin": "canonical",
       "source_line": 420,
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": [],
-      "conformance_status": "GAP",
-      "rationale": "certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave B (PR #64): build_cm001_manifest's _validate_distinguishable rejects, before any write, a supplementary Evidence Bundle Reference sharing the primary reference's bundle_id, and rejects duplicate supplementary references. Directly tested by test_cm_ebref_003_supplementary_reference_distinguishable_from_primary, test_cm_ebref_003_indistinguishable_supplementary_reference_rejected, and test_cm_ebref_003_duplicate_supplementary_references_rejected.",
       "notes": null
     },
     {
@@ -231,11 +249,17 @@
       "requirement_category": "14. Evidence Bundle References",
       "id_origin": "canonical",
       "source_line": 424,
-      "implementation_references": [],
-      "test_references": [],
-      "evidence_references": [],
-      "conformance_status": "GAP",
-      "rationale": "certifications/manifest.json references compliance vectors and adapters, not an Evidence Bundle as MCC-EB-001 defines it; no Evidence-Bundle-Reference-shaped field exists.",
+      "implementation_references": [
+        "src/mcc_evidence/cm001_manifest.py"
+      ],
+      "test_references": [
+        "tests/test_cm001_evidence_bundle_reference.py"
+      ],
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave B (PR #64): verify_cm001_manifest returns INVALID for the whole Manifest the moment the primary Evidence Bundle Reference fails verification (wrong bundle_id, wrong schema_version, or a Hash Reference that does not recompute against the actual Integrity Record) -- regardless of any supplementary references. Directly tested by test_cm_ebref_004_manifest_invalidated_when_primary_unverifiable, test_cm_ebref_004_incorrect_bundle_id_rejected, and test_cm_ebref_004_incorrect_schema_version_rejected.",
       "notes": null
     },
     {
@@ -352,15 +376,16 @@
       "id_origin": "canonical",
       "source_line": 372,
       "implementation_references": [
-        "src/mcc_compliance/program.py",
-        "certifications/manifest.json"
+        "src/mcc_evidence/cm001_manifest.py"
       ],
       "test_references": [
-        "tests/test_certified_adapter_program.py"
+        "tests/test_cm001_evidence_bundle_reference.py"
       ],
-      "evidence_references": [],
-      "conformance_status": "PARTIAL",
-      "rationale": "certifications/manifest.json binds evidence_digest / vector_manifest_digest (sha256, DIGEST_ALGORITHM) to the certification record, the same binding concept, but as bare digest strings rather than this section's required identifier+algorithm+content-pointer structured Hash Reference object.",
+      "evidence_references": [
+        "conformance/normative-v1.0/remediation/wave-b-evidence.json"
+      ],
+      "conformance_status": "CONFORMANT",
+      "rationale": "Wave B (PR #64): EvidenceBundleReference.hash_references is a non-empty tuple by construction (build_evidence_bundle_reference always computes at least one) and EvidenceBundleReference.from_dict fails closed on a zero-length hash_references array. Directly tested by test_cm_hash_003_at_least_one_hash_reference_present, test_cm_hash_003_from_dict_rejects_zero_hash_references, and test_cm_hash_003_missing_hash_reference_field_rejected.",
       "notes": null
     },
     {

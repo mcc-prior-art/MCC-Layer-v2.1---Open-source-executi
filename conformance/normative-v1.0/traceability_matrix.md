@@ -29,13 +29,13 @@ python -m mcc_conformance generate
 
 | Status | Count | % of total |
 |---|---|---|
-| CONFORMANT | 13 | 1.6% |
-| PARTIAL | 593 | 73.2% |
-| GAP | 114 | 14.1% |
+| CONFORMANT | 18 | 2.2% |
+| PARTIAL | 592 | 73.1% |
+| GAP | 110 | 13.6% |
 | NOT_APPLICABLE | 90 | 11.1% |
 | NOT_ASSESSED | 0 | 0.0% |
 
-**Conformance coverage (CONFORMANT / applicable requirements): 1.8% (13/720)**
+**Conformance coverage (CONFORMANT / applicable requirements): 2.5% (18/720)**
 
 ## Full Traceability Matrix
 
@@ -49,16 +49,16 @@ python -m mcc_conformance generate
 | CM-CONF-002 | MCC-CM-001 | 22. Conformance Requirements / 22.5 Conformance Invariants | GAP | — | — |
 | CM-CONF-003 | MCC-CM-001 | 22. Conformance Requirements / 22.5 Conformance Invariants | GAP | — | — |
 | CM-CONF-004 | MCC-CM-001 | 22. Conformance Requirements / 22.5 Conformance Invariants | GAP | — | — |
-| CM-EBREF-001 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | GAP | — | — |
-| CM-EBREF-002 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | GAP | — | — |
-| CM-EBREF-003 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | GAP | — | — |
-| CM-EBREF-004 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | GAP | — | — |
+| CM-EBREF-001 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | CONFORMANT | src/mcc_evidence/cm001_manifest.py | tests/test_cm001_evidence_bundle_reference.py |
+| CM-EBREF-002 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | CONFORMANT | src/mcc_evidence/cm001_manifest.py | tests/test_cm001_evidence_bundle_reference.py |
+| CM-EBREF-003 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | CONFORMANT | src/mcc_evidence/cm001_manifest.py | tests/test_cm001_evidence_bundle_reference.py |
+| CM-EBREF-004 | MCC-CM-001 | 14. Evidence Bundle References / 14.5 Evidence Bundle Reference Invariants | CONFORMANT | src/mcc_evidence/cm001_manifest.py | tests/test_cm001_evidence_bundle_reference.py |
 | CM-EXT-001 | MCC-CM-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | CM-EXT-002 | MCC-CM-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | CM-EXT-003 | MCC-CM-001 | 20. Extension Model / 20.4 Extension Model Invariants | GAP | — | — |
 | CM-HASH-001 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | CONFORMANT | src/mcc_evidence/hash_reference.py | tests/test_hash_reference.py |
 | CM-HASH-002 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | CONFORMANT | src/mcc_evidence/hash_reference.py | tests/test_hash_reference.py |
-| CM-HASH-003 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
+| CM-HASH-003 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | CONFORMANT | src/mcc_evidence/cm001_manifest.py | tests/test_cm001_evidence_bundle_reference.py |
 | CM-HASH-004 | MCC-CM-001 | 13. Hash References / 13.5 Hash Reference Invariants | CONFORMANT | src/mcc_evidence/hash_reference.py | tests/test_hash_reference.py |
 | CM-META-001 | MCC-CM-001 | 15. Certification Metadata / 15.6 Certification Metadata Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |
 | CM-META-002 | MCC-CM-001 | 15. Certification Metadata / 15.6 Certification Metadata Invariants | PARTIAL | src/mcc_compliance/program.py; certifications/manifest.json | tests/test_certified_adapter_program.py |

@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://mcc-prior-art/schemas/normative-v1.0/wave_a_scope_manifest.schema.json",
-  "title": "MCC Normative v1.0 Wave A Scope Manifest",
-  "description": "Bounded remediation-wave scope manifest for Wave A (Evidence Bundle Structure & Hash Reference, PR #63). Authored, not generated; validated structurally by tests/test_wave_a_scope_manifest.py.",
+  "$id": "https://mcc-prior-art/schemas/normative-v1.0/remediation_wave_scope_manifest.schema.json",
+  "title": "MCC Normative v1.0 Remediation Wave Scope Manifest",
+  "description": "Bounded remediation-wave scope manifest shape shared by every Normative v1.0 implementation wave (Wave A: PR #63, Wave B: PR #64, ...). Authored, not generated; validated structurally by tests/test_wave_a_scope_manifest.py and tests/test_wave_b_scope_manifest.py.",
   "type": "object",
   "required": [
     "wave",

@@ -30,6 +30,24 @@ compatibility.
 
 from __future__ import annotations
 
+from .cm001_manifest import (
+    CM001_MANIFEST_SCHEMA_VERSION,
+    SUPPORTED_CM001_MANIFEST_SCHEMA_VERSIONS,
+    CM001Error,
+    CM001Manifest,
+    CM001ManifestVerificationResult,
+    CM001Status,
+    EvidenceBundleReference,
+    EvidenceBundleReferenceKind,
+    EvidenceBundleReferenceVerificationResult,
+    IncompleteCM001ManifestError,
+    build_cm001_manifest,
+    build_evidence_bundle_reference,
+    read_cm001_manifest,
+    verify_cm001_manifest,
+    verify_evidence_bundle_reference,
+    write_cm001_manifest,
+)
 from .eb001_export import EB001BundleInput, EvidenceItemInput, build_eb001_bundle
 from .eb001_schema import (
     EB001_SCHEMA_VERSION,
@@ -96,4 +114,23 @@ __all__ = [
     "EB001BundleInput",
     "build_eb001_bundle",
     "verify_eb001_bundle",
+    # MCC-CM-001 Certification Manifest -- Evidence Bundle Reference (Wave B).
+    # Minimal container only; see cm001_manifest.py's module docstring for
+    # what is explicitly deferred to a future wave.
+    "CM001_MANIFEST_SCHEMA_VERSION",
+    "SUPPORTED_CM001_MANIFEST_SCHEMA_VERSIONS",
+    "CM001Status",
+    "CM001Error",
+    "IncompleteCM001ManifestError",
+    "EvidenceBundleReferenceKind",
+    "EvidenceBundleReference",
+    "CM001Manifest",
+    "EvidenceBundleReferenceVerificationResult",
+    "CM001ManifestVerificationResult",
+    "build_evidence_bundle_reference",
+    "build_cm001_manifest",
+    "write_cm001_manifest",
+    "read_cm001_manifest",
+    "verify_evidence_bundle_reference",
+    "verify_cm001_manifest",
 ]

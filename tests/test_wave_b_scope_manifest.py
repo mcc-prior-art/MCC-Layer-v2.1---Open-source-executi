@@ -1,9 +1,10 @@
-"""Validates the Wave A scope manifest (conformance/normative-v1.0/
-remediation/wave-a-evidence-bundle-scope-manifest.json) and its deterministic
-evidence artifact (wave-a-evidence.json) against their published schemas and
-cross-checks them against the real, current requirements.json -- this is the
-CI guard that fails if the manifest is invalid, drifts from the real
-baseline, or claims a status the baseline does not actually carry.
+"""Validates the Wave B scope manifest (conformance/normative-v1.0/
+remediation/wave-b-evidence-bundle-reference-scope-manifest.json) and its
+deterministic evidence artifact (wave-b-evidence.json) against their
+published schemas and cross-checks them against the real, current
+requirements.json -- this is the CI guard that fails if the manifest is
+invalid, drifts from the real baseline, or claims a status the baseline
+does not actually carry.
 """
 
 from __future__ import annotations
@@ -17,8 +18,8 @@ from mcc_conformance.validate import _check_object, _load_schema
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REMEDIATION_DIR = REPO_ROOT / "conformance" / "normative-v1.0" / "remediation"
-MANIFEST_PATH = REMEDIATION_DIR / "wave-a-evidence-bundle-scope-manifest.json"
-EVIDENCE_PATH = REMEDIATION_DIR / "wave-a-evidence.json"
+MANIFEST_PATH = REMEDIATION_DIR / "wave-b-evidence-bundle-reference-scope-manifest.json"
+EVIDENCE_PATH = REMEDIATION_DIR / "wave-b-evidence.json"
 SCHEMA_DIR = REPO_ROOT / "conformance" / "normative-v1.0" / "schemas"
 
 
@@ -33,13 +34,13 @@ def _requirements() -> dict:
 
 def test_manifest_is_valid_json_and_exists():
     assert MANIFEST_PATH.exists()
-    _manifest()  # raises on invalid JSON
+    _manifest()
 
 
-def test_manifest_matches_its_schema():
+def test_manifest_matches_the_shared_remediation_wave_schema():
     schema = json.loads((SCHEMA_DIR / "remediation_wave_scope_manifest.schema.json").read_text(encoding="utf-8"))
     manifest = _manifest()
-    errors = _check_object(manifest, schema, "wave-a-evidence-bundle-scope-manifest.json")
+    errors = _check_object(manifest, schema, "wave-b-evidence-bundle-reference-scope-manifest.json")
     for i, entry in enumerate(manifest["selected_requirements"]):
         errors += _check_object(entry, schema["properties"]["selected_requirements"]["items"], f"entry #{i}")
     assert errors == [], errors
@@ -53,19 +54,10 @@ def test_every_selected_requirement_exists_in_the_real_baseline():
 
 
 def test_manifest_status_after_matches_the_real_baseline():
-    # Every requirement Wave A itself selected and promoted is a permanent
-    # commitment -- CONFORMANT must never be silently downgraded, by this or
-    # any later wave. Requirements Wave A explicitly excluded are NOT
-    # covered by this check: a later wave (e.g. Wave B) may legitimately
-    # select and promote a candidate Wave A declined, once its own
-    # dependency exists -- see test_excluded_requirement_promotion_is_attributed_elsewhere.
     manifest = _manifest()
     reqs = _requirements()
-    excluded = set(manifest["excluded_candidate_ids"])
     for entry in manifest["selected_requirements"]:
         rid = entry["requirement_id"]
-        if rid in excluded:
-            continue
         expected = entry.get("status_after")
         actual = reqs[rid]["conformance_status"]
         assert actual == expected, (
@@ -73,21 +65,9 @@ def test_manifest_status_after_matches_the_real_baseline():
         )
 
 
-def test_excluded_requirement_promotion_is_attributed_elsewhere():
-    # "Excluded from Wave A" means "Wave A did not implement or claim it" --
-    # not "permanently barred from ever becoming CONFORMANT". If a later
-    # wave has since promoted an excluded candidate, its current rationale
-    # must attribute that to a DIFFERENT wave, proving Wave A's own change
-    # set never silently promoted what it declared excluded.
+def test_no_candidates_were_excluded():
     manifest = _manifest()
-    reqs = _requirements()
-    for rid in manifest["excluded_candidate_ids"]:
-        r = reqs[rid]
-        if r["conformance_status"] == "CONFORMANT":
-            assert "Wave A (PR #63)" not in r["rationale"], (
-                f"{rid} is listed as excluded from Wave A but its current CONFORMANT "
-                "rationale attributes it to Wave A itself"
-            )
+    assert manifest["excluded_candidate_ids"] == []
 
 
 def test_conformant_requirements_have_direct_test_and_evidence_linkage():
@@ -100,7 +80,7 @@ def test_conformant_requirements_have_direct_test_and_evidence_linkage():
         assert r["implementation_references"], entry["requirement_id"]
         assert r["test_references"], entry["requirement_id"]
         assert r["evidence_references"], entry["requirement_id"]
-        assert "conformance/normative-v1.0/remediation/wave-a-evidence.json" in r["evidence_references"]
+        assert "conformance/normative-v1.0/remediation/wave-b-evidence.json" in r["evidence_references"]
 
 
 def test_no_unexpected_status_transition_outside_selected_scope():
@@ -108,42 +88,49 @@ def test_no_unexpected_status_transition_outside_selected_scope():
     assert manifest["unexpected_transitions_outside_selected_scope"] == []
     reqs = _requirements()
     selected_ids = {e["requirement_id"] for e in manifest["selected_requirements"] if e.get("status_after") == "CONFORMANT"}
-    excluded_ids = set(manifest["excluded_candidate_ids"])
-    # Every OTHER requirement in the same three categories must remain
-    # non-CONFORMANT -- a category-wide accidental promotion would show up
-    # here. Requirements Wave A explicitly excluded are exempted: a later
-    # wave may legitimately promote one once its dependency exists (see
-    # test_excluded_requirement_promotion_is_attributed_elsewhere, which
-    # guards that Wave A's OWN change set did not do the promoting).
-    shared_categories = {
-        "10. Bundle Directory Structure", "11. Required Files", "13. Hash References",
+    # "13. Hash References" also contains Wave A's already-CONFORMANT
+    # CM-HASH-001/002/004 (a prior, already-verified wave, not this one) --
+    # those are expected, not "unexpected", promotions.
+    wave_a_manifest = json.loads(
+        (REMEDIATION_DIR / "wave-a-evidence-bundle-scope-manifest.json").read_text(encoding="utf-8")
+    )
+    already_conformant_ids = {
+        e["requirement_id"] for e in wave_a_manifest["selected_requirements"] if e.get("status_after") == "CONFORMANT"
     }
+    allowed_ids = selected_ids | already_conformant_ids
+    shared_categories = {"13. Hash References", "14. Evidence Bundle References"}
     for r in reqs.values():
-        if (
-            r["requirement_category"] in shared_categories
-            and r["requirement_id"] not in selected_ids
-            and r["requirement_id"] not in excluded_ids
-        ):
+        if r["requirement_category"] in shared_categories and r["requirement_id"] not in allowed_ids:
             assert r["conformance_status"] != "CONFORMANT", (
                 f"{r['requirement_id']} was unexpectedly promoted to CONFORMANT "
-                "outside the Wave A selected scope"
+                "outside the Wave B selected scope"
             )
 
 
-def test_wave_a_conformant_count_is_a_permanent_floor():
-    # Wave A promoted exactly 13 requirements. That count is a fixed,
-    # historical fact about this PR and must remain a floor on the global
-    # CONFORMANT count forever (CONFORMANT is never downgraded) -- but it is
-    # NOT expected to equal the global count once later waves add their own
-    # promotions (see conformance/normative-v1.0/remediation/wave-b-*.json).
+def test_wave_a_requirements_are_untouched_by_wave_b():
+    # Regression guard: Wave B must not have altered any of Wave A's 13
+    # promoted requirements or their evidence linkage.
+    wave_a_manifest = json.loads(
+        (REMEDIATION_DIR / "wave-a-evidence-bundle-scope-manifest.json").read_text(encoding="utf-8")
+    )
+    reqs = _requirements()
+    for entry in wave_a_manifest["selected_requirements"]:
+        if entry.get("status_after") != "CONFORMANT":
+            continue
+        rid = entry["requirement_id"]
+        r = reqs[rid]
+        assert r["conformance_status"] == "CONFORMANT", rid
+        assert "conformance/normative-v1.0/remediation/wave-a-evidence.json" in r["evidence_references"], rid
+
+
+def test_global_conformant_count_includes_wave_a_plus_wave_b():
     manifest = _manifest()
     reqs = _requirements()
-    selected_conformant = [e for e in manifest["selected_requirements"] if e.get("status_after") == "CONFORMANT"]
-    assert len(selected_conformant) == manifest["global_status_delta"]["after"]["CONFORMANT"] == 13
+    wave_b_conformant = {e["requirement_id"] for e in manifest["selected_requirements"] if e.get("status_after") == "CONFORMANT"}
+    assert len(wave_b_conformant) == 5
     real_conformant_ids = {r["requirement_id"] for r in reqs.values() if r["conformance_status"] == "CONFORMANT"}
-    for entry in selected_conformant:
-        assert entry["requirement_id"] in real_conformant_ids
-    assert len(real_conformant_ids) >= len(selected_conformant)
+    assert wave_b_conformant <= real_conformant_ids
+    assert manifest["global_status_delta"]["after"]["CONFORMANT"] == len(real_conformant_ids) == 18
 
 
 # ---------------------------------------------------------------------------
@@ -177,13 +164,13 @@ def test_evidence_artifact_contains_no_host_specific_paths():
     assert str(REPO_ROOT) not in text
 
 
-def test_evidence_generation_is_reproducible_and_deterministic(tmp_path):
-    env_cmd = [sys.executable, str(REMEDIATION_DIR / "generate_wave_a_evidence.py")]
+def test_evidence_generation_is_reproducible_and_deterministic():
+    cmd = [sys.executable, str(REMEDIATION_DIR / "generate_wave_b_evidence.py")]
     before = EVIDENCE_PATH.read_bytes()
     result = subprocess.run(
-        env_cmd, cwd=REPO_ROOT, capture_output=True, timeout=120,
+        cmd, cwd=REPO_ROOT, capture_output=True, timeout=120,
         env={"PYTHONPATH": "src", "PATH": "/usr/bin:/bin:/usr/local/bin"},
     )
     assert result.returncode == 0, result.stderr.decode()
     after = EVIDENCE_PATH.read_bytes()
-    assert before == after, "regenerating wave-a-evidence.json produced a different result (non-deterministic)"
+    assert before == after, "regenerating wave-b-evidence.json produced a different result (non-deterministic)"

@@ -99,6 +99,10 @@ EV_EB001_BUNDLE = (
     ["src/mcc_evidence/eb001_schema.py", "src/mcc_evidence/eb001_export.py", "src/mcc_evidence/eb001_verify.py"],
     ["tests/test_eb001_evidence_bundle.py"],
 )
+EV_CM001_MANIFEST = (
+    ["src/mcc_evidence/cm001_manifest.py"],
+    ["tests/test_cm001_evidence_bundle_reference.py"],
+)
 EV_HASH_REFERENCE = (
     ["src/mcc_evidence/hash_reference.py"],
     ["tests/test_hash_reference.py"],
@@ -373,11 +377,16 @@ RULES: List[Rule] = [
 # deterministic evidence record backing each entry below.
 _WAVE_A_EVIDENCE = ["conformance/normative-v1.0/remediation/wave-a-evidence.json"]
 
-IDOverride = Tuple[str, Tuple[List[str], List[str]], str]
+# Wave B (PR #64) adds CM-EBREF-001..004 and CM-HASH-003 to this same
+# requirement-ID-scoped mechanism -- see the block below this table for the
+# rationale specific to those five IDs.
+_WAVE_B_EVIDENCE = ["conformance/normative-v1.0/remediation/wave-b-evidence.json"]
+
+IDOverride = Tuple[str, Tuple[List[str], List[str]], List[str], str]
 
 ID_OVERRIDES: Dict[str, IDOverride] = {
     "EB-STR-001": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): build_eb001_bundle produces exactly one Bundle Root per "
         "generation (directory or archive); verify_eb001_bundle's root_structure check "
         "confirms it. Directly tested by "
@@ -386,7 +395,7 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "evidence recorded under EB-STR-001 in wave-a-evidence.json.",
     ),
     "EB-STR-002": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): the Bundle Root contains exactly one Bundle Descriptor, "
         "Integrity Record, Provenance Record, and Evidence Directory by construction; "
         "verify_eb001_bundle's root_structure check rejects any bundle missing one or "
@@ -396,7 +405,7 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "test_duplicate_singleton_root_artifact_is_rejected.",
     ),
     "EB-STR-003": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): build_eb001_bundle is a pure function of its input (no "
         "wall-clock timestamp, random ID, or unordered collection) -- two independent "
         "generations from equivalent input produce byte-identical directory structure. "
@@ -404,21 +413,21 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "and test_repeated_generation_is_deterministic.",
     ),
     "EB-STR-004": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): file and directory names are fixed constants "
         "(BUNDLE_DESCRIPTOR_NAME / INTEGRITY_RECORD_NAME / PROVENANCE_RECORD_NAME / "
         "EVIDENCE_DIR_NAME), never derived from wall-clock time or randomness, so naming "
         "is stable across regeneration of equivalent input. Same tests as EB-STR-003.",
     ),
     "EB-STR-005": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): build_eb001_bundle derives both the directory form and the "
         ".tar.gz archive form from the identical in-memory {path: bytes} file set "
         "(build_bundle_files), so they are structurally equivalent by construction. "
         "Directly tested by test_eb_str_005_directory_and_archive_forms_are_structurally_equivalent.",
     ),
     "EB-FILE-001": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): the Bundle Descriptor is always written at the Bundle Root and "
         "declares the Schema Version, Bundle identifier, and MCC-CP-001 specification "
         "version (Section 11.1); its absence is rejected by verify_eb001_bundle. Directly "
@@ -426,14 +435,14 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "and the parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
     ),
     "EB-FILE-002": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): the Integrity Record is always written at the Bundle Root; its "
         "absence is rejected by verify_eb001_bundle. Directly tested by "
         "test_eb_file_002_integrity_record_present and the parametrized "
         "test_eb_file_005_missing_required_root_artifact_is_rejected.",
     ),
     "EB-FILE-003": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): the Provenance Record is always written at the Bundle Root and "
         "declares the certification run and specification version that produced the "
         "Bundle; its absence is rejected by verify_eb001_bundle. Directly tested by "
@@ -441,7 +450,7 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "parametrized test_eb_file_005_missing_required_root_artifact_is_rejected.",
     ),
     "EB-FILE-004": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): the Integrity Record enumerates a Hash Reference for every file "
         "other than itself; verify_eb001_bundle's integrity_enumeration_completeness check "
         "rejects both an unenumerated actual file and an enumerated-but-absent file. "
@@ -450,7 +459,7 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "test_eb_file_004_missing_enumerated_file_is_rejected.",
     ),
     "EB-FILE-005": (
-        "CONFORMANT", EV_EB001_BUNDLE,
+        "CONFORMANT", EV_EB001_BUNDLE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): build_eb001_bundle never omits a required root artifact or the "
         "Evidence Directory regardless of whether Evidence Items are present (an empty "
         "certification outcome still yields all required structure); verify_eb001_bundle "
@@ -459,7 +468,7 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "test_eb_file_005_missing_required_root_artifact_is_rejected.",
     ),
     "CM-HASH-001": (
-        "CONFORMANT", EV_HASH_REFERENCE,
+        "CONFORMANT", EV_HASH_REFERENCE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): HashReference is a structured object identifying a Digest, a "
         "hash algorithm, and the content it corresponds to (content_ref); "
         "HashReference.from_dict fails closed on any missing/malformed field. Directly "
@@ -468,7 +477,7 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "from_dict rejection tests.",
     ),
     "CM-HASH-002": (
-        "CONFORMANT", EV_HASH_REFERENCE,
+        "CONFORMANT", EV_HASH_REFERENCE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): SUPPORTED_HASH_ALGORITHMS is the closed set {\"sha256\"}; "
         "compute_hash_reference refuses to construct a reference with any other algorithm, "
         "and HashReference.validate()/verify_hash_reference reject one at verification time "
@@ -477,13 +486,70 @@ ID_OVERRIDES: Dict[str, IDOverride] = {
         "verify fail-closed) and test_unsupported_hash_algorithm_is_rejected.",
     ),
     "CM-HASH-004": (
-        "CONFORMANT", EV_HASH_REFERENCE,
+        "CONFORMANT", EV_HASH_REFERENCE, _WAVE_A_EVIDENCE,
         "Wave A (PR #63): verify_hash_reference independently recomputes the digest of "
         "supplied data and compares it to the declared value -- it never trusts a prior "
         "verification result. Directly tested by "
         "test_cm_hash_004_verify_succeeds_for_matching_content, "
         "test_cm_hash_004_verify_fails_for_mismatched_content, and the malformed-digest / "
         "wrong-length fail-closed tests.",
+    ),
+    # --- Wave B (PR #64): CM-EBREF-001..004 + CM-HASH-003 -------------------- #
+    # Same discipline as Wave A: requirement-ID scoped, not category-scoped.
+    # "14. Evidence Bundle References" also contains near-duplicate derived
+    # prose (MCC-CM-001-14-EVIDENCE-BUNDLE-REFERENCES-D01..05) that Wave B did
+    # NOT select and leaves at GAP, unchanged. CM-HASH-003 previously fell
+    # through to the category-level "Hash References" RULES entry (PARTIAL,
+    # via the pre-existing Integration-Contract-scoped EV_COMPLIANCE_MANIFEST
+    # citation); it is now provable because the Evidence Bundle Reference
+    # object it depends on exists.
+    "CM-EBREF-001": (
+        "CONFORMANT", EV_CM001_MANIFEST, _WAVE_B_EVIDENCE,
+        "Wave B (PR #64): CM001Manifest.primary_evidence_bundle_reference is a single, "
+        "required field (not a list) -- build_cm001_manifest and CM001Manifest.from_dict "
+        "both fail closed if no primary reference is supplied. Directly tested by "
+        "test_cm_ebref_001_manifest_has_exactly_one_primary_reference and "
+        "test_cm_ebref_001_manifest_from_dict_requires_a_primary_reference.",
+    ),
+    "CM-EBREF-002": (
+        "CONFORMANT", EV_CM001_MANIFEST, _WAVE_B_EVIDENCE,
+        "Wave B (PR #64): build_evidence_bundle_reference reads the Evidence Bundle "
+        "identifier and Schema Version from the referenced Bundle's own Bundle Descriptor "
+        "and computes a Hash Reference binding to its Integrity Record; "
+        "EvidenceBundleReference.from_dict fails closed if any of the three is missing. "
+        "Directly tested by test_cm_ebref_002_valid_evidence_bundle_reference_creation, "
+        "test_cm_ebref_002_reference_carries_correct_bundle_id, "
+        "test_cm_ebref_002_reference_carries_correct_schema_version, "
+        "test_cm_ebref_002_missing_bundle_id_rejected, and "
+        "test_cm_ebref_002_missing_schema_version_rejected.",
+    ),
+    "CM-EBREF-003": (
+        "CONFORMANT", EV_CM001_MANIFEST, _WAVE_B_EVIDENCE,
+        "Wave B (PR #64): build_cm001_manifest's _validate_distinguishable rejects, before "
+        "any write, a supplementary Evidence Bundle Reference sharing the primary "
+        "reference's bundle_id, and rejects duplicate supplementary references. Directly "
+        "tested by test_cm_ebref_003_supplementary_reference_distinguishable_from_primary, "
+        "test_cm_ebref_003_indistinguishable_supplementary_reference_rejected, and "
+        "test_cm_ebref_003_duplicate_supplementary_references_rejected.",
+    ),
+    "CM-EBREF-004": (
+        "CONFORMANT", EV_CM001_MANIFEST, _WAVE_B_EVIDENCE,
+        "Wave B (PR #64): verify_cm001_manifest returns INVALID for the whole Manifest the "
+        "moment the primary Evidence Bundle Reference fails verification (wrong bundle_id, "
+        "wrong schema_version, or a Hash Reference that does not recompute against the "
+        "actual Integrity Record) -- regardless of any supplementary references. Directly "
+        "tested by test_cm_ebref_004_manifest_invalidated_when_primary_unverifiable, "
+        "test_cm_ebref_004_incorrect_bundle_id_rejected, and "
+        "test_cm_ebref_004_incorrect_schema_version_rejected.",
+    ),
+    "CM-HASH-003": (
+        "CONFORMANT", EV_CM001_MANIFEST, _WAVE_B_EVIDENCE,
+        "Wave B (PR #64): EvidenceBundleReference.hash_references is a non-empty tuple by "
+        "construction (build_evidence_bundle_reference always computes at least one) and "
+        "EvidenceBundleReference.from_dict fails closed on a zero-length hash_references "
+        "array. Directly tested by test_cm_hash_003_at_least_one_hash_reference_present, "
+        "test_cm_hash_003_from_dict_rejects_zero_hash_references, and "
+        "test_cm_hash_003_missing_hash_reference_field_rejected.",
     ),
 }
 
@@ -502,12 +568,12 @@ def assess(requirements: List[Requirement]) -> List[Requirement]:
         cat = req.requirement_category
 
         if req.requirement_id in ID_OVERRIDES:
-            status, evidence, rationale = ID_OVERRIDES[req.requirement_id]
+            status, evidence, evidence_refs, rationale = ID_OVERRIDES[req.requirement_id]
             req.conformance_status = status
             impl, tests = evidence
             req.implementation_references = list(impl)
             req.test_references = list(tests)
-            req.evidence_references = list(_WAVE_A_EVIDENCE)
+            req.evidence_references = list(evidence_refs)
             req.rationale = rationale
             continue
 
