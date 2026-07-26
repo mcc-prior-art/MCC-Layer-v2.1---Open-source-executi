@@ -163,12 +163,30 @@ def test_conformant_without_test_reference_is_rejected():
     assert any("CONFORMANT requires at least one test_reference" in e for e in errors)
 
 
-def test_conformant_with_both_references_passes():
+def test_conformant_without_evidence_reference_is_rejected():
+    # PR #66: CONFORMANT also requires a deterministic evidence_reference,
+    # not just implementation/test file references -- every wave's own
+    # ID_OVERRIDES entries already carry one; this closes the validator gap
+    # that would otherwise let a future promotion omit it.
     reqs = [
         _sample_requirement(
             conformance_status="CONFORMANT",
             implementation_references=["src/mcc_core/signing.py"],
             test_references=["tests/test_mcc_core.py::test_x"],
+            evidence_references=[],
+        )
+    ]
+    errors = validate_requirements(reqs, REPO_ROOT)
+    assert any("CONFORMANT requires at least one evidence_reference" in e for e in errors)
+
+
+def test_conformant_with_all_three_references_passes():
+    reqs = [
+        _sample_requirement(
+            conformance_status="CONFORMANT",
+            implementation_references=["src/mcc_core/signing.py"],
+            test_references=["tests/test_mcc_core.py::test_x"],
+            evidence_references=["conformance/normative-v1.0/remediation/wave-a-evidence.json"],
         )
     ]
     errors = validate_requirements(reqs, REPO_ROOT)

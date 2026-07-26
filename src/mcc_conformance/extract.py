@@ -328,8 +328,10 @@ def extract_spec_with_audit(
 
     # Pass 2: derived, independent normative obligations. Runs across every
     # H1 section (the corrected behaviour), skipping lines already captured
-    # by canonical extraction above.
-    covered_h1 = {h1 for (_, _, h1, _) in canonical}
+    # by canonical extraction above. Deliberately unconditional: the loop
+    # below does NOT filter by "does this H1 already have a canonical ID" --
+    # that exact filter was the Wave 1 defect (391 silently dropped lines).
+    # Do not reintroduce a covered/canonical-only H1 restriction here.
     audit_entries: List[CoverageAuditEntry] = []
 
     for start, end, h1 in h1_boundaries:

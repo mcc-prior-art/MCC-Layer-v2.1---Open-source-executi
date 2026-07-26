@@ -160,26 +160,42 @@ def _matrix_md(reqs: List[Requirement]) -> str:
         "rationale unless repository evidence specifically distinguished "
         "them. This is disclosed, not hidden."
     )
+    conformant_count = counts.get("CONFORMANT", 0)
+    if conformant_count:
+        lines.append(
+            f"- {conformant_count} requirement(s) are marked CONFORMANT as of this "
+            "baseline, each via a requirement-ID-scoped `ID_OVERRIDES` entry in "
+            "`src/mcc_conformance/assess.py` (never a category-wide rule): every "
+            "one carries a concrete implementation reference, a direct automated "
+            "test reference, and a deterministic evidence-record reference tied "
+            "to the specific requirement, not to a semantically-adjacent one. See "
+            "`conformance/normative-v1.0/remediation/` for the wave-by-wave record "
+            "of exactly which requirements were promoted and why."
+        )
+    else:
+        lines.append(
+            "- No requirement is marked CONFORMANT in this baseline. That "
+            "status requires both an implementation and a meaningful "
+            "automated test tied to the specific requirement."
+        )
     lines.append(
-        "- No requirement is marked CONFORMANT in this baseline. That "
-        "status requires both an implementation and a meaningful "
-        "automated test tied to the specific requirement; as of the "
-        "reviewed commit, no code in this repository implements the "
-        "Evidence Bundle, Certification Manifest, Technical Certificate, "
-        "or Certification Program process these specifications define."
+        "- PARTIAL status is granted wherever a section's *behavior* has a "
+        "real, tested analog elsewhere in the repository under different "
+        "names or scope (see this module's docstring for the specific "
+        "pre-existing subsystems investigated), but not yet wired to this "
+        "specification's own artifact with a requirement-specific test — "
+        "the CONFORMANT requirements above are exactly the PARTIAL findings "
+        "from earlier baselines that a remediation wave has since promoted."
     )
     lines.append(
-        "- PARTIAL status is granted only for two narrow, independently "
-        "verifiable primitives (deterministic canonical serialization / "
-        "digest, and Ed25519-only / asymmetric-only signing) that exist and "
-        "are tested for a different artifact (the runtime Decision Token) "
-        "and are not wired to any Evidence Bundle, Manifest, or "
-        "Certificate object."
-    )
-    lines.append(
-        "- This assessment does not execute or validate any generated "
-        "Evidence Bundle, Manifest, or Certificate, because none exist "
-        "to generate. It is a static, source-level trace only."
+        "- This assessment is a static, source-level trace of "
+        "implementation/test/evidence references; it does not itself "
+        "execute anything. The referenced tests it points to do build, "
+        "sign, and verify real Evidence Bundles, Certification Manifests, "
+        "and Technical Certificates end to end where a requirement's "
+        "evidence says so — see the deterministic evidence records under "
+        "`conformance/normative-v1.0/remediation/wave-*-evidence.json` for "
+        "the reproducible input/output of each one."
     )
     lines.append("")
     lines.append("## Reproduction")
