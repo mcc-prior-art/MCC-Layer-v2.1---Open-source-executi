@@ -110,6 +110,26 @@ def _execution_environment_metadata() -> Dict[str, str]:
     }
 
 
+def _source_commit_sha() -> str:
+    """The exact commit this certification run was produced from --
+    PR #70's official-certificate eligibility gate cross-checks this
+    against the ceremony's own requested commit SHA, so a certificate
+    cannot be silently bound to the wrong source state. Read directly from
+    the actual checked-out git state (never trusted from an operator-
+    supplied environment variable); falls back to 'unknown' outside a git
+    checkout (e.g. an extracted sdist), which is provenance-only and never
+    fatal to target construction."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10, check=True,
+        )
+        return result.stdout.strip()
+    except Exception:  # noqa: BLE001 - provenance-only
+        return "unknown"
+
+
 def _run_ecosystem_conformance(
     adapter_factory: Callable[[], Any],
     *,
@@ -262,6 +282,7 @@ def _build_target(
         "adapter_sdk_version": _safe_import_version("mcc_adapter_sdk", attr="SDK_VERSION"),
         "normative_specification_version": NORMATIVE_SPECIFICATION_VERSION,
         "certification_code_source": "tests/interoperability (PR #48 Multi-Adapter Interoperability Proof)",
+        "source_commit_sha": _source_commit_sha(),
         **{f"execution_environment.{k}": v for k, v in _execution_environment_metadata().items()},
     }
     provenance["target_config_hash"] = _target_config_hash({
