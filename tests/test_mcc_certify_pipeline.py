@@ -96,7 +96,7 @@ def test_unknown_target_rejected(tmp_path):
 
 def test_resolve_target_raises_for_unknown_target():
     with pytest.raises(UnknownCertificationTargetError):
-        resolve_target("crewai")
+        resolve_target("not-a-real-target-id")
 
 
 def test_resolve_target_raises_for_empty_target():
@@ -104,14 +104,21 @@ def test_resolve_target_raises_for_empty_target():
         resolve_target("")
 
 
-def test_known_target_ids_is_exactly_the_reference_fixture():
-    assert known_target_ids() == (REFERENCE_FIXTURE_TARGET_ID,)
+def test_known_target_ids_includes_reference_fixture_and_five_ecosystems():
+    # PR #69: the five production reference ecosystems are now registered
+    # alongside reference-fixture (see tests/test_mcc_certify_pr69.py for the
+    # dedicated ecosystem-target test suite). Registration (identity) is
+    # independent of whether each ecosystem's real dependency is installed
+    # in the current environment -- see EcosystemDependencyUnavailableError.
+    assert known_target_ids() == (
+        "autogen", "crewai", "generic-http", "langgraph", REFERENCE_FIXTURE_TARGET_ID, "voltagent",
+    )
 
 
-def test_five_production_ecosystems_are_not_registered():
+def test_five_production_ecosystems_are_registered():
     for name in ("generic-http", "langgraph", "crewai", "autogen", "voltagent"):
-        with pytest.raises(UnknownCertificationTargetError):
-            resolve_target(name)
+        target = resolve_target(name)
+        assert target.target_id == name
 
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,10 @@ PR #67 (trust and publication foundation added in PR #68 — see
 [`CERTIFICATION_TRUST_AND_PUBLICATION.md`](CERTIFICATION_TRUST_AND_PUBLICATION.md)
 for the Issuer Identity model, Trust Store, Signing-Key Provider contract,
 Publication mechanism, and trusted offline verification against an
-explicit trust-anchor set). This is a **different** system from
+explicit trust-anchor set; PR #69 registers the five production reference
+ecosystems as real Certification Targets on top of this same pipeline —
+see [`CERTIFICATION_FIVE_ECOSYSTEMS.md`](CERTIFICATION_FIVE_ECOSYSTEMS.md)).
+This is a **different** system from
 [`docs/CERTIFICATION.md`](CERTIFICATION.md) / [`COMPLIANCE.md`](COMPLIANCE.md)
 (the pre-existing Integration-Contract-scoped adapter certification suite,
 `src/mcc_compliance/`). That system certifies an *adapter version* against
@@ -83,12 +86,15 @@ execution, or governance authority.
 
 ### Registered targets
 
-Exactly **one**: `reference-fixture` — an internal, deterministic test
-fixture with four trivial self-referential checks. **This is not an
-officially certified production ecosystem.** Certification of the five
-production reference ecosystems (Generic HTTP, LangGraph, CrewAI, AutoGen,
-VoltAgent) is the next, separate platform milestone — see "Current
-limitations" below.
+Six: `reference-fixture` — an internal, deterministic test fixture with
+four trivial self-referential checks — plus, as of PR #69, the five
+production reference ecosystems (`generic-http`, `langgraph`, `crewai`,
+`autogen`, `voltagent`), each wired to its real, unmodified PR #48 adapter.
+Registration is independent of official certification: see
+[`CERTIFICATION_FIVE_ECOSYSTEMS.md`](CERTIFICATION_FIVE_ECOSYSTEMS.md) for
+which of the five are currently CANDIDATE versus OFFICIALLY CERTIFIED —
+**no ecosystem has an OFFICIAL certificate yet** (no production Issuer key
+exists in this repository).
 
 ## CLI
 
@@ -244,10 +250,14 @@ bytes directly.
 
 ## Current limitations
 
-- **No official reference-ecosystem certificate has been issued by this
-  PR.** `reference-fixture` is an internal, deterministic test fixture,
-  not Generic HTTP, LangGraph, CrewAI, AutoGen, or VoltAgent. Certifying
-  those five is the next, separate platform milestone.
+- **No official reference-ecosystem certificate has been issued yet.** As
+  of PR #69, `generic-http`/`langgraph`/`crewai`/`autogen`/`voltagent` are
+  real, registered Certification Targets wired to their actual PR #48
+  adapters (see
+  [`CERTIFICATION_FIVE_ECOSYSTEMS.md`](CERTIFICATION_FIVE_ECOSYSTEMS.md)),
+  but every certificate produced so far is signed by a disclosed,
+  non-production CI candidate issuer — OFFICIAL SIGNING IS PENDING a real,
+  separately-held production Issuer key.
 - Trust Anchor / production key management: PR #68 adds an explicit,
   optional official mode (Issuer Identity, Trust Store, Signing-Key
   Provider) — see
@@ -259,8 +269,9 @@ bytes directly.
   `--output`/`--publication-dir` remains the full extent of "publication";
   there is still no hosted registry or network-based distribution service.
 - The Conformance Run stage's requirement set, for `reference-fixture`, is
-  a small, fixed, self-referential set (4 checks) intrinsic to the fixture
-  itself — not the full MCC-CP-001/EB-001/CM-001/TC-001 requirement
-  registry evaluated against a real ecosystem's actual behavior. Wiring a
-  real requirement set against a real target is part of the next
-  milestone.
+  still a small, fixed, self-referential set (4 checks) intrinsic to the
+  fixture itself. PR #69 wires a real, target-specific requirement set
+  (the seven common governance scenarios + capability-profile validation +
+  provenance, ~11 checks) against the five real ecosystems' actual
+  behavior through their real adapters — see
+  [`CERTIFICATION_FIVE_ECOSYSTEMS.md`](CERTIFICATION_FIVE_ECOSYSTEMS.md).

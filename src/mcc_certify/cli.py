@@ -100,7 +100,47 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("list-targets", help="list registered certification targets")
 
+    aggregate = sub.add_parser(
+        "aggregate-publish",
+        help="build the all-or-nothing aggregate five-ecosystem Publication Index (PR #69) from five "
+             "already-completed official certification run directories",
+    )
+    aggregate.add_argument(
+        "--run", action="append", required=True, metavar="TARGET_ID=RUN_DIR", dest="runs",
+        help="repeatable; exactly one per required ecosystem target id, e.g. "
+             "--run generic-http=artifacts/certification/generic-http/run1",
+    )
+    aggregate.add_argument("--trust-store", required=True, help="path to the Trust Store JSON document")
+    aggregate.add_argument("--publication-dir", required=True, help="directory to write the aggregate publication-index.json into")
+    aggregate.add_argument("--format", choices=["json"], default=None)
+
+    verify_aggregate = sub.add_parser(
+        "verify-aggregate",
+        help="independently re-verify an already-built aggregate five-ecosystem Publication Index",
+    )
+    verify_aggregate.add_argument("--publication-dir", required=True, help="directory containing the aggregate publication-index.json")
+    verify_aggregate.add_argument(
+        "--run", action="append", required=True, metavar="TARGET_ID=RUN_DIR", dest="runs",
+        help="repeatable; exactly one per required ecosystem target id",
+    )
+    verify_aggregate.add_argument("--trust-store", required=True, help="path to the Trust Store JSON document")
+    verify_aggregate.add_argument("--format", choices=["json"], default=None)
+
     return parser
+
+
+def _parse_run_map(raw_runs) -> "dict[str, Path]":
+    runs: "dict[str, Path]" = {}
+    for entry in raw_runs:
+        if "=" not in entry:
+            raise CertifyError(f"--run must be TARGET_ID=RUN_DIR, got {entry!r}")
+        target_id, _, run_dir = entry.partition("=")
+        if not target_id or not run_dir:
+            raise CertifyError(f"--run must be TARGET_ID=RUN_DIR, got {entry!r}")
+        if target_id in runs:
+            raise CertifyError(f"--run supplied more than once for target_id {target_id!r}")
+        runs[target_id] = Path(run_dir)
+    return runs
 
 
 def _print_result_human(result) -> None:
@@ -129,6 +169,57 @@ def main(argv=None) -> int:
         for tid in known_target_ids():
             print(tid)
         return 0
+
+    if args.command == "aggregate-publish":
+        from .aggregate import AggregatePublicationError, build_five_ecosystem_publication_set
+
+        try:
+            run_map = _parse_run_map(args.runs)
+            trust_store = read_trust_store(args.trust_store)
+        except (CertifyError, TrustStoreError) as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
+        try:
+            index, outcomes = build_five_ecosystem_publication_set(
+                run_map, trust_store=trust_store, aggregate_publication_dir=Path(args.publication_dir),
+            )
+        except AggregatePublicationError as e:
+            print(f"NOT_PUBLISHED: {e}", file=sys.stderr)
+            return 1
+        payload = {
+            "outcome": "PUBLISHED", "record_count": len(index.records),
+            "certificate_ids": [r.certificate_id for r in index.records],
+            "target_ids": sorted(r.target_id for r in index.records),
+        }
+        if args.format == "json":
+            print(json.dumps(payload, indent=2))
+        else:
+            print("outcome: PUBLISHED")
+            print(f"record_count: {payload['record_count']}")
+            for tid, cid in zip(payload["target_ids"], sorted(payload["certificate_ids"])):
+                print(f"  {tid}")
+        return 0
+
+    if args.command == "verify-aggregate":
+        from .aggregate import verify_aggregate_publication_set
+
+        try:
+            run_map = _parse_run_map(args.runs)
+            trust_store = read_trust_store(args.trust_store)
+        except (CertifyError, TrustStoreError) as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
+        valid, failures = verify_aggregate_publication_set(
+            Path(args.publication_dir), trust_store=trust_store, run_dirs=run_map,
+        )
+        payload = {"valid": valid, "failures": failures}
+        if args.format == "json":
+            print(json.dumps(payload, indent=2))
+        else:
+            print(f"valid: {valid}")
+            for f in failures:
+                print(f"  - {f}")
+        return 0 if valid else 1
 
     if args.command == "verify":
         if args.require_published and not (args.trust_store and args.publication_index):

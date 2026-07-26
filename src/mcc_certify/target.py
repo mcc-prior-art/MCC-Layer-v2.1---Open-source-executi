@@ -16,13 +16,21 @@ themselves" (this is why ``conformance_entry_point`` returns already-
 computed, deterministic :class:`RequirementResult` values, not something
 that reaches out to execute governed actions or evaluate runtime policy).
 
-This PR ships exactly **one** registered target: ``reference-fixture``, an
-internal, deterministic test/reference fixture. Certification of the five
-production reference ecosystems (Generic HTTP, LangGraph, CrewAI, AutoGen,
-VoltAgent) is explicitly the next, separate platform milestone — this
-module does not register them, and resolving any of their names raises
-:class:`UnknownCertificationTargetError`, exactly like any other unknown
-target.
+PR #67/#68 shipped exactly one registered target: ``reference-fixture``, an
+internal, deterministic test/reference fixture. PR #69 additionally
+registers the five production reference ecosystems -- ``generic-http``,
+``langgraph``, ``crewai``, ``autogen``, ``voltagent`` -- built in
+``mcc_certify.ecosystems`` on top of the existing, unmodified Multi-Adapter
+Interoperability Proof (PR #48, ``tests/interoperability/``). Registration
+(this module knowing the target_id and being able to build a
+``CertificationTarget`` for it) is independent of whether that target's
+underlying ecosystem package is actually installed in the current
+environment, consistent with CP-001 Section 7.2 (a Certification Subject
+is registered/identified independently of whether it currently evaluates
+successfully) -- resolving a registered ecosystem target never raises
+``UnknownCertificationTargetError``; only *running* its conformance checks
+without the real dependency installed fails closed with
+``mcc_certify.ecosystems.EcosystemDependencyUnavailableError``.
 """
 
 from __future__ import annotations
@@ -177,12 +185,28 @@ def _build_reference_fixture_target() -> CertificationTarget:
     )
 
 
-# Deliberately exactly one entry. Generic HTTP / LangGraph / CrewAI / AutoGen /
-# VoltAgent are NOT registered here -- their certification is the next,
-# separate platform milestone (see docs/CERTIFICATION_PIPELINE.md).
 _KNOWN_TARGETS: Dict[str, Callable[[], CertificationTarget]] = {
     REFERENCE_FIXTURE_TARGET_ID: _build_reference_fixture_target,
 }
+
+
+def _register_ecosystem_targets() -> None:
+    """Registers the five PR #69 production reference-ecosystem targets.
+    Imported here (module bottom, after everything this module defines is
+    already available) rather than at module top, to break the natural
+    circular import: ``mcc_certify.ecosystems`` itself imports
+    ``CertificationTarget``/``RequirementResult``/etc. from this module."""
+    from .ecosystems import ECOSYSTEM_TARGET_BUILDERS
+
+    overlap = set(ECOSYSTEM_TARGET_BUILDERS) & set(_KNOWN_TARGETS)
+    if overlap:
+        raise MalformedCertificationTargetError(
+            f"ecosystem target registration collides with an existing target id: {overlap}"
+        )
+    _KNOWN_TARGETS.update(ECOSYSTEM_TARGET_BUILDERS)
+
+
+_register_ecosystem_targets()
 
 
 def known_target_ids() -> Tuple[str, ...]:

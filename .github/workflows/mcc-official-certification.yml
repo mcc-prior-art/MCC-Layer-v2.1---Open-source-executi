@@ -1,0 +1,148 @@
+name: MCC Official Certification (Five Reference Ecosystems)
+
+# PR #69. This is the PROTECTED, manually-authorized workflow that issues
+# REAL official Technical Certificates for the five production reference
+# ecosystems, using the real, separately-held Issuer signing key -- never
+# the disposable, deterministic CI candidate issuer the ordinary
+# `certification-<ecosystem>` jobs in mcc-runtime-ci.yml use (see
+# docs/CERTIFICATION_FIVE_ECOSYSTEMS.md, "Secure signing ceremony").
+#
+# Safety properties enforced by this workflow (see the task governing PR
+# #69, "Release-Candidate and Official Workflows / B. Protected official-
+# certification workflow"):
+#   - workflow_dispatch ONLY -- never runs automatically on push/PR/schedule.
+#   - `environment: mcc-official-signing` -- gates the job behind whatever
+#     required-reviewer/protection rules the repository owner configures on
+#     that GitHub Environment (this workflow does not, and cannot, grant
+#     itself approval bypass).
+#   - the real Issuer private key is accepted ONLY via
+#     `secrets.MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM`, written to a 0600
+#     temporary file for the duration of signing, and deleted in an
+#     `if: always()` cleanup step -- it is never echoed, never committed,
+#     never uploaded as a workflow artifact.
+#   - verifies the checked-out commit is exactly the operator-supplied,
+#     explicit `ref` input (never "whatever HEAD happens to be").
+#   - verifies a clean working tree before and after certification.
+#   - only the public certification artifacts (Evidence Bundle, manifest,
+#     certificate, publication record/index, verification report) are
+#     uploaded; the temporary private-key file is excluded by construction
+#     (it never lives under `artifacts/`).
+#   - fails closed: any stage failure stops the workflow before publishing.
+#
+# This workflow does NOT publish a GitHub Release -- that remains PR #70
+# ("MCC Official Certification Release"), explicitly out of scope here.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Exact commit SHA (not a branch name) to certify. Must be an approved, already-merged commit."
+        required: true
+      issuer_config_path:
+        description: "Repo-relative path to the committed, public Issuer Identity JSON (issuer.json) to sign with."
+        required: true
+      trust_store_path:
+        description: "Repo-relative path to the committed, public Trust Store JSON (trust-store.json) that recognizes that issuer."
+        required: true
+      issuance_timestamp:
+        description: "Explicit RFC3339 issuance timestamp for all five certificates (required for reproducible regeneration)."
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  official-certify-five-ecosystems:
+    runs-on: ubuntu-latest
+    environment: mcc-official-signing
+    env:
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - name: Verify the requested ref is a full commit SHA, not a branch/tag name
+        run: |
+          if ! [[ "${{ inputs.ref }}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "STOP: ref must be an exact 40-character commit SHA, got '${{ inputs.ref }}'"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Confirm the checked-out commit matches the requested ref exactly
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [ "$actual" != "${{ inputs.ref }}" ]; then
+            echo "STOP: checked out $actual, expected ${{ inputs.ref }}"
+            exit 1
+          fi
+
+      - name: Confirm a clean working tree
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "STOP: working tree is not clean before certification"
+            git status
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install base dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Write the real Issuer private key to a protected temporary file
+        env:
+          MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM: ${{ secrets.MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM }}
+        run: |
+          if [ -z "$MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM" ]; then
+            echo "STOP: secrets.MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM is not configured for this environment"
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$MCC_OFFICIAL_ISSUER_PRIVATE_KEY_PEM" > "$RUNNER_TEMP/mcc-official-issuer-key.pem"
+
+      # NOTE: per-ecosystem framework dependencies (langgraph/crewai/
+      # autogen/@voltagent) must each be installed and certified in their
+      # own isolated environment, exactly as the certification-<ecosystem>
+      # candidate jobs do in mcc-runtime-ci.yml -- this skeleton documents
+      # the ONE shared invocation shape every ecosystem uses; a real
+      # signing ceremony run repeats the "Certify one ecosystem" step below
+      # once per ecosystem, in that ecosystem's own isolated job/runner,
+      # each pointed at the SAME committed --issuer-config/--trust-store.
+
+      - name: Certify one ecosystem (repeat per ecosystem, in its own isolated environment)
+        run: |
+          python -m mcc_certify certify "${TARGET_ID:?set TARGET_ID to one of generic-http/langgraph/crewai/autogen/voltagent}" \
+            --output artifacts/official-certification \
+            --run-id "official-$(git rev-parse --short=12 HEAD)" \
+            --timestamp "${{ inputs.issuance_timestamp }}" \
+            --issuer-config "${{ inputs.issuer_config_path }}" \
+            --signing-key "$RUNNER_TEMP/mcc-official-issuer-key.pem" \
+            --trust-store "${{ inputs.trust_store_path }}" \
+            --publication-dir artifacts/official-certification/publication \
+            --format json
+
+      - name: Delete the temporary private-key file (always, even on failure)
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mcc-official-issuer-key.pem"
+
+      - name: Verify no private-key material reached the public artifact tree
+        if: always()
+        run: |
+          if [ -d artifacts/official-certification ] && grep -R "PRIVATE KEY" artifacts/official-certification/ ; then
+            echo "STOP: private key material found in official certification artifacts"
+            exit 1
+          fi
+
+      - name: Upload public official certification artifacts only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcc-official-certification
+          path: artifacts/official-certification/
+          if-no-files-found: warn

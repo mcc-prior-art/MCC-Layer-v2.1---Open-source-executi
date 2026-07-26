@@ -779,6 +779,492 @@ jobs:
           path: artifacts/interoperability/
           if-no-files-found: warn
 
+  # ---------------------------------------------------------------------------
+  # PR #69 — Official Certification of the Five Reference Ecosystems.
+  #
+  # Each certification-<ecosystem> job below certifies exactly ONE production
+  # reference ecosystem through the identical `mcc certify <target>` pipeline
+  # (PR #67/#68), reusing that ecosystem's REAL, unmodified PR #48 adapter --
+  # never a mock, stub, or metadata-only descriptor. Every job:
+  #   1. installs that ecosystem's real, isolated framework dependency (the
+  #      SAME isolation as interop-langgraph/-autogen/-crewai/-voltagent above
+  #      -- these frameworks are never installed together in one job/process);
+  #   2. asserts the real native package/API is genuinely importable;
+  #   3. generates a DISPOSABLE, clearly-labelled non-production CI candidate
+  #      Issuer signing key at runtime (deterministic across jobs so the
+  #      aggregate job's shared Trust Store recognizes all five signatures --
+  #      this is a disclosed test convenience, never claimed official);
+  #   4. certifies the target in official mode against that CI candidate
+  #      Issuer/Trust Store (exercising the full official-mode code path)
+  #      and independently re-verifies the result;
+  #   5. scans every generated artifact for private-key material;
+  #   6. uploads only the resulting NON-OFFICIAL candidate certification
+  #      artifacts (never the private key).
+  # No job in this block ever claims OFFICIAL certification -- that requires
+  # the real, separately-protected Issuer key (see
+  # .github/workflows/mcc-official-certification.yml and
+  # docs/CERTIFICATION_FIVE_ECOSYSTEMS.md, "Candidate versus official status").
+  # ---------------------------------------------------------------------------
+
+  certification-generic-http:
+    # generic-http has no optional framework dependency -- always runnable.
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Generate the disposable, non-production CI candidate Issuer
+        run: python scripts/generate_ci_candidate_issuer.py --output-dir /tmp/mcc-ci-trust
+
+      - name: Certify generic-http (candidate, official-mode code path, disposable issuer)
+        run: |
+          python -m mcc_certify certify generic-http \
+            --output artifacts/certification-candidate \
+            --run-id ci-candidate-run --timestamp 2026-07-26T00:00:00Z \
+            --issuer-config /tmp/mcc-ci-trust/issuer.json \
+            --signing-key /tmp/mcc-ci-trust/issuer-key.pem \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json \
+            --publication-dir artifacts/certification-candidate/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Independently re-verify the candidate certification
+        run: |
+          python -m mcc_certify verify \
+            artifacts/certification-candidate/generic-http/ci-candidate-run \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json --format json | tee /tmp/verify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/verify-result.json"))["valid"])')" = "True"
+
+      - name: Scan candidate artifacts for private-key material
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/certification-candidate/ ; then
+            echo "STOP: private key material found in candidate certification artifacts"; exit 1
+          fi
+          echo "OK: no private key material in candidate artifacts"
+
+      - name: Upload NON-OFFICIAL candidate certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-candidate-generic-http
+          path: artifacts/certification-candidate/
+          if-no-files-found: error
+
+  certification-langgraph:
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated langgraph)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-langgraph.txt
+
+      - name: Assert the official LangGraph package is really importable
+        run: python -c "import langgraph; from langgraph.graph import StateGraph; print('langgraph native API present')"
+
+      - name: Generate the disposable, non-production CI candidate Issuer
+        run: python scripts/generate_ci_candidate_issuer.py --output-dir /tmp/mcc-ci-trust
+
+      - name: Certify langgraph (candidate, official-mode code path, disposable issuer)
+        run: |
+          python -m mcc_certify certify langgraph \
+            --output artifacts/certification-candidate \
+            --run-id ci-candidate-run --timestamp 2026-07-26T00:00:00Z \
+            --issuer-config /tmp/mcc-ci-trust/issuer.json \
+            --signing-key /tmp/mcc-ci-trust/issuer-key.pem \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json \
+            --publication-dir artifacts/certification-candidate/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Independently re-verify the candidate certification
+        run: |
+          python -m mcc_certify verify \
+            artifacts/certification-candidate/langgraph/ci-candidate-run \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json --format json | tee /tmp/verify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/verify-result.json"))["valid"])')" = "True"
+
+      - name: Scan candidate artifacts for private-key material
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/certification-candidate/ ; then
+            echo "STOP: private key material found in candidate certification artifacts"; exit 1
+          fi
+
+      - name: Upload NON-OFFICIAL candidate certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-candidate-langgraph
+          path: artifacts/certification-candidate/
+          if-no-files-found: error
+
+  certification-crewai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MCC_USE_OPA: "false"
+      CREWAI_DISABLE_TELEMETRY: "true"
+      CREWAI_TELEMETRY_OPT_OUT: "true"
+      CREWAI_TRACING_ENABLED: "false"
+      OTEL_SDK_DISABLED: "true"
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated crewai)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-crewai.txt
+
+      - name: Assert the official CrewAI package is really importable
+        run: python -c "import crewai; from crewai.flow.flow import Flow; print('crewai native API present')"
+
+      - name: Generate the disposable, non-production CI candidate Issuer
+        run: python scripts/generate_ci_candidate_issuer.py --output-dir /tmp/mcc-ci-trust
+
+      - name: Certify crewai (candidate, official-mode code path, disposable issuer)
+        run: |
+          python -m mcc_certify certify crewai \
+            --output artifacts/certification-candidate \
+            --run-id ci-candidate-run --timestamp 2026-07-26T00:00:00Z \
+            --issuer-config /tmp/mcc-ci-trust/issuer.json \
+            --signing-key /tmp/mcc-ci-trust/issuer-key.pem \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json \
+            --publication-dir artifacts/certification-candidate/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Independently re-verify the candidate certification
+        run: |
+          python -m mcc_certify verify \
+            artifacts/certification-candidate/crewai/ci-candidate-run \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json --format json | tee /tmp/verify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/verify-result.json"))["valid"])')" = "True"
+
+      - name: Scan candidate artifacts for private-key material
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/certification-candidate/ ; then
+            echo "STOP: private key material found in candidate certification artifacts"; exit 1
+          fi
+
+      - name: Upload NON-OFFICIAL candidate certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-candidate-crewai
+          path: artifacts/certification-candidate/
+          if-no-files-found: error
+
+  certification-autogen:
+    runs-on: ubuntu-latest
+    env:
+      MCC_USE_OPA: "false"
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated autogen)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-autogen.txt
+
+      - name: Assert the official AutoGen packages are really importable
+        run: python -c "import autogen_core; from autogen_core import RoutedAgent; print('autogen native API present')"
+
+      - name: Generate the disposable, non-production CI candidate Issuer
+        run: python scripts/generate_ci_candidate_issuer.py --output-dir /tmp/mcc-ci-trust
+
+      - name: Certify autogen (candidate, official-mode code path, disposable issuer)
+        run: |
+          python -m mcc_certify certify autogen \
+            --output artifacts/certification-candidate \
+            --run-id ci-candidate-run --timestamp 2026-07-26T00:00:00Z \
+            --issuer-config /tmp/mcc-ci-trust/issuer.json \
+            --signing-key /tmp/mcc-ci-trust/issuer-key.pem \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json \
+            --publication-dir artifacts/certification-candidate/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Independently re-verify the candidate certification
+        run: |
+          python -m mcc_certify verify \
+            artifacts/certification-candidate/autogen/ci-candidate-run \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json --format json | tee /tmp/verify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/verify-result.json"))["valid"])')" = "True"
+
+      - name: Scan candidate artifacts for private-key material
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/certification-candidate/ ; then
+            echo "STOP: private key material found in candidate certification artifacts"; exit 1
+          fi
+
+      - name: Upload NON-OFFICIAL candidate certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-candidate-autogen
+          path: artifacts/certification-candidate/
+          if-no-files-found: error
+
+  certification-voltagent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MCC_USE_OPA: "false"
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Install the real VoltAgent package (reproducible)
+        working-directory: integrations/voltagent
+        run: npm ci --no-audit --no-fund
+
+      - name: Assert the official VoltAgent package + Node runner are really present
+        working-directory: integrations/voltagent
+        run: node -e "require('@voltagent/core').Agent; require('fs').accessSync('node_modules/.bin/tsx'); console.log('voltagent native API + tsx present')"
+
+      - name: Generate the disposable, non-production CI candidate Issuer
+        run: python scripts/generate_ci_candidate_issuer.py --output-dir /tmp/mcc-ci-trust
+
+      - name: Certify voltagent (candidate, official-mode code path, disposable issuer)
+        run: |
+          python -m mcc_certify certify voltagent \
+            --output artifacts/certification-candidate \
+            --run-id ci-candidate-run --timestamp 2026-07-26T00:00:00Z \
+            --issuer-config /tmp/mcc-ci-trust/issuer.json \
+            --signing-key /tmp/mcc-ci-trust/issuer-key.pem \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json \
+            --publication-dir artifacts/certification-candidate/publication \
+            --format json | tee /tmp/certify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/certify-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Independently re-verify the candidate certification
+        run: |
+          python -m mcc_certify verify \
+            artifacts/certification-candidate/voltagent/ci-candidate-run \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json --format json | tee /tmp/verify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/verify-result.json"))["valid"])')" = "True"
+
+      - name: Scan candidate artifacts for private-key material
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/certification-candidate/ ; then
+            echo "STOP: private key material found in candidate certification artifacts"; exit 1
+          fi
+
+      - name: Upload NON-OFFICIAL candidate certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-candidate-voltagent
+          path: artifacts/certification-candidate/
+          if-no-files-found: error
+
+  certification-five-ecosystems-aggregate:
+    # All-or-nothing: this job requires all five certification-<ecosystem>
+    # jobs above to have succeeded (GitHub Actions' default `needs:` behavior
+    # skips this job -- and therefore fails the required check -- if any one
+    # of them failed; there is no continue-on-error anywhere in this block).
+    needs:
+      - certification-generic-http
+      - certification-langgraph
+      - certification-crewai
+      - certification-autogen
+      - certification-voltagent
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Regenerate the SAME disposable CI candidate Issuer/Trust Store
+        run: python scripts/generate_ci_candidate_issuer.py --output-dir /tmp/mcc-ci-trust
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: certification-candidate-*
+          path: /tmp/candidate-runs
+          merge-multiple: false
+
+      - name: Build the all-or-nothing aggregate five-ecosystem Publication Set
+        run: |
+          python -m mcc_certify aggregate-publish \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json \
+            --publication-dir artifacts/aggregate-candidate \
+            --run generic-http=/tmp/candidate-runs/certification-candidate-generic-http/generic-http/ci-candidate-run \
+            --run langgraph=/tmp/candidate-runs/certification-candidate-langgraph/langgraph/ci-candidate-run \
+            --run crewai=/tmp/candidate-runs/certification-candidate-crewai/crewai/ci-candidate-run \
+            --run autogen=/tmp/candidate-runs/certification-candidate-autogen/autogen/ci-candidate-run \
+            --run voltagent=/tmp/candidate-runs/certification-candidate-voltagent/voltagent/ci-candidate-run \
+            --format json | tee /tmp/aggregate-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/aggregate-result.json"))["record_count"])')" = "5"
+
+      - name: Independently re-verify the aggregate Publication Set
+        run: |
+          python -m mcc_certify verify-aggregate \
+            --trust-store /tmp/mcc-ci-trust/trust-store.json \
+            --publication-dir artifacts/aggregate-candidate \
+            --run generic-http=/tmp/candidate-runs/certification-candidate-generic-http/generic-http/ci-candidate-run \
+            --run langgraph=/tmp/candidate-runs/certification-candidate-langgraph/langgraph/ci-candidate-run \
+            --run crewai=/tmp/candidate-runs/certification-candidate-crewai/crewai/ci-candidate-run \
+            --run autogen=/tmp/candidate-runs/certification-candidate-autogen/autogen/ci-candidate-run \
+            --run voltagent=/tmp/candidate-runs/certification-candidate-voltagent/voltagent/ci-candidate-run \
+            --format json | tee /tmp/verify-aggregate-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/verify-aggregate-result.json"))["valid"])')" = "True"
+
+      - name: Scan aggregate artifacts for private-key material
+        run: |
+          if grep -R "PRIVATE KEY" artifacts/aggregate-candidate/ ; then
+            echo "STOP: private key material found in the aggregate publication set"; exit 1
+          fi
+
+      - name: Upload NON-OFFICIAL aggregate five-ecosystem Publication Set
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-candidate-five-ecosystem-aggregate
+          path: artifacts/aggregate-candidate/
+          if-no-files-found: error
+
+  certification-architecture-guards:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: "src:.:sdk/python/src"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Five-ecosystem certification unit + aggregate + architecture-guard tests
+        run: |
+          pytest tests/test_mcc_certify_pr69.py -v
+          pytest tests/test_mcc_certify_ecosystem_guards.py -v
+          pytest tests/test_mcc_certify_pipeline.py -v
+          pytest tests/test_mcc_certify_architecture_guards.py -v
+          pytest tests/test_mcc_certify_pr68.py -v
+          pytest tests/test_mcc_certify_trust_publication_guards.py -v
+
+  certification-package-smoke:
+    # Confirms the PR #69 additions do not regress mcc_certify's packaging
+    # boundary: it remains excluded from the curated mcc-core wheel (exactly
+    # like mcc_conformance/mcc_evidence), and `python -m mcc_certify
+    # list-targets` still works under the SAME minimal PYTHONPATH the
+    # existing certification-pipeline/certification-trust-publication jobs
+    # use ("src:.", no sdk/python/src) -- listing/registering all six targets
+    # never requires any ecosystem's optional framework dependency.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: "src:."
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ build)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install build
+
+      - name: mcc_certify still excluded from the curated wheel
+        run: |
+          python -m build --wheel --sdist --outdir /tmp/mcc-certify-pr69-dist .
+          python - <<'PYEOF'
+          import zipfile, glob, sys
+          wheel = sorted(glob.glob("/tmp/mcc-certify-pr69-dist/*.whl"))[-1]
+          with zipfile.ZipFile(wheel) as zf:
+              names = zf.namelist()
+          leaked = [n for n in names if n.startswith(("mcc_certify/", "mcc_evidence/", "mcc_conformance/"))]
+          if leaked:
+              print("STOP: curated wheel unexpectedly ships governance-adjacent packages:", leaked)
+              sys.exit(1)
+          print("OK: curated wheel excludes mcc_certify/mcc_evidence/mcc_conformance")
+          PYEOF
+
+      - name: list-targets under the minimal src:. PYTHONPATH (no ecosystem dependency required)
+        run: |
+          python -m mcc_certify list-targets | tee /tmp/list-targets.out
+          for tid in generic-http langgraph crewai autogen voltagent reference-fixture; do
+            grep -qx "$tid" /tmp/list-targets.out || { echo "STOP: $tid missing from list-targets"; exit 1; }
+          done
+
   smoke:
     runs-on: ubuntu-latest
     steps:
