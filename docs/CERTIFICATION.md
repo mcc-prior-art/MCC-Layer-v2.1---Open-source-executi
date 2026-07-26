@@ -1,5 +1,12 @@
 # MCC-Core Adapter Certification — Semantics
 
+> **Not to be confused with** [CERTIFICATION_PIPELINE.md](CERTIFICATION_PIPELINE.md)
+> (PR #67): this document covers Integration-Contract-scoped *adapter*
+> certification (`src/mcc_compliance/`). The Certification Pipeline document
+> covers the separate MCC-CP-001/EB-001/CM-001/TC-001 Evidence Bundle →
+> Certification Manifest → Technical Certificate pipeline (`mcc_certify`).
+> The two systems do not reinterpret or reuse each other's artifacts.
+
 Certification is a **fail-closed**, version-specific statement about a single
 adapter version. See [COMPLIANCE.md](COMPLIANCE.md) for architecture and how to
 run it.

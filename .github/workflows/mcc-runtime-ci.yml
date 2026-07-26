@@ -82,6 +82,88 @@ jobs:
           path: conformance/normative-v1.0/
           if-no-files-found: error
 
+  certification-pipeline:
+    # MCC End-to-End Certification Pipeline (PR #67): mcc_certify orchestrates
+    # the complete MCC-CP-001 chain (Conformance Run -> Evidence Bundle ->
+    # Certification Manifest -> Technical Certificate -> Offline Verification)
+    # over the existing Wave A/B/C mcc_evidence producers/verifiers, unchanged.
+    # This job installs the full dev dependency set (mcc_certify depends on
+    # mcc_evidence/mcc_core/mcc_conformance, none of which ship in the curated
+    # mcc-core PyPI wheel -- see docs/CERTIFICATION_PIPELINE.md, "CLI", for why),
+    # runs the deterministic reference-fixture certification twice to prove
+    # reproducibility, independently re-verifies the resulting run offline, runs
+    # the full tamper-negative suite, and uploads the generated run as a CI
+    # artifact. No allow-failure; a stage failure, a verification failure, or
+    # nondeterminism between the two runs fails this job.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: "src:."
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Package/import smoke test
+        run: |
+          python -c "import mcc_certify; print(mcc_certify.CertificationPipeline, mcc_certify.resolve_target)"
+          python -m mcc_certify list-targets
+
+      - name: Certification pipeline unit + architecture-guard tests
+        run: |
+          pytest tests/test_mcc_certify_pipeline.py -v
+          pytest tests/test_mcc_certify_architecture_guards.py -v
+
+      - name: Deterministic reference certification (run 1 of 2)
+        run: |
+          python -m mcc_certify certify reference-fixture \
+            --output artifacts/certification-ci/run1 \
+            --run-id ci-reference-run \
+            --timestamp 2026-07-26T00:00:00Z \
+            --format json | tee /tmp/ci-run1-result.json
+          test "$(python -c 'import json,sys; print(json.load(open("/tmp/ci-run1-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Deterministic reference certification (run 2 of 2, independent output dir)
+        run: |
+          python -m mcc_certify certify reference-fixture \
+            --output artifacts/certification-ci/run2 \
+            --run-id ci-reference-run \
+            --timestamp 2026-07-26T00:00:00Z \
+            --format json | tee /tmp/ci-run2-result.json
+          test "$(python -c 'import json,sys; print(json.load(open("/tmp/ci-run2-result.json"))["outcome"])')" = "CERTIFIED"
+
+      - name: Confirm deterministic regeneration (byte-identical artifacts across both runs)
+        run: |
+          diff -rq \
+            artifacts/certification-ci/run1/reference-fixture/ci-reference-run \
+            artifacts/certification-ci/run2/reference-fixture/ci-reference-run \
+          && echo "OK: both runs produced byte-identical artifacts" || {
+            echo "STOP: nondeterministic certification run output"; exit 1;
+          }
+
+      - name: Independent offline verification of the resulting run
+        run: |
+          python -m mcc_certify verify \
+            artifacts/certification-ci/run1/reference-fixture/ci-reference-run --format json \
+          | tee /tmp/ci-verify-result.json
+          test "$(python -c 'import json; print(json.load(open("/tmp/ci-verify-result.json"))["valid"])')" = "True"
+
+      - name: Upload the test certification run as a CI artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcc-certify-reference-run
+          path: artifacts/certification-ci/
+          if-no-files-found: error
+
   protocol:
     # Canonical Governance Protocol & Canonical Ingress Pipeline (PR #49).
     # Offline unit tests + architecture/reconciliation guards prove one normative
