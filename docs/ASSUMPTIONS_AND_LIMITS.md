@@ -1,0 +1,125 @@
+# Assumptions and Limits — the honest boundary (PR #71)
+
+> **PR #71A scope note:** this is the master limitations document for the
+> whole baseline, delivered incrementally across stacked PRs 71A–71D (see
+> `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). This
+> PR (71A) implements Workstreams A, C, D, F, G, H, K and the negative
+> control; sections below discussing B, E, I, J describe their EVENTUAL
+> scope/limits, not something already merged at this point. `docs/
+> ASSURANCE_CLAIMS.md` (landing in 71D) is the final claims register;
+> until then, `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative.
+
+Every workstream in the **MCC-Core Independent Adversarial Assurance
+Baseline** makes a narrower, more specific claim than "MCC-Core is secure."
+This document collects every scope limitation stated across the individual
+workstream tests and docs into one place, so a reviewer never has to
+reconstruct it from scattered comments. Read this together with
+`docs/ASSURANCE_CLAIMS.md` (what is claimed) and `docs/THREAT_MODEL.md`
+(who the assumed adversary is).
+
+> If a limitation below is not acceptable for a given deployment, this
+> baseline does not clear that deployment for that property. That is the
+> point of writing it down.
+
+## Environment and infrastructure
+
+- **Single host, single process tree.** Every test in `assurance/tests/`
+  runs against processes on ONE machine communicating over real loopback
+  HTTP. There is no genuine network boundary between the Gateway, the
+  actuator, and the external-effect sink — an attacker model that assumes
+  a compromised host can intercept loopback traffic is out of scope.
+- **Workstream E (replay resistance) is single-node.** No Docker daemon
+  and no multi-host infrastructure were available in the environment this
+  baseline was built in. `assurance/sut/replay_cluster.py` proves
+  cross-**process** replay rejection over one real, shared `redis-server`
+  instance — not multi-node Redis Cluster/Sentinel failover, not a real
+  network partition between hosts. See
+  `assurance/tests/test_replay_resistance.py`'s own module docstring.
+- **Workstream I (TLA+) checks small, bounded instances.** The default
+  configuration model-checks 2 operations sharing 1 nonce (720 states); a
+  validation run checked 3 operations / 2 nonces (76,440 states). This is
+  how exhaustive model checking works — it is not a corner cut specific to
+  this baseline, but it means TLC's "no error found" is a claim about
+  those specific bounded instances, not an inductive proof for arbitrary
+  N. See `model/MCCExecutionStateMachine.tla`'s module docstring.
+- **Workstream J (mutation testing) covers 13 hand-picked defects**, not
+  an exhaustive mutation operator sweep across the codebase (which generic
+  tools like `mutmut`/`cosmic-ray` were not available to run in this
+  environment, and would in any case produce many non-security-relevant
+  mutants requiring manual triage). 13/13 are detected — see
+  `mutation/defects.py`. A 14th, unimagined defect class is untested by
+  construction.
+- **Workstream H (property-based testing) uses bounded example counts**
+  (200 for pure/fast properties, 25 for the network-bound differential
+  test, 8 stateful sequences of 6 steps each) — Hypothesis explores a
+  large but finite, randomly-seeded slice of the input space per run, not
+  the whole space.
+- **Workstream K: only `generic-http` runs locally.** The other four
+  adapters (LangGraph, AutoGen, CrewAI, VoltAgent) require their native
+  framework installed; this environment has none of them. Their
+  `assurance/tests/test_semantic_equivalence.py` cases SKIP with an
+  explicit reason here and are exercised by dedicated, isolated CI jobs
+  instead (`.github/workflows/mcc-independent-assurance.yml`).
+
+## Design of the SUT itself
+
+- **In-memory registries by default.** Every workstream except E runs the
+  actuator with `MCC_NONCE_BACKEND`/`MCC_CHALLENGE_BACKEND` unset (the
+  in-memory default) — a genuine, real code path (and the one this
+  repository's own dev/pilot deployments use), but not the Redis-backed
+  path a production multi-replica deployment would run under load.
+- **`EXECUTION_UNKNOWN` is never directly observable.** This
+  implementation's receipt-verifying executor resolves a transport
+  failure synchronously to `executed=false` within the same response — it
+  never exposes a persistent "unknown, come back later" status over the
+  HTTP API. `docs/EXECUTION_STATE_MACHINE.md` documents this as an
+  implementation choice (a stronger, more conservative guarantee than the
+  full 8-state model requires), not a gap.
+- **The actuator's mandate-issuer trust is not configured.** Workstream C
+  (`test_c8_mandate_execute_fails_closed_when_no_mandate_authority_is_configured`)
+  proves `/mandates/execute` fails closed with NO mandate authority
+  configured at all — it does NOT prove genuine-vs-forged SIGNED MANDATE
+  containment, because there is no genuinely-trusted mandate path in this
+  SUT to compare a forged one against. Only the consensus authority path
+  is exercised end-to-end.
+- **The negative control is deliberately minimal**, not a second
+  implementation of `egress_proxy` with one bug — it removes FOUR
+  invariants at once (auth, SSRF, consensus, replay) for clarity. It
+  demonstrates the assurance methodology can fail a broken system; it is
+  not itself a fuzzing target for "how many ways can a real system break."
+
+## Third-party / external execution mode
+
+- **`connect_external` (the genuine third-party CLI path,
+  `MCC_ASSURANCE_EXTERNAL=1`) still requires the OPERATOR to hand this
+  suite valid evaluator credentials** for every positive-path (ALLOW/
+  CONSTRAIN) scenario. A system cannot prove "valid authorization works"
+  without being handed valid authorization by its own operator — this is
+  a structural property of black-box testing, not something this suite
+  can design around. See `docs/THIRD_PARTY_RUNBOOK.md`.
+- **External mode has not been exercised end-to-end against a real,
+  separately-hosted deployment** in this session — only the self-contained
+  (locally-provisioned) mode has been run. The code path
+  (`assurance/sut/harness.py`'s `connect_external`) is written and
+  reviewed but its live behavior against a genuinely remote target is
+  untested here.
+
+## What this baseline does not attempt at all
+
+- **Cryptographic primitives are trusted, not re-verified.** This baseline
+  does not attempt to break Ed25519 signatures or SHA-256 hashes — it
+  assumes the `cryptography` library's implementation is correct and
+  tests only how MCC-Core USES those primitives (binding, replay,
+  single-use), never the primitives themselves.
+- **Supply-chain and dependency compromise are out of scope** — a
+  malicious `pip`/`npm` package substituted at install time is not
+  something any test here would detect.
+- **Host/OS-level compromise is out of scope** except where a workstream
+  explicitly says otherwise (the audit-tamper test in Workstream G
+  simulates ONE specific compromised-storage scenario as a stated
+  exception — see that test's own docstring).
+- **Side-channel attacks** (timing, power analysis) are not tested.
+- **No claim of completeness.** "Satisfies the tested normative invariants
+  under the declared threat model, deployment assumptions, implementation
+  version, and test environment" is the entire permitted conclusion — see
+  `docs/ASSURANCE_CLAIMS.md`'s claim-hygiene rules.
