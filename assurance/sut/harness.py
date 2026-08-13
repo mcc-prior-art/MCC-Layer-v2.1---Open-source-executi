@@ -32,6 +32,9 @@ import httpx
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FAR_FUTURE = 4_000_000_000
+#: The actuator's body.amount CONSTRAIN cap (Workstream F needs a genuine
+#: clampable constraint to attack; the actuator ships with none by default).
+DEFAULT_MAX_AMOUNT = 1000
 
 
 def free_port() -> int:
@@ -94,6 +97,7 @@ class SystemUnderTest:
     _actuator_policy_hash: str = ""
     _gateway_harness: Any = None
     _threshold: int = 3
+    max_amount: Optional[int] = None
 
     def gateway_votes(self, *, action: str, payload: Dict[str, Any], actor: str, nonce: str,
                        resource: Optional[str] = None, not_after: int = FAR_FUTURE,
@@ -159,6 +163,25 @@ class SystemUnderTest:
     def notification_receipt_count(self) -> int:
         return httpx.get(f"{self.notify_url}/receipts", timeout=5.0).json()["count"]
 
+    def gateway_audit_chain_valid(self) -> bool:
+        """The Gateway's own ``GET /verify`` -- real HTTP, independently
+        recomputes and checks the append-only hash-chain audit log.
+        Workstream G's primary observation surface."""
+        r = httpx.get(f"{self.gateway_url}/verify", headers={"x-api-key": self.api_key}, timeout=10.0)
+        r.raise_for_status()
+        return bool(r.json()["valid"])
+
+    def corrupt_gateway_audit_chain(self) -> None:
+        """Directly tamper the Gateway's on-disk audit log, bypassing the
+        application entirely -- simulating a compromised-storage insider
+        threat (a DIFFERENT threat model than a network attacker; see
+        ``ASSUMPTIONS_AND_LIMITS.md``). Exists so Workstream G can prove
+        ``/verify`` is genuinely tamper-EVIDENT (flips to invalid) rather
+        than a check that always reports success."""
+        path = self._gateway_harness._audit_path  # noqa: SLF001 -- provisioning-layer access, by design
+        with open(path, "a", encoding="utf-8") as f:
+            f.write('{"tampered": true, "not-a-real-audit-entry": "' + "x" * 64 + '"}\n')
+
     def gateway_notification_receipt_count(self) -> int:
         """The GATEWAY's own mock upstream (a separate ``pilot_notify``
         instance from the actuator's -- see ``SharedGovernedGateway``),
@@ -199,11 +222,21 @@ class SystemUnderTest:
                               transaction_id: str, idempotency_key: str,
                               recipient: str = "ops", message: str = "assurance-probe",
                               correlation_id: Optional[str] = None,
+                              amount: Optional[int] = None,
                               api_key: Optional[str] = None) -> Dict[str, Any]:
         """Step 1 of the real actuator flow: propose the governed action,
-        get back a consensus challenge. Returns the raw JSON response."""
-        body = {"recipient": recipient, "message": message,
-                "correlation_id": correlation_id or transaction_id}
+        get back a consensus challenge. Returns the raw JSON response.
+
+        ``amount``, when given, is bound into the canonical action as
+        ``body.amount`` -- the one clampable field the actuator's default
+        authority config constrains (``max_amount``, see
+        ``assurance/sut/actuator_process.py``) -- so Workstream F's
+        constraint-enforcement tests can request an excessive amount and
+        observe the CONSTRAIN clamp."""
+        body: Dict[str, Any] = {"recipient": recipient, "message": message,
+                                 "correlation_id": correlation_id or transaction_id}
+        if amount is not None:
+            body["amount"] = amount
         req = {"method": "POST", "url": f"{self.notify_url}/send_notification", "headers": {}, "body": body,
                "actor": actor, "resource": resource, "transaction_id": transaction_id,
                "idempotency_key": idempotency_key}
@@ -224,6 +257,32 @@ class SystemUnderTest:
         r = httpx.post(f"{self.actuator_url}/v1/http/execute",
                         headers={"x-api-key": api_key or self.actuator_api_key}, json=req, timeout=10.0)
         payload = r.json()
+        payload["_request"] = req
+        payload["_status_code"] = r.status_code
+        return payload
+
+    def submit_constrained_votes(self, first_round: Dict[str, Any], *, clamped_amount: int,
+                                  votes: List[Dict[str, Any]], api_key: Optional[str] = None,
+                                  clamped_body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Round 2 of a CONSTRAIN flow: ``first_round`` is the response from
+        ``submit_notification_votes`` whose ``outcome`` was ``CONSTRAIN``
+        (it carries a NEW ``challenge_id``/``nonce`` bound to the clamped
+        payload). The caller resubmits with ``constrained=True`` and a
+        request body that reflects the clamp -- ``execute_constrained``
+        fail-closed-refuses a body that still needs further clamping (see
+        ``examples/governed_agent/mcc_client.py``), so submitting the
+        original over-cap body here proves nothing except that the fail-
+        closed refusal itself works."""
+        req = dict(first_round["_request"]) if clamped_body is None else dict(clamped_body)
+        req["body"] = dict(req["body"])
+        req["body"]["amount"] = clamped_amount
+        req["challenge_id"] = first_round["challenge_id"]
+        req["votes"] = votes
+        req["constrained"] = True
+        r = httpx.post(f"{self.actuator_url}/v1/http/execute",
+                        headers={"x-api-key": api_key or self.actuator_api_key}, json=req, timeout=10.0)
+        payload = r.json()
+        payload["_request"] = req
         payload["_status_code"] = r.status_code
         return payload
 
@@ -301,9 +360,20 @@ def _generate_trust_config(evaluators) -> str:
     return path
 
 
-def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3) -> SystemUnderTest:
+def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
+                             max_amount: Optional[int] = None) -> SystemUnderTest:
     """Boot the three real subprocesses and return a live SystemUnderTest.
-    Caller is responsible for ``.close()`` (or use as a context manager)."""
+    Caller is responsible for ``.close()`` (or use as a context manager).
+
+    ``max_amount`` is None (no ``body.amount`` constraint at all) by default
+    -- most workstreams' proposals never set an ``amount`` field, and a
+    ``max_`` constraint on a field that is simply absent from a given
+    request counts as an unclampable VIOLATION (see
+    ``mcc_core.authority._constraint_violations``'s fail-closed-on-missing-
+    field rule), which would turn every such proposal from ALLOW into DENY.
+    Workstream F (``assurance/tests/test_constraint_enforcement.py``) builds
+    its OWN isolated SUT with ``max_amount`` set, rather than mutating the
+    shared session-scoped fixture every other workstream also depends on."""
     from mcc_core.signing import SigningKey
 
     tmpdir = tempfile.mkdtemp(prefix="mcc-assurance-")
@@ -339,11 +409,12 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3) -> Sys
     actuator_env["MCC_ASSURANCE_ACTUATOR_API_KEY"] = "assurance-actuator-key"
     actuator_env["MCC_ASSURANCE_OPERATOR_KEY"] = "assurance-operator-key"
     actuator_env["MCC_ASSURANCE_THRESHOLD"] = str(threshold)
-    actuator_proc = subprocess.Popen(
-        [sys.executable, "-m", "assurance.sut.actuator_process", "--port", str(actuator_port),
-         "--notify-base", notify_url, "--trust-config", actuator_trust_path, "--audit-log", actuator_audit],
-        cwd=str(REPO_ROOT), env=actuator_env,
-    )
+    actuator_cmd = [sys.executable, "-m", "assurance.sut.actuator_process", "--port", str(actuator_port),
+                     "--notify-base", notify_url, "--trust-config", actuator_trust_path,
+                     "--audit-log", actuator_audit]
+    if max_amount is not None:
+        actuator_cmd += ["--max-amount", str(max_amount)]
+    actuator_proc = subprocess.Popen(actuator_cmd, cwd=str(REPO_ROOT), env=actuator_env)
     procs.append(_Process(actuator_proc, actuator_port))
     actuator_url = f"http://127.0.0.1:{actuator_port}"
     _wait_ready(f"{actuator_url}/ready")
@@ -357,7 +428,7 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3) -> Sys
         actuator_api_key="assurance-actuator-key",
         policy_hash=gw.policy_hash, _tmpdir=tmpdir, _procs=procs,
         _evaluators=gw.evaluators, _actuator_evaluators=actuator_evaluators,
-        _threshold=threshold,
+        _threshold=threshold, max_amount=max_amount,
     )
     sut._actuator_policy_hash = actuator_policy_hash  # type: ignore[attr-defined]
     sut._gateway_harness = gw  # type: ignore[attr-defined]  # kept alive; closed by SystemUnderTest.close()
