@@ -1,0 +1,258 @@
+name: MCC Independent Assurance
+
+# PR #71 -- Independent Adversarial Assurance Baseline. A dedicated, isolated
+# workflow from mcc-runtime-ci.yml: it exercises the assurance/ black-box suite
+# (Workstreams A-K + negative control), the formal TLA+ model (Workstream I),
+# and the 13 targeted mutations (Workstream J), then publishes a signed,
+# offline-verifiable evidence bundle as a build artifact.
+#
+# Isolation requirements (see docs/INDEPENDENT_ASSURANCE.md):
+#   * no write token anywhere -- every job is read-only (permissions: contents:
+#     read at the top level, inherited; no job overrides it);
+#   * every third-party GitHub Action is pinned to a full commit SHA, not a
+#     mutable tag (the tag is kept only as a trailing comment for readability);
+#   * a mandatory-job failure fails the workflow -- this workflow is intended
+#     to be added as a required status check (a GitHub branch-protection
+#     SETTING this file cannot itself configure; see
+#     docs/INDEPENDENT_ASSURANCE.md's "repository configuration" section for
+#     the exact manual step);
+#   * the evidence bundle + its SHA-256 hashes are uploaded as a build
+#     artifact on every run (including failures), never silently dropped.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  independent-assurance-core:
+    # The mandatory job: every workstream's black-box tests that need no
+    # external framework (A, B, C, D, F, G, H, the generic-http slice of K,
+    # the negative control), Workstream E's real-Redis replay-resistance
+    # cluster, Workstream I's formal model (TLC, downloaded fresh), and
+    # Workstream J's 13 targeted mutations. A failure here blocks the run.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: "src:sdk/python/src:."
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: "Install Redis (Workstream E: real cross-instance replay resistance)"
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server redis-tools
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Independent assurance suite (Workstreams A-H, K/generic-http, negative control)
+        run: python -m assurance run --output artifacts/independent-assurance
+
+      - name: Formal model check (Workstream I -- TLC, exhaustive)
+        run: model/run_tlc.sh
+
+      - name: Mutation testing (Workstream J -- 13/13 required)
+        run: python -m mutation --output artifacts/mutation-report.json
+
+      - name: SHA-256 the evidence bundle
+        if: always()
+        run: |
+          mkdir -p artifacts
+          if [ -d artifacts/independent-assurance ]; then
+            find artifacts/independent-assurance -type f -exec sha256sum {} \; | sort -k2 > artifacts/independent-assurance-sha256sums.txt
+            cat artifacts/independent-assurance-sha256sums.txt
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: independent-assurance-evidence
+          path: |
+            artifacts/independent-assurance/
+            artifacts/independent-assurance-sha256sums.txt
+            artifacts/mutation-report.json
+          if-no-files-found: warn
+
+  assurance-architecture-guards:
+    # The AST-based guard that every assurance/tests/ module reaches the SUT
+    # only via the harness/vulnerable_target or real HTTP, never MCC-Core
+    # security internals directly. Runs standalone (no live SUT needed) so a
+    # violation is caught in seconds, independent of the slower core job.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: "src:sdk/python/src:."
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Architecture guard
+        run: pytest assurance/tests/test_boundary_guards.py -v
+
+  assurance-langgraph:
+    # Workstream K, real LangGraph adapter -- same isolation rationale as
+    # mcc-runtime-ci.yml's interop-langgraph job: a missing framework fails
+    # this job outright, it is never silently skipped here.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: "src:sdk/python/src:."
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated langgraph)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-langgraph.txt
+
+      - name: Assert the official LangGraph package is really importable
+        run: python -c "import langgraph; from langgraph.graph import StateGraph; print('langgraph native API present')"
+
+      - name: Semantic equivalence (Workstream K) WITH the real LangGraph adapter
+        # -k excludes generic-http (already covered by independent-assurance-core)
+        # so a genuinely-skipped langgraph test here still fails the job.
+        run: |
+          pytest assurance/tests/test_semantic_equivalence.py -v -k langgraph | tee /tmp/langgraph-pytest.log
+          if grep -q SKIPPED /tmp/langgraph-pytest.log; then
+            echo "ERROR: langgraph adapter tests were SKIPPED, not exercised -- the framework should be installed in this job"
+            exit 1
+          fi
+
+  assurance-autogen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: "src:sdk/python/src:."
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated autogen)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-autogen.txt
+
+      - name: Assert the official AutoGen package is really importable
+        run: python -c "import autogen_core; print('autogen_core present')"
+
+      - name: Semantic equivalence (Workstream K) WITH the real AutoGen adapter
+        run: |
+          pytest assurance/tests/test_semantic_equivalence.py -v -k autogen | tee /tmp/autogen-pytest.log
+          if grep -q SKIPPED /tmp/autogen-pytest.log; then
+            echo "ERROR: autogen adapter tests were SKIPPED, not exercised -- the framework should be installed in this job"
+            exit 1
+          fi
+
+  assurance-crewai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: "src:sdk/python/src:."
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (+ isolated crewai)
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          pip install -r tests/interoperability/requirements-crewai.txt
+
+      - name: Assert the official CrewAI package is really importable
+        run: python -c "import crewai; print('crewai present')"
+
+      - name: Semantic equivalence (Workstream K) WITH the real CrewAI adapter
+        run: |
+          pytest assurance/tests/test_semantic_equivalence.py -v -k crewai | tee /tmp/crewai-pytest.log
+          if grep -q SKIPPED /tmp/crewai-pytest.log; then
+            echo "ERROR: crewai adapter tests were SKIPPED, not exercised -- the framework should be installed in this job"
+            exit 1
+          fi
+
+  assurance-voltagent:
+    # VoltAgent is Node/TypeScript -- installs Node + the real
+    # integrations/voltagent package, mirroring mcc-runtime-ci.yml's
+    # interop-voltagent job exactly.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: "src:sdk/python/src:."
+      MCC_USE_OPA: "false"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Install the real VoltAgent package (reproducible)
+        working-directory: integrations/voltagent
+        run: npm ci --no-audit --no-fund
+
+      - name: Assert the official VoltAgent package + Node runner are really present
+        working-directory: integrations/voltagent
+        run: node -e "require('@voltagent/core').Agent; require('fs').accessSync('node_modules/.bin/tsx'); console.log('voltagent native API + tsx present')"
+
+      - name: Semantic equivalence (Workstream K) WITH the real VoltAgent adapter
+        run: |
+          pytest assurance/tests/test_semantic_equivalence.py -v -k voltagent | tee /tmp/voltagent-pytest.log
+          if grep -q SKIPPED /tmp/voltagent-pytest.log; then
+            echo "ERROR: voltagent adapter tests were SKIPPED, not exercised -- the framework should be installed in this job"
+            exit 1
+          fi
