@@ -25,7 +25,8 @@ from egress_proxy.config import EgressSettings
 
 
 def build(*, notify_base: str, trust_config_path: str, audit_log_path: str,
-          require_consensus: bool = True, max_amount: "int | None" = None) -> "FastAPI":  # noqa: F821
+          require_consensus: bool = True, max_amount: "int | None" = None,
+          redis_url: "str | None" = None) -> "FastAPI":  # noqa: F821
     settings = EgressSettings(
         mcc_env="dev",
         api_key=os.environ.get("MCC_ASSURANCE_ACTUATOR_API_KEY", "assurance-actuator-key"),
@@ -40,7 +41,16 @@ def build(*, notify_base: str, trust_config_path: str, audit_log_path: str,
         audit_log_path=audit_log_path,
         max_amount=max_amount,  # a body.amount CONSTRAIN cap, so Workstream F has a clampable constraint to attack
     )
-    return build_app(settings, env={})
+    # An empty env deliberately isolates the nonce/challenge/idempotency
+    # registries from whatever the HOST environment happens to have set,
+    # keeping every workstream except E on safe, single-process in-memory
+    # registries by default. Workstream E (replay resistance) opts a subset
+    # of the SUT into a REAL shared Redis backend instead, so cross-instance
+    # replay rejection can be proven, not merely asserted.
+    env = {} if redis_url is None else {
+        "MCC_NONCE_BACKEND": "redis", "MCC_CHALLENGE_BACKEND": "redis", "MCC_REDIS_URL": redis_url,
+    }
+    return build_app(settings, env=env)
 
 
 def main() -> None:
@@ -51,13 +61,14 @@ def main() -> None:
     ap.add_argument("--trust-config", required=True)
     ap.add_argument("--audit-log", required=True)
     ap.add_argument("--max-amount", type=int, default=None)
+    ap.add_argument("--redis-url", default=None)
     args = ap.parse_args()
 
     import uvicorn
 
     app = build(
         notify_base=args.notify_base, trust_config_path=args.trust_config,
-        audit_log_path=args.audit_log, max_amount=args.max_amount,
+        audit_log_path=args.audit_log, max_amount=args.max_amount, redis_url=args.redis_url,
     )
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 
