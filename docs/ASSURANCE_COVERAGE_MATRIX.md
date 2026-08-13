@@ -155,7 +155,7 @@ maps requirements onto.
 | `docs/ASSUMPTIONS_AND_LIMITS.md` | **IMPLEMENTED** | 71A, extended in 71B/71C/71D as each PR's scope lands |
 | `docs/CANONICAL_ACTION_FORMAT.md` | **IMPLEMENTED** | 71A |
 | `docs/EXCLUSIVE_EXECUTION_PATH.md` | **IMPLEMENTED** | 71A |
-| `docs/EXECUTION_STATE_MACHINE.md` | **IMPLEMENTED** | 71A (B section), extended in 71C (I section) |
+| `docs/EXECUTION_STATE_MACHINE.md` | **IMPLEMENTED** | 71B (B section), extended in 71C (I section) |
 | `docs/THIRD_PARTY_RUNBOOK.md` | **IMPLEMENTED** | 71D |
 | `docs/ASSURANCE_CLAIMS.md` | **IMPLEMENTED** | 71D |
 
