@@ -1,13 +1,13 @@
 # Assumptions and Limits — the honest boundary (PR #71)
 
-> **PR #71A scope note:** this is the master limitations document for the
+> **PR #71B scope note:** this is the master limitations document for the
 > whole baseline, delivered incrementally across stacked PRs 71A–71D (see
-> `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). This
-> PR (71A) implements Workstreams A, C, D, F, G, H, K and the negative
-> control; sections below discussing B, E, I, J describe their EVENTUAL
-> scope/limits, not something already merged at this point. `docs/
-> ASSURANCE_CLAIMS.md` (landing in 71D) is the final claims register;
-> until then, `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative.
+> `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). As of
+> this PR, Workstreams A, B, C, D, E, F, G, H, K and the negative control
+> are implemented (B and E landed in this PR, on top of 71A); sections
+> below discussing I, J describe their EVENTUAL scope/limits, landing in
+> #71C. `docs/ASSURANCE_CLAIMS.md` (landing in 71D) is the final claims
+> register; until then, `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative.
 
 Every workstream in the **MCC-Core Independent Adversarial Assurance
 Baseline** makes a narrower, more specific claim than "MCC-Core is secure."
