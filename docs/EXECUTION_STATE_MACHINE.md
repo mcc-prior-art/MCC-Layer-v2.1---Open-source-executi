@@ -1,12 +1,10 @@
 # Execution State Machine — Workstream B/I reference (PR #71)
 
-> **PR #71B scope note:** this PR implements the black-box half (Workstream
-> B: `assurance/state_machine.py`, `assurance/tests/test_execution_
-> atomicity.py`) plus Workstream E (replay resistance). The "Formal model
-> (Workstream I)" section below describes `model/MCCExecutionStateMachine
-> .tla`, which lands in PR #71C — referenced here because the two checks
-> are cross-designed together, not because it exists yet in this PR. See
-> `docs/ASSURANCE_COVERAGE_MATRIX.md`.
+> **PR #71C scope note:** this PR completes this document -- Workstream B
+> (the black-box half: `assurance/state_machine.py`, `assurance/tests/
+> test_execution_atomicity.py`) landed in #71B; the "Formal model
+> (Workstream I)" section below, describing `model/MCCExecutionStateMachine
+> .tla`, lands in THIS PR. See `docs/ASSURANCE_COVERAGE_MATRIX.md`.
 
 Part of the **MCC-Core Independent Adversarial Assurance Baseline**. This
 document is the normative description of the eight-state execution
