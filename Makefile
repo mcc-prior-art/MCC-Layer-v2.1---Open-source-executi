@@ -183,3 +183,8 @@ clinic-pilot-down: ## Stop the clinic stack, KEEPING volumes (audit persists)
 
 clinic-pilot-clean: ## Stop the clinic stack and REMOVE volumes (wipes the audit chain)
 	$(CLINIC_COMPOSE) down -v --remove-orphans
+
+.PHONY: independent-assurance
+ASSURANCE_PYTHONPATH := src:.:sdk/python/src
+independent-assurance: ## Run the independent adversarial assurance suite (PR #71); writes a signed evidence bundle
+	PYTHONPATH=$(ASSURANCE_PYTHONPATH) python -m assurance run --output artifacts/independent-assurance
