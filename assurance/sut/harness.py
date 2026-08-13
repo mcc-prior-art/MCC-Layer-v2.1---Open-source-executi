@@ -98,6 +98,8 @@ class SystemUnderTest:
     _gateway_harness: Any = None
     _threshold: int = 3
     max_amount: Optional[int] = None
+    _notify_process: Optional[_Process] = None
+    _notify_env: Any = None
 
     def gateway_votes(self, *, action: str, payload: Dict[str, Any], actor: str, nonce: str,
                        resource: Optional[str] = None, not_after: int = FAR_FUTURE,
@@ -162,6 +164,29 @@ class SystemUnderTest:
 
     def notification_receipt_count(self) -> int:
         return httpx.get(f"{self.notify_url}/receipts", timeout=5.0).json()["count"]
+
+    def kill_notify(self) -> None:
+        """Workstream B fault injection: hard-kill the real OS process
+        behind the external-effect sink, mid-scenario, so an in-flight
+        governed dispatch genuinely cannot reach it -- not a mock returning
+        an error, a real severed connection."""
+        if self._notify_process is not None:
+            self._notify_process.stop()
+
+    def restart_notify(self) -> None:
+        """Bring the external-effect sink back up on the SAME port (so the
+        actuator's already-configured ``--notify-base`` needs no change),
+        as a genuinely fresh process (its in-memory receipt count resets to
+        zero -- callers comparing before/after must account for that)."""
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "assurance.sut.notify_process", "--port", str(self._notify_process.port)],
+            cwd=str(REPO_ROOT), env=self._notify_env,
+        )
+        self._notify_process = _Process(proc, self._notify_process.port)
+        for i, p in enumerate(self._procs):
+            if p.port == self._notify_process.port:
+                self._procs[i] = self._notify_process
+        _wait_ready(f"{self.notify_url}/health")
 
     def gateway_audit_chain_valid(self) -> bool:
         """The Gateway's own ``GET /verify`` -- real HTTP, independently
@@ -389,7 +414,8 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
         [sys.executable, "-m", "assurance.sut.notify_process", "--port", str(notify_port)],
         cwd=str(REPO_ROOT), env=env_base,
     )
-    procs.append(_Process(notify_proc, notify_port))
+    notify_process = _Process(notify_proc, notify_port)
+    procs.append(notify_process)
     notify_url = f"http://127.0.0.1:{notify_port}"
     _wait_ready(f"{notify_url}/health")
 
@@ -429,6 +455,7 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
         policy_hash=gw.policy_hash, _tmpdir=tmpdir, _procs=procs,
         _evaluators=gw.evaluators, _actuator_evaluators=actuator_evaluators,
         _threshold=threshold, max_amount=max_amount,
+        _notify_process=notify_process, _notify_env=env_base,
     )
     sut._actuator_policy_hash = actuator_policy_hash  # type: ignore[attr-defined]
     sut._gateway_harness = gw  # type: ignore[attr-defined]  # kept alive; closed by SystemUnderTest.close()
