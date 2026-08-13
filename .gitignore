@@ -38,3 +38,8 @@ dist/
 
 # Generated evidence bundles (compliance + interoperability); regenerated in CI
 /artifacts/
+
+# TLC (PR #71 Workstream I): downloaded tool jar + model-checking scratch state,
+# never vendored -- model/run_tlc.sh fetches tla2tools.jar deterministically.
+/model/tools/
+/model/states/
