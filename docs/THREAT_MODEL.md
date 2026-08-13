@@ -1,13 +1,12 @@
 # Threat Model — Independent Adversarial Assurance Baseline (PR #71)
 
-> **PR #71C scope note:** this document describes the FULL, intended
-> adversary model for the whole 13-workstream baseline (delivered across
-> stacked PRs 71A–71D; see `docs/ASSURANCE_COVERAGE_MATRIX.md`). As of this
-> PR, Workstreams A, B, C, D, E, F, G, H, I, J, K and the negative control
-> are ALL implemented (originally staged A/C/D/F/G/H/K+control in #71A,
-> B/E in #71B, I/J in this PR). Only the CI workflow and the remaining
-> external-runner/final-evidence documentation land in #71D — the coverage
-> matrix is authoritative on exact status.
+> **PR #71D scope note:** this document describes the adversary model for
+> the whole 13-workstream baseline, delivered incrementally across stacked
+> PRs 71A–71D (see `docs/ASSURANCE_COVERAGE_MATRIX.md`). As of this PR, all
+> 13 workstreams, the negative control, the CI workflow, and all 8 required
+> docs are implemented — this is the final PR in the stack. The coverage
+> matrix remains the authoritative source for exactly what each individual
+> requirement achieves versus what it does not.
 
 This document states, explicitly, who the assumed adversary is for each
 workstream in `assurance/`, and — just as importantly — who is explicitly

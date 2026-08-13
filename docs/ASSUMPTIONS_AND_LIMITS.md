@@ -1,15 +1,18 @@
 # Assumptions and Limits — the honest boundary (PR #71)
 
-> **PR #71C scope note:** this is the master limitations document for the
+> **PR #71D scope note:** this is the master limitations document for the
 > whole baseline, delivered incrementally across stacked PRs 71A–71D (see
 > `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). As of
-> this PR, Workstreams A, B, C, D, E, F, G, H, I, J, K and the negative
-> control are ALL implemented (I and J landed in this PR, on top of 71B).
-> Only the CI workflow (`.github/workflows/mcc-independent-assurance.yml`)
-> and the remaining external-runner/final-evidence documentation
-> (`docs/INDEPENDENT_ASSURANCE.md`, `docs/THIRD_PARTY_RUNBOOK.md`,
-> `docs/ASSURANCE_CLAIMS.md`) remain, landing in #71D. Until #71D lands,
-> `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative on exact status.
+> this PR, ALL 13 workstreams (A–K), the negative control, the CI workflow,
+> and all 8 required docs are implemented. This document remains, however,
+> a record of GENUINE, PERMANENT scope limitations — it is not a checklist
+> that empties out to zero; see `docs/ASSURANCE_COVERAGE_MATRIX.md` for the
+> authoritative IMPLEMENTED / PARTIALLY IMPLEMENTED / NOT IMPLEMENTED /
+> BLOCKED BY ENVIRONMENT status of every individual requirement, including
+> several that remain permanently NOT or PARTIALLY implemented even at this
+> final stage (e.g. genuine mandate-forgery containment, PlusCal, signed
+> external audit checkpoints, 4/5 Workstream K adapters run only in CI, not
+> locally).
 
 Every workstream in the **MCC-Core Independent Adversarial Assurance
 Baseline** makes a narrower, more specific claim than "MCC-Core is secure."
