@@ -54,6 +54,7 @@ def test_only_reaches_the_sut_through_the_harness_or_http(path: Path):
         "assurance.sut.harness", "assurance.sut.vulnerable_target", "assurance.canonical_action",
         "assurance.state_machine", "assurance.evidence", "httpx", "hypothesis",
         "tests.interoperability.adapters",  # test_semantic_equivalence.py: reuses the PR #48 adapters
+        "mutation",  # test_mutation_score.py: runs the mutation harness, never touches the SUT
     )
     for m in imported:
         if m.startswith("mcc_client") or m.startswith("mcc_protocol") or m in ("json", "time", "os", "sys",
