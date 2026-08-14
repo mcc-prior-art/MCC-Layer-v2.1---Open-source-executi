@@ -1,5 +1,6 @@
-"""Thirteen targeted, hand-authored security-critical mutations (PR #71,
-Workstream J).
+"""Twenty-six targeted, hand-authored security-critical mutations (PR #71,
+Workstream J; extended post-merge-review to close a disclosed mutation-
+testing gap -- see the ``gate-*-fail-open`` block below).
 
 Unlike generic mutation testing (which mutates arbitrary operators across a
 whole codebase and requires heavy tuning to separate meaningful mutants
@@ -19,6 +20,23 @@ against that mutated copy, and reports pass/fail per defect. A defect
 whose detector tests do NOT fail against the mutated code is a genuine,
 reportable gap in this assurance suite's coverage -- never silently
 dropped or reclassified as "not applicable" to make the score look better.
+
+The 13 original defects (below) are one hand-picked mutation per security
+property, spread across the whole runtime. The trailing ``gate-*-fail-open``
+block is a DIFFERENT, complementary kind of coverage: an exhaustive,
+systematic sweep of every single ``GateResult(False, ...)`` fail-closed
+return in ``src/mcc_core/gate.py``'s ``ExecutionGate._verify``/``verify`` --
+i.e. every site where a one-line ``False`` -> ``True`` edit would flip the
+gate from deny to allow. It was added after a direct-verification
+mutation-testing addendum found that 2 of these 14 sites (the ``verify()``
+exception handler and the ``nbf``/``exp`` type-check) were not caught by a
+reasonable hand-selected test oracle, even though the gate's own explicit
+rejection reasons made the bug look "obviously" covered. Both gaps were
+closed with new regression tests in ``tests/test_mcc_core.py``
+(``test_gate_denies_when_verify_raises_unexpectedly`` and
+``test_gate_denies_malformed_time_window``) before these defects were added,
+so this module now proves -- not assumes -- that all 14 fail-open sites in
+the gate are genuinely detected, permanently, in CI.
 """
 
 from __future__ import annotations
@@ -167,9 +185,126 @@ DEFECTS: List[Defect] = [
         replace="            residual = _constraint_violations(constraints, constrained)\n            if False:  # MUTATED: residual-violation guard disabled",
         detector_tests=("tests/test_authority.py::test_missing_constrained_field_cannot_be_constrained_so_denies",),
     ),
+    # ------------------------------------------------------------------
+    # Exhaustive gate.py fail-open sweep: every GateResult(False, ...) in
+    # ExecutionGate._verify()/verify() gets its own False->True defect.
+    # "gate-fail-open" above already covers the verify() except-handler
+    # (site 1 of 14); the remaining 13 sites are below, in source order.
+    # ------------------------------------------------------------------
+    Defect(
+        id="gate-no-token-fail-open",
+        description="A missing/non-dict/empty token is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if not isinstance(token, dict) or not token:\n            return GateResult(False, "NO_TOKEN: no verified decision token, no execution")',
+        replace='        if not isinstance(token, dict) or not token:\n            return GateResult(True, "NO_TOKEN: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_missing_token",),
+    ),
+    Defect(
+        id="gate-untrusted-key-fail-open",
+        description="A token signed by an unknown/revoked key id is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if public_key is None:\n            return GateResult(False, "UNTRUSTED_KEY: unknown or revoked key id")',
+        replace='        if public_key is None:\n            return GateResult(True, "UNTRUSTED_KEY: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_unknown_kid",),
+    ),
+    Defect(
+        id="gate-invalid-signature-fail-open",
+        description="A token with an invalid Ed25519 signature is treated as authorized instead of denied (distinct from signature-verify-always-true: this mutates the GATE's handling of a correctly-computed False result, not signing.py's verification itself).",
+        file_path="src/mcc_core/gate.py",
+        find='        if not verify_token(token, public_key):\n            return GateResult(False, "INVALID_SIGNATURE: Ed25519 verification failed")',
+        replace='        if not verify_token(token, public_key):\n            return GateResult(True, "INVALID_SIGNATURE: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_tampered_token",),
+    ),
+    Defect(
+        id="gate-audience-mismatch-fail-open",
+        description="A token bound to a different gate's audience is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if token.get("aud") != self.audience:\n            return GateResult(False, "AUDIENCE_MISMATCH: token bound to another gate")',
+        replace='        if token.get("aud") != self.audience:\n            return GateResult(True, "AUDIENCE_MISMATCH: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_wrong_audience",),
+    ),
+    Defect(
+        id="gate-invalid-time-window-fail-open",
+        description="A token with a missing or non-integer nbf/exp is treated as authorized instead of denied. Previously an UNDETECTED survivor of the direct-verification mutation addendum -- closed by adding test_gate_denies_malformed_time_window.",
+        file_path="src/mcc_core/gate.py",
+        find='        if not isinstance(nbf, int) or not isinstance(exp, int):\n            return GateResult(False, "INVALID_TIME_WINDOW: missing nbf/exp")',
+        replace='        if not isinstance(nbf, int) or not isinstance(exp, int):\n            return GateResult(True, "INVALID_TIME_WINDOW: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_malformed_time_window",),
+    ),
+    Defect(
+        id="gate-not-yet-valid-fail-open",
+        description="A token whose nbf is still in the future is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if ts < nbf:\n            return GateResult(False, "TOKEN_NOT_YET_VALID: nbf in the future")',
+        replace='        if ts < nbf:\n            return GateResult(True, "TOKEN_NOT_YET_VALID: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_not_yet_valid_token",),
+    ),
+    Defect(
+        id="gate-token-expired-fail-open",
+        description="An expired token is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if ts >= exp:\n            return GateResult(False, "TOKEN_EXPIRED")',
+        replace='        if ts >= exp:\n            return GateResult(True, "TOKEN_EXPIRED-MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_expired_token",),
+    ),
+    Defect(
+        id="gate-non-executable-verdict-fail-open",
+        description="A signed DENY/ESCALATE verdict is executed instead of denied at the gate.",
+        file_path="src/mcc_core/gate.py",
+        find='        if token.get("decision") not in (Verdict.ALLOW.value, Verdict.CONSTRAIN.value):\n            return GateResult(False, "NON_EXECUTABLE_VERDICT: only ALLOW/CONSTRAIN execute")',
+        replace='        if token.get("decision") not in (Verdict.ALLOW.value, Verdict.CONSTRAIN.value):\n            return GateResult(True, "NON_EXECUTABLE_VERDICT: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_signed_deny_verdict",),
+    ),
+    Defect(
+        id="gate-policy-hash-mismatch-fail-open",
+        description="A token issued under an untrusted/stale policy hash is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if self.policy_hash is not None and token.get("policy_hash") != self.policy_hash:\n            return GateResult(False, "POLICY_HASH_MISMATCH: token issued under untrusted policy")',
+        replace='        if self.policy_hash is not None and token.get("policy_hash") != self.policy_hash:\n            return GateResult(True, "POLICY_HASH_MISMATCH: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_policy_hash_mismatch",),
+    ),
+    Defect(
+        id="gate-action-hash-mismatch-fail-open",
+        description="A token whose action_hash does not match the action actually being executed is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if action is not None and token.get("action_hash") != hash_action(action):\n            return GateResult(False, "ACTION_HASH_MISMATCH: token does not authorize this action")',
+        replace='        if action is not None and token.get("action_hash") != hash_action(action):\n            return GateResult(True, "ACTION_HASH_MISMATCH: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_action_hash_mismatch",),
+    ),
+    Defect(
+        id="gate-payload-hash-mismatch-fail-open",
+        description="A token whose payload_hash does not match the payload actually being executed is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='        if payload is not None and token.get("payload_hash") != hash_payload(payload):\n            return GateResult(False, "PAYLOAD_HASH_MISMATCH: payload differs from authorized one")',
+        replace='        if payload is not None and token.get("payload_hash") != hash_payload(payload):\n            return GateResult(True, "PAYLOAD_HASH_MISMATCH: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_payload_hash_mismatch",),
+    ),
+    Defect(
+        id="gate-binding-mismatch-fail-open",
+        description="A token whose bound operation fields (actor/resource/transaction/etc.) differ from the operation actually being executed is treated as authorized instead of denied.",
+        file_path="src/mcc_core/gate.py",
+        find='                if authorized is not None and authorized != expected:\n                    return GateResult(\n                        False,\n                        f"BINDING_MISMATCH: {field} differs from authorized operation",\n                    )',
+        replace='                if authorized is not None and authorized != expected:\n                    return GateResult(\n                        True,\n                        f"BINDING_MISMATCH: MUTATED-fail-open ({field})",\n                    )',
+        detector_tests=("tests/test_coordinator.py::test_binding_mismatch_blocks_before_execution",),
+    ),
+    Defect(
+        id="gate-nonce-rejected-fail-open",
+        description="A replayed nonce (or a nonce registry that is unavailable/errors) is treated as authorized instead of denied -- breaks both replay protection and the registry-down fail-closed guarantee.",
+        file_path="src/mcc_core/gate.py",
+        find='        if not await self.nonce_registry.consume(\n            token.get("nonce"), ttl_seconds=self._nonce_ttl(exp, ts)\n        ):\n            return GateResult(False, "NONCE_REJECTED: replay or registry unavailable (fail-closed)")',
+        replace='        if not await self.nonce_registry.consume(\n            token.get("nonce"), ttl_seconds=self._nonce_ttl(exp, ts)\n        ):\n            return GateResult(True, "NONCE_REJECTED: MUTATED-fail-open")',
+        detector_tests=("tests/test_mcc_core.py::test_gate_denies_replayed_nonce",
+                         "tests/test_mcc_core.py::test_gate_fail_closed_when_redis_down"),
+    ),
 ]
 
 DEFECT_IDS = tuple(d.id for d in DEFECTS)
 
-assert len(DEFECT_IDS) == 13, f"expected exactly 13 targeted defects, found {len(DEFECT_IDS)}"
-assert len(set(DEFECT_IDS)) == 13, "defect ids must be unique"
+assert len(DEFECT_IDS) == 26, f"expected exactly 26 targeted defects, found {len(DEFECT_IDS)}"
+assert len(set(DEFECT_IDS)) == 26, "defect ids must be unique"
+
+GATE_FAIL_OPEN_DEFECT_IDS = tuple(d.id for d in DEFECTS if d.id == "gate-fail-open" or d.id.startswith("gate-") and d.id.endswith("-fail-open"))
+assert len(GATE_FAIL_OPEN_DEFECT_IDS) == 14, (
+    f"expected exactly 14 gate.py fail-open sites (one per GateResult(False, ...) "
+    f"call site in ExecutionGate._verify()/verify()), found {len(GATE_FAIL_OPEN_DEFECT_IDS)}"
+)
