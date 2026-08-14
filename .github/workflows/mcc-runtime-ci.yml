@@ -22,6 +22,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Redis (tests/test_assurance_scaffolding.py drives Workstream E's real cross-instance replay resistance)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends redis-server redis-tools
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
