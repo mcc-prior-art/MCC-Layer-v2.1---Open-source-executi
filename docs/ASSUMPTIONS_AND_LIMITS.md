@@ -1,13 +1,13 @@
 # Assumptions and Limits — the honest boundary (PR #71)
 
-> **PR #71A scope note:** this is the master limitations document for the
+> **PR #71B scope note:** this is the master limitations document for the
 > whole baseline, delivered incrementally across stacked PRs 71A–71D (see
-> `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). This
-> PR (71A) implements Workstreams A, C, D, F, G, H, K and the negative
-> control; sections below discussing B, E, I, J describe their EVENTUAL
-> scope/limits, not something already merged at this point. `docs/
-> ASSURANCE_CLAIMS.md` (landing in 71D) is the final claims register;
-> until then, `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative.
+> `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). As of
+> this PR, Workstreams A, B, C, D, E, F, G, H, K and the negative control
+> are implemented (B and E landed in this PR, on top of 71A); sections
+> below discussing I, J describe their EVENTUAL scope/limits, landing in
+> #71C. `docs/ASSURANCE_CLAIMS.md` (landing in 71D) is the final claims
+> register; until then, `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative.
 
 Every workstream in the **MCC-Core Independent Adversarial Assurance
 Baseline** makes a narrower, more specific claim than "MCC-Core is secure."
@@ -43,12 +43,30 @@ reconstruct it from scattered comments. Read this together with
   privilege, not a claim that no process anywhere on the host could ever
   reach it, and it remains one physical machine, not a real multi-host
   network.
-- **Workstream E (replay resistance) is single-node.** No Docker daemon
-  and no multi-host infrastructure were available in the environment this
-  baseline was built in. `assurance/sut/replay_cluster.py` proves
-  cross-**process** replay rejection over one real, shared `redis-server`
-  instance — not multi-node Redis Cluster/Sentinel failover, not a real
-  network partition between hosts. See
+- **Workstream E (replay resistance) is single-node**, and single-node for
+  two INDEPENDENT reasons, both directly investigated rather than assumed:
+  (1) a Docker daemon IS available in this environment, but Docker Hub
+  image pulls are denied by this session's organization egress policy, so
+  no multi-container Redis cluster can be built regardless of the
+  daemon's presence; (2) `src/mcc_core/redis_client.py` has no
+  Sentinel-awareness at all — even a real Sentinel cluster would not
+  change the actuator's behavior without a `mcc_core` code change, which
+  is out of scope for an assurance-only baseline. No multi-host
+  infrastructure was available either. `assurance/sut/replay_cluster.py`
+  proves cross-**process** replay rejection over one real, shared
+  `redis-server` instance, and fail-closed behavior under TWO independent
+  fault-injection mechanisms against that shared backend — process death
+  (`kill_redis()`) and a genuine host-local network partition
+  (`partition_from_redis()`/`heal_partition()`, an `iptables` `DROP` rule
+  against the Redis port, exercising the client's connect/read timeout
+  path rather than an immediate connection-refused signal, then healed and
+  proven to recover) — but this is still not multi-node Redis
+  Cluster/Sentinel failover, and not a real network partition **between
+  hosts** (the iptables rule is host-wide, not namespace-scoped, and both
+  actuator processes and the one Redis instance remain on the same
+  machine; the Workstream A network-segmentation topology above uses
+  proper network namespaces instead of a host-wide iptables rule, but it
+  too remains one physical machine). See
   `assurance/tests/test_replay_resistance.py`'s own module docstring.
 - **Workstream I (TLA+) checks small, bounded instances.** The default
   configuration model-checks 2 operations sharing 1 nonce (720 states); a
