@@ -1,13 +1,15 @@
 # Assumptions and Limits — the honest boundary (PR #71)
 
-> **PR #71B scope note:** this is the master limitations document for the
+> **PR #71C scope note:** this is the master limitations document for the
 > whole baseline, delivered incrementally across stacked PRs 71A–71D (see
 > `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). As of
-> this PR, Workstreams A, B, C, D, E, F, G, H, K and the negative control
-> are implemented (B and E landed in this PR, on top of 71A); sections
-> below discussing I, J describe their EVENTUAL scope/limits, landing in
-> #71C. `docs/ASSURANCE_CLAIMS.md` (landing in 71D) is the final claims
-> register; until then, `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative.
+> this PR, Workstreams A, B, C, D, E, F, G, H, I, J, K and the negative
+> control are ALL implemented (I and J landed in this PR, on top of 71B).
+> Only the CI workflow (`.github/workflows/mcc-independent-assurance.yml`)
+> and the remaining external-runner/final-evidence documentation
+> (`docs/INDEPENDENT_ASSURANCE.md`, `docs/THIRD_PARTY_RUNBOOK.md`,
+> `docs/ASSURANCE_CLAIMS.md`) remain, landing in #71D. Until #71D lands,
+> `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative on exact status.
 
 Every workstream in the **MCC-Core Independent Adversarial Assurance
 Baseline** makes a narrower, more specific claim than "MCC-Core is secure."
@@ -75,13 +77,48 @@ reconstruct it from scattered comments. Read this together with
   this baseline, but it means TLC's "no error found" is a claim about
   those specific bounded instances, not an inductive proof for arbitrary
   N. See `model/MCCExecutionStateMachine.tla`'s module docstring.
-- **Workstream J (mutation testing) covers 13 hand-picked defects**, not
-  an exhaustive mutation operator sweep across the codebase (which generic
-  tools like `mutmut`/`cosmic-ray` were not available to run in this
-  environment, and would in any case produce many non-security-relevant
-  mutants requiring manual triage). 13/13 are detected — see
-  `mutation/defects.py`. A 14th, unimagined defect class is untested by
-  construction.
+- **Workstream J (mutation testing) covers 26 hand-picked defects** (the
+  original 13, plus a later 13-defect extension — see below), not an
+  exhaustive mutation operator sweep across the codebase. 26/26 are
+  detected — see `mutation/defects.py`. A defect class nobody has
+  imagined yet is still untested by construction. **A genuine generic
+  sweep was ALSO run** (`mutmut` -- installed and configured,
+  `[tool.mutmut]` in `pyproject.toml`): 225 AST-level mutants against
+  `src/mcc_core/gate.py` (the single most security-critical file), against
+  a narrow, fast oracle (`tests/test_coordinator.py` alone, chosen for
+  speed) — 97 killed, 128 survived. A second, broadened-but-still-partial
+  oracle (9 test files collectable inside mutmut's sandbox) raised this to
+  116 killed / 109 survived. Of the ~225 generic mutants, the large
+  majority are behaviorally inert by construction (`allowed: False→None`,
+  `reason: str→None`/arg-drop mutants that crash into the gate's own
+  `except Exception` catch-all, cosmetic string-literal recasing, unasserted
+  numeric-constant tweaks) — not real coverage gaps.
+  The one mutant *shape* that IS a genuine security regression is
+  `GateResult(False, ...)` → `GateResult(True, ...)` (a fail-open flip).
+  There are exactly 14 such call sites in `ExecutionGate._verify()`/
+  `verify()`. A pre-merge direct-verification addendum applied each of the
+  14 to the real (non-sandboxed) `gate.py` one at a time, reverting after
+  each, against a real 7-file oracle (`tests/test_mcc_core.py`,
+  `tests/test_gateway.py`, `tests/test_coordinator.py`,
+  `tests/test_mandate.py`, `tests/test_mandate_http.py`,
+  `assurance/tests/test_exclusive_execution_path.py`,
+  `assurance/tests/test_decision_authority_containment.py`) and found
+  12/14 caught — 2 survived (the `verify()` exception handler, and the
+  `nbf`/`exp` type-check). **Both gaps are now closed**: two new
+  regression tests were added
+  (`tests/test_mcc_core.py::test_gate_denies_when_verify_raises_unexpectedly`
+  and `tests/test_mcc_core.py::test_gate_denies_malformed_time_window`),
+  and all 14 fail-open sites are now permanent, individually-named,
+  CI-gated defects in `mutation/defects.py` (the `gate-*-fail-open`
+  block), each verified via the isolated-repo-copy harness rather than
+  mutmut's sandbox or a hand-run script — 14/14 detected, reproducibly, in
+  `python -m mutation` / `python -m assurance run` going forward. The
+  remaining ~211 generic survivors (the inert categories above) were not
+  individually re-triaged one-by-one; that would be a much larger, lower-
+  value undertaking than closing the 2 real gaps was, since none of them
+  represent an unaudited fail-open shape. This remains a narrowly-scoped
+  demonstration that generic mutation testing IS achievable here, not a
+  comprehensive codebase-wide sweep.
 - **Workstream H (property-based testing) uses bounded example counts**
   (200 for pure/fast properties, 25 for the network-bound differential
   test, 8 stateful sequences of 6 steps each) — Hypothesis explores a

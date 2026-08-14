@@ -292,6 +292,53 @@ def test_failed_static_check_does_not_burn_nonce(engine, signing_key):
     assert valid.allowed
 
 
+def test_gate_denies_when_verify_raises_unexpectedly(engine, signing_key):
+    """``verify()``'s outer catch-all must resolve to DENY -- never ALLOW --
+    when an internal dependency raises instead of returning cleanly. Every
+    other gate test above exercises one of ``_verify``'s explicit rejection
+    branches (none of which raise); this is the one test that reaches the
+    bare ``except Exception`` in ``verify()`` itself."""
+    class ExplodingNonceRegistry:
+        async def consume(self, nonce, ttl_seconds=300):  # noqa: ARG002
+            raise RuntimeError("simulated unexpected internal failure")
+
+    gate = ExecutionGate(
+        trusted_keys={signing_key.kid: signing_key.public_key()},
+        audience="execution-gate-1",
+        nonce_registry=ExplodingNonceRegistry(),
+        policy_hash="sha256:policyhash",
+    )
+    result = run(gate.verify(issue(engine), now=NOW))
+    assert not result.allowed
+    assert "GATE_ERROR" in result.reason
+
+
+@pytest.mark.parametrize("field, bad_value", [
+    ("nbf", "missing"),
+    ("exp", "missing"),
+    ("nbf", "not-an-int"),
+    ("exp", "not-an-int"),
+    ("nbf", 12.5),
+    ("exp", 12.5),
+])
+def test_gate_denies_malformed_time_window(engine, signing_key, field, bad_value):
+    """A validly-signed token whose ``nbf``/``exp`` is missing or not an
+    int must be denied -- never treated as always-valid (no time bound) or
+    otherwise mishandled by the not-yet-valid/expired comparisons, which
+    assume both are ints."""
+    claims = dict(issue(engine))
+    del claims["sig"], claims["kid"]
+    if bad_value == "missing":
+        del claims[field]
+    else:
+        claims[field] = bad_value
+    forged = signing_key.sign_token(claims)
+    gate = make_gate(signing_key)
+    result = run(gate.verify(forged, now=NOW))
+    assert not result.allowed
+    assert "INVALID_TIME_WINDOW" in result.reason
+
+
 # =========================
 # Nonce registry
 # =========================
