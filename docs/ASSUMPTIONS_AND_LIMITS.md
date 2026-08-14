@@ -168,6 +168,17 @@ reconstruct it from scattered comments. Read this together with
   invariants at once (auth, SSRF, consensus, replay) for clarity. It
   demonstrates the assurance methodology can fail a broken system; it is
   not itself a fuzzing target for "how many ways can a real system break."
+- **Signed external audit checkpoints are now implemented**
+  (`assurance/audit_checkpoint.py`, `assurance/tests/test_audit_checkpoint.py`
+  G4-G8), closing a previously-stated gap. Scoped honestly: self-contained-
+  mode-only (reads the audit log file directly — the same class of
+  operation `corrupt_gateway_audit_chain` already uses, not a network
+  observation), not a production feature (does not run inside the
+  Gateway, does not change `mcc_core.audit`'s runtime behavior), and not
+  a full always-on external timestamping service (e.g. RFC 3161) — this
+  closes "no independent signer touches the chain at all," not the
+  larger production-grade external-anchoring architecture a real
+  deployment might eventually want.
 
 ## Third-party / external execution mode
 

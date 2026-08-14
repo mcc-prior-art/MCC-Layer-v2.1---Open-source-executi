@@ -80,7 +80,7 @@ maps requirements onto.
 |---|---|---|---|
 | Chain stays valid across a mix of successful/rejected operations | **IMPLEMENTED** | 71A | `assurance/tests/test_audit_survivability.py` (G1, G2) |
 | Tamper-evidence (direct on-disk edit flips verification to invalid) | **IMPLEMENTED** — with a stated, different threat model (filesystem access, not network) | 71A | `test_g3_direct_storage_tamper_is_detected`; `docs/THREAT_MODEL.md` adversary #6 |
-| **Signed external checkpoints** (an independently, externally signed periodic anchor of the chain state) | **NOT IMPLEMENTED** — this baseline's own evidence bundle is signed (Workstream M), but no mechanism anchors the AUDIT CHAIN ITSELF to an external, independent signer/timestamp service | 71A | — |
+| **Signed external checkpoints** (an independently, externally signed periodic anchor of the chain state) | **IMPLEMENTED** — `assurance/audit_checkpoint.py`: a checkpoint is signed with a key SEPARATE from the Gateway's own signing key, over an INDEPENDENTLY reimplemented hash-chain recomputation (never imports `mcc_core.audit`, matching Workstream D's differential-testing posture). Proven: verifies against a genuine untampered chain (G4); still verifies after the chain legitimately grows (G5); DETECTS retroactive rewrite of the checkpointed prefix (G6, the core proof); rejects an untrusted signer (G7); rejects a chain shorter than the checkpoint claims (G8). Scoped honestly: self-contained-mode-only (reads the audit file directly, same class of operation as G3's tamper test), not a production feature, not a full RFC-3161-style always-on external timestamping service | 71D | `assurance/tests/test_audit_checkpoint.py` (G4-G8) |
 
 ## Workstream H — Property-based / stateful testing
 

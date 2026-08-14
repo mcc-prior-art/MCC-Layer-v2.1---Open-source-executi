@@ -52,7 +52,7 @@ def test_only_reaches_the_sut_through_the_harness_or_http(path: Path):
     imported = _imported_modules(path.read_text(encoding="utf-8"))
     allowed_prefixes = (
         "assurance.sut.harness", "assurance.sut.vulnerable_target", "assurance.canonical_action",
-        "assurance.state_machine", "assurance.evidence", "httpx", "hypothesis",
+        "assurance.state_machine", "assurance.evidence", "assurance.audit_checkpoint", "httpx", "hypothesis",
         "tests.interoperability.adapters",  # test_semantic_equivalence.py: reuses the PR #48 adapters
         "mutation",  # test_mutation_score.py: runs the mutation harness, never touches the SUT
     )
