@@ -3,7 +3,7 @@ name: MCC Independent Assurance
 # PR #71 -- Independent Adversarial Assurance Baseline. A dedicated, isolated
 # workflow from mcc-runtime-ci.yml: it exercises the assurance/ black-box suite
 # (Workstreams A-K + negative control), the formal TLA+ model (Workstream I),
-# and the 13 targeted mutations (Workstream J), then publishes a signed,
+# and the 26 targeted mutations (Workstream J), then publishes a signed,
 # offline-verifiable evidence bundle as a build artifact.
 #
 # Isolation requirements (see docs/INDEPENDENT_ASSURANCE.md):
@@ -32,7 +32,8 @@ jobs:
     # external framework (A, B, C, D, F, G, H, the generic-http slice of K,
     # the negative control), Workstream E's real-Redis replay-resistance
     # cluster, Workstream I's formal model (TLC, downloaded fresh), and
-    # Workstream J's 13 targeted mutations. A failure here blocks the run.
+    # Workstream J's 26 targeted mutations (including the 14-site gate.py
+    # fail-open matrix). A failure here blocks the run.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
