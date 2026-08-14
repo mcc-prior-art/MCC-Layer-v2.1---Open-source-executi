@@ -25,14 +25,16 @@ from egress_proxy.config import EgressSettings
 
 
 def build(*, notify_base: str, trust_config_path: str, audit_log_path: str,
-          require_consensus: bool = True, max_amount: "int | None" = None) -> "FastAPI":  # noqa: F821
+          require_consensus: bool = True, max_amount: "int | None" = None,
+          allowed_hosts: str = "127.0.0.1", allow_private: bool = False) -> "FastAPI":  # noqa: F821
     settings = EgressSettings(
         mcc_env="dev",
         api_key=os.environ.get("MCC_ASSURANCE_ACTUATOR_API_KEY", "assurance-actuator-key"),
         operator_api_key=os.environ.get("MCC_ASSURANCE_OPERATOR_KEY", "assurance-operator-key"),
-        allowed_hosts="127.0.0.1",
+        allowed_hosts=allowed_hosts,
         allowed_methods="get,post",
         allow_loopback=True,
+        allow_private=allow_private,  # off by default; only the network-segmentation topology needs it
         allow_http=True,  # loopback test upstream is plain HTTP
         require_consensus=require_consensus,
         consensus_threshold=int(os.environ.get("MCC_ASSURANCE_THRESHOLD", "3")),
@@ -51,6 +53,8 @@ def main() -> None:
     ap.add_argument("--trust-config", required=True)
     ap.add_argument("--audit-log", required=True)
     ap.add_argument("--max-amount", type=int, default=None)
+    ap.add_argument("--allowed-hosts", default="127.0.0.1")
+    ap.add_argument("--allow-private", action="store_true")
     args = ap.parse_args()
 
     import uvicorn
@@ -58,6 +62,7 @@ def main() -> None:
     app = build(
         notify_base=args.notify_base, trust_config_path=args.trust_config,
         audit_log_path=args.audit_log, max_amount=args.max_amount,
+        allowed_hosts=args.allowed_hosts, allow_private=args.allow_private,
     )
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 

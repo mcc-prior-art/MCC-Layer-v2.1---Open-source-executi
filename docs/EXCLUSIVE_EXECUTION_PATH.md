@@ -66,16 +66,29 @@ The proposed destination is outside the actuator's allowed-host set.
 **Expected:** rejected by SSRF/allowlist enforcement (HTTP 400,
 `SSRF_DENIED`), independent of whether valid votes would otherwise exist.
 
-> **Stated limitation:** this proves the actuator's OWN application-level
-> allowlist works. It does NOT prove that an attacker with raw network
-> access to the notify sink (bypassing the actuator's process entirely)
-> could not reach it directly — that is a network-segmentation property
-> this single-host test cannot observe (there is no real network boundary
-> between processes on one machine). A real deployment's network topology
-> (e.g. the `docker-compose.*.yml` files elsewhere in this repository,
-> which isolate the agent from the protected upstream at the Docker
-> network layer) is what actually enforces that; it is not re-verified
-> here. See `docs/ASSUMPTIONS_AND_LIMITS.md`.
+> **Stated limitation (this attack only):** A6 proves the actuator's OWN
+> application-level allowlist works. It does NOT prove that an attacker
+> with raw network access to the notify sink (bypassing the actuator's
+> process entirely) could not reach it directly — that is a
+> network-segmentation property this single-host, single-network-namespace
+> test cannot observe.
+>
+> **That stronger claim is now proven separately**, with a real,
+> kernel-enforced network boundary: `assurance/sut/network_segmentation.py`
+> builds a genuine three-network-namespace topology (host → actuator's own
+> namespace → the upstream's own namespace, connected only by veth links;
+> no Docker — this environment's Docker Hub pulls are policy-blocked) in
+> which the upstream namespace has NO route back to the host at all.
+> `assurance/tests/test_network_segmentation.py` (N1–N3) proves: the
+> governed flow still works end-to-end ACROSS that real boundary (N1); a
+> direct connection attempt from the host straight to the upstream, with
+> zero actuator/governance involvement, fails as a genuine NETWORK-layer
+> error (`ConnectError`/`ConnectTimeout`, not an HTTP-level DENY) (N2); and
+> the actuator's own inbound API remains reachable the whole time, proving
+> the topology is segmented by design, not simply broken (N3). See
+> `docs/ASSUMPTIONS_AND_LIMITS.md` for this proof's own stated limits (a
+> `CAP_NET_ADMIN` process on the same host could still join the upstream's
+> namespace directly; this is not a claim about a real multi-host network).
 
 ### A7 — Forged gate identity (tampered signature)
 

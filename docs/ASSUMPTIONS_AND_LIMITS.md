@@ -23,11 +23,26 @@ reconstruct it from scattered comments. Read this together with
 
 ## Environment and infrastructure
 
-- **Single host, single process tree.** Every test in `assurance/tests/`
-  runs against processes on ONE machine communicating over real loopback
-  HTTP. There is no genuine network boundary between the Gateway, the
-  actuator, and the external-effect sink — an attacker model that assumes
-  a compromised host can intercept loopback traffic is out of scope.
+- **Single host, single process tree, for most of this suite.** Every test
+  in `assurance/tests/` runs against processes on ONE machine. For most
+  workstreams that means real loopback HTTP with no genuine network
+  boundary between the Gateway, the actuator, and the external-effect
+  sink — an attacker model that assumes a compromised host can intercept
+  loopback traffic is out of scope there. **One exception:**
+  `assurance/sut/network_segmentation.py` (Workstream A extension) builds a
+  real, kernel-enforced network boundary using Linux network namespaces +
+  veth links (still one physical machine, not Docker — this environment's
+  Docker Hub pulls are policy-blocked, not multiple hosts) between the
+  actuator and the upstream sink specifically, and proves a direct
+  connection from the host to the upstream fails at the network layer, not
+  merely the application layer. See
+  `assurance/tests/test_network_segmentation.py`'s own module docstring for
+  that proof's own stated limit: a `CAP_NET_ADMIN` process on the SAME host
+  could still join the upstream's namespace directly (`ip netns exec`) —
+  this is a real boundary against an attacker without that specific
+  privilege, not a claim that no process anywhere on the host could ever
+  reach it, and it remains one physical machine, not a real multi-host
+  network.
 - **Workstream E (replay resistance) is single-node.** No Docker daemon
   and no multi-host infrastructure were available in the environment this
   baseline was built in. `assurance/sut/replay_cluster.py` proves
