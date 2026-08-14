@@ -14,13 +14,23 @@ C1 is the positive baseline (proves the effect CAN occur on a genuinely
 authorized path, so every attack below is a meaningful negative, not a
 tautology). C2-C7 are the adversarial containment attacks.
 
-C8 documents, rather than tests around, a real scope limitation: this SUT
-configures ONLY the consensus authority path (``MCC_CONSENSUS_TRUST_CONFIG``)
--- no mandate issuer trust is configured, so ``/mandates/execute`` fails
-closed for EVERY mandate, forged or genuine alike. That proves fail-closed
-behavior when no authority is configured, but it does NOT exercise
-genuine-vs-forged SIGNED MANDATE containment (there is no genuine mandate
-path to compare against in this deployment). Recorded honestly in
+C8 documents, rather than tests around, a real scope limitation of THIS
+file's shared ``sut`` fixture specifically: it runs with
+``require_consensus=True`` (matching every other workstream's topology),
+and the Gateway's ``EnforcementCoordinator`` requires N-of-M consensus
+UNCONDITIONALLY for every actuation, including a mandate-authorized one --
+``execute_with_mandate`` never supplies consensus evidence. So on THIS
+topology, ``/mandates/execute`` fails closed for every mandate, forged or
+genuine, REGARDLESS of whether mandate issuer trust is configured (it now
+is -- see ``build_system_under_test``'s ``MCC_TRUST_CONFIG`` wiring). That
+still proves a real fail-closed property (no execution without BOTH
+authority sources this deployment demands), but it is not a
+genuine-vs-forged SIGNED MANDATE containment test by itself.
+``test_mandate_containment.py`` (C9-C23) is that test: it boots its OWN SUT
+with ``require_consensus=False`` -- a legitimate, precedented
+mandate-authority-only deployment topology (see that file's module
+docstring) -- and proves genuine mandates execute while forged/tampered/
+expired/scope-mismatched/revoked ones do not. Recorded honestly in
 ``ASSUMPTIONS_AND_LIMITS.md`` rather than presented as mandate coverage this
 suite does not have.
 """
@@ -179,10 +189,11 @@ def test_c7_replayed_challenge_and_votes_denied_after_first_use(sut):
     assert sut.gateway_notification_receipt_count() == before + 1
 
 
-def test_c8_mandate_execute_fails_closed_when_no_mandate_authority_is_configured(sut):
-    """See module docstring: this SUT has no mandate issuer trust configured,
-    so this proves fail-closed-with-no-authority, not genuine-vs-forged
-    mandate containment (a stated, documented limitation)."""
+def test_c8_mandate_execute_fails_closed_on_the_consensus_required_topology(sut):
+    """See module docstring: this SUT's shared topology additionally
+    requires consensus, which the mandate path never supplies, so this
+    proves fail-closed on THIS topology -- see test_mandate_containment.py
+    for genuine-vs-forged mandate containment on its own topology."""
     before = sut.gateway_notification_receipt_count()
 
     r = httpx.post(

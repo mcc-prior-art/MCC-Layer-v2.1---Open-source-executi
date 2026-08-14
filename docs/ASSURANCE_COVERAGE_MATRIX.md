@@ -44,7 +44,8 @@ maps requirements onto.
 | Requirement | Status | PR | Evidence |
 |---|---|---|---|
 | Gateway `/consensus/*` HTTP API containment (below-threshold, veto, wrong policy hash, wrong actor, forged evaluator, replay) | **IMPLEMENTED** | 71A | `assurance/tests/test_decision_authority_containment.py` (C1–C7) |
-| Genuine mandate authority containment (forged vs. real signed mandate) | **NOT IMPLEMENTED** — only "no mandate trust configured → fail closed" is proven (C8); there is no genuine mandate-trust path in this SUT to compare a forgery against | 71A | `test_c8_mandate_execute_fails_closed_when_no_mandate_authority_is_configured`'s own docstring; `docs/ASSUMPTIONS_AND_LIMITS.md` |
+| Genuine mandate authority containment (forged vs. real signed mandate) | **IMPLEMENTED** — genuine mandate executes; forged/tampered/expired/not-yet-valid/subject-substituted/scope-mismatched/revoked all denied (C9-C18), on a dedicated mandate-authority-only topology (`require_consensus=False` — the shared topology's coordinator requires consensus unconditionally, independent of mandate validity; C8 now documents THAT, correctly) | 71A | `assurance/tests/test_mandate_containment.py`; `docs/ASSUMPTIONS_AND_LIMITS.md` |
+| Constraint types beyond the actuator's `max_body.amount` (`min_`, `allowed_`) | **IMPLEMENTED** — proven on the mandate path (C20-C23): `max_`/`min_` clamp, `allowed_` denies-if-excluded/permits-if-included | 71A | `assurance/tests/test_mandate_containment.py` (C20-C23) |
 
 ## Workstream D — Canonical action format + differential testing
 
@@ -70,7 +71,8 @@ maps requirements onto.
 |---|---|---|---|
 | Original excessive value never executes; only the clamp does (independently verified hash) | **IMPLEMENTED** | 71A | `assurance/tests/test_constraint_enforcement.py` (F1–F4) |
 | Resubmitting the original value as "constrained" is refused | **IMPLEMENTED** | 71A | `test_f4_resubmitting_the_original_excessive_amount_as_constrained_is_refused` |
-| Constraint types beyond `max_body.amount` (e.g. `allowed_*`, `min_*` in this deployment) | **NOT IMPLEMENTED** — only the one configured constraint is exercised | 71A | — |
+| Constraint types beyond `max_body.amount` on THIS actuator's own HTTP-egress constraint config specifically | **NOT IMPLEMENTED** — only the one configured constraint is exercised at the actuator; the actuator ships no `min_`/`allowed_` constraint of its own to attack | 71A | — |
+| Constraint types beyond `max_` in general (`min_`, `allowed_`), via the mandate authority's identical constraint convention | **IMPLEMENTED** — see Workstream C's C20-C23 above; the mandate path shares the exact same `mcc_core.authority._constraint_violations`/`apply_constraints` mechanism the actuator uses, so this is genuine coverage of the mechanism, not a different one | 71A | `assurance/tests/test_mandate_containment.py` (C20-C23) |
 
 ## Workstream G — Audit survivability
 
@@ -166,9 +168,9 @@ maps requirements onto.
 
 ## Summary counts (at the point this matrix was written)
 
-- **IMPLEMENTED:** the large majority of line items — every workstream has real, passing, black-box tests against a live 3-process deployment.
-- **PARTIALLY IMPLEMENTED:** 8 line items (D's corpus exhaustiveness, C's mandate path, H's seed persistence, I's PlusCal, K's 4/5 adapters, L's exact CLI interface + unexercised external mode, CI's required-status-check, D-and-elsewhere's "beyond what's tested" caveats).
-- **NOT IMPLEMENTED:** 6 line items (network-segmentation proof, `EXECUTION_UNKNOWN` external observability, mandate forgery containment, constraint types beyond one, signed external audit checkpoints, PlusCal, external-mode live exercise).
+- **IMPLEMENTED:** the large majority of line items — every workstream has real, passing, black-box tests against a live 3-process deployment. As of the mandate-containment closure work, this now also includes genuine mandate-forgery containment (C9-C18) and `min_`/`allowed_` constraint types (C20-C23), both previously NOT IMPLEMENTED — see `assurance/tests/test_mandate_containment.py`.
+- **PARTIALLY IMPLEMENTED:** 7 line items (D's corpus exhaustiveness, H's seed persistence, I's PlusCal, K's 4/5 adapters, L's exact CLI interface + unexercised external mode, CI's required-status-check, D-and-elsewhere's "beyond what's tested" caveats).
+- **NOT IMPLEMENTED:** 5 line items (network-segmentation proof, `EXECUTION_UNKNOWN` external observability, signed external audit checkpoints, PlusCal, external-mode live exercise — mandate forgery containment and constraint types beyond one are now IMPLEMENTED, moved out of this count).
 - **BLOCKED BY ENVIRONMENT:** 4 line items (multi-node E, Redis failover, network partition, production-scale I) — all explicitly infrastructure-gated, not skipped by choice.
 - **NOT VERIFIED IN CI:** the entire CI workflow (0 real GitHub Actions runs as of this report) and the 4 framework-dependent Workstream K adapters (0 confirmed passing runs anywhere, local or CI).
 

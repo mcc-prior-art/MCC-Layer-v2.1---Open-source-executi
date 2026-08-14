@@ -16,6 +16,9 @@ configured from environment variables written by the harness:
     MCC_REQUIRE_CHALLENGE=1      gateway-issued single-use challenge
     MCC_INTEROP_NOTIFY_BASE      loopback URL of the mock upstream service
     MCC_INTEROP_API_KEY / MCC_INTEROP_OPERATOR_KEY
+    MCC_TRUST_CONFIG             optional signed-mandate issuer trust set (PR #71
+                                  Workstream C mandate-forgery-containment tests;
+                                  absent by default -- see mandate/trust.py)
 
 No adapter-specific behavior lives here: this is the one shared Gateway for all five
 adapters.
@@ -54,6 +57,8 @@ def build_app() -> FastAPI:
         "MCC_REQUIRE_CONSENSUS": os.environ.get("MCC_REQUIRE_CONSENSUS", "1"),
         "MCC_REQUIRE_CHALLENGE": os.environ.get("MCC_REQUIRE_CHALLENGE", "1"),
     }
+    if "MCC_TRUST_CONFIG" in os.environ:
+        env["MCC_TRUST_CONFIG"] = os.environ["MCC_TRUST_CONFIG"]
     service = build_governance_service(
         engine=gw.engine, signing_key=gw.signing_key, audit=gw.audit,
         policy_hash=gw.policy_hash, token_audience=gwmod.settings.token_audience,

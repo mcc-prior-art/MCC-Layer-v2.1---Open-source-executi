@@ -96,6 +96,8 @@ class SystemUnderTest:
     _actuator_evaluators: List[Any] = field(default_factory=list)
     _actuator_policy_hash: str = ""
     _gateway_harness: Any = None
+    _mandate_issuer_key: Any = None
+    _mandate_issuer_id: str = ""
     _threshold: int = 3
     max_amount: Optional[int] = None
 
@@ -159,6 +161,67 @@ class SystemUnderTest:
         sig = tampered["sig"]
         tampered["sig"] = sig[:-4] + ("AAAA" if not sig.endswith("AAAA") else "BBBB")
         return tampered
+
+    def issue_mandate(self, *, subject: str, action_scope: List[str], resource_scope: List[str],
+                       constraints: Optional[Dict[str, Any]] = None, not_before: int = 0,
+                       not_after: int = FAR_FUTURE, revocation_required: bool = False,
+                       mandate_id: Optional[str] = None) -> Dict[str, Any]:
+        """Mint a GENUINE, correctly signed mandate from the Gateway's own
+        trusted issuer key (the private half never leaves this process --
+        the Gateway subprocess only ever received the PUBLIC half via the
+        ``MCC_TRUST_CONFIG`` file ``build_system_under_test`` wrote). This
+        is the positive baseline Workstream C's C8 test documented as
+        absent; ``forge_mandate``/``tamper_mandate`` below are its
+        adversarial counterparts, over the SAME trust configuration."""
+        from mcc_core.mandate import issue_mandate as _issue
+
+        return _issue(
+            self._mandate_issuer_key, issuer=self._mandate_issuer_id, subject=subject,
+            action_scope=action_scope, resource_scope=resource_scope,
+            constraints=constraints, not_before=not_before, not_after=not_after,
+            revocation_required=revocation_required, mandate_id=mandate_id,
+        )
+
+    def forge_mandate(self, *, subject: str, action_scope: List[str], resource_scope: List[str],
+                       constraints: Optional[Dict[str, Any]] = None, not_before: int = 0,
+                       not_after: int = FAR_FUTURE,
+                       issuer_id: str = "self-appointed-mandate-issuer") -> Dict[str, Any]:
+        """Mint one syntactically valid, correctly bound, but UNTRUSTED
+        mandate -- signed with a freshly generated key never registered in
+        the Gateway's mandate trust config. Same attacker-tooling posture
+        as ``forge_vote``: only public primitives, never the SUT's real
+        issuer key."""
+        from mcc_core.mandate import issue_mandate as _issue
+        from mcc_core.signing import SigningKey
+
+        forger = SigningKey.generate(f"{issuer_id}-key")
+        return _issue(
+            forger, issuer=issuer_id, subject=subject, action_scope=action_scope,
+            resource_scope=resource_scope, constraints=constraints,
+            not_before=not_before, not_after=not_after,
+        )
+
+    @staticmethod
+    def tamper_mandate(mandate: Dict[str, Any], **claim_overrides: Any) -> Dict[str, Any]:
+        """Take a GENUINELY signed mandate and rewrite one or more claims
+        after the fact (e.g. ``subject=`` a different actor, or a widened
+        ``action_scope``) WITHOUT re-signing -- the signature no longer
+        covers the mutated claims, so verification must fail. Proves the
+        Gateway checks the signature over the claims actually used, not
+        merely "a valid signature was present somewhere"."""
+        tampered = dict(mandate)
+        tampered.update(claim_overrides)
+        return tampered
+
+    def revoke_mandate(self, mandate_id: str) -> bool:
+        """Revoke a mandate through the Gateway's real, operator-authenticated
+        ``POST /mandates/{id}/revoke`` -- the same HTTP surface a real
+        operator would use, never a direct call into the revocation
+        registry object."""
+        r = httpx.post(f"{self.gateway_url}/mandates/{mandate_id}/revoke",
+                        headers={"x-operator-key": self.operator_key}, timeout=10.0)
+        r.raise_for_status()
+        return bool(r.json()["ok"])
 
     def notification_receipt_count(self) -> int:
         return httpx.get(f"{self.notify_url}/receipts", timeout=5.0).json()["count"]
@@ -361,7 +424,8 @@ def _generate_trust_config(evaluators) -> str:
 
 
 def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
-                             max_amount: Optional[int] = None) -> SystemUnderTest:
+                             max_amount: Optional[int] = None,
+                             require_consensus: bool = True) -> SystemUnderTest:
     """Boot the three real subprocesses and return a live SystemUnderTest.
     Caller is responsible for ``.close()`` (or use as a context manager).
 
@@ -373,7 +437,20 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
     field rule), which would turn every such proposal from ALLOW into DENY.
     Workstream F (``assurance/tests/test_constraint_enforcement.py``) builds
     its OWN isolated SUT with ``max_amount`` set, rather than mutating the
-    shared session-scoped fixture every other workstream also depends on."""
+    shared session-scoped fixture every other workstream also depends on.
+
+    ``require_consensus`` is True (matching every other workstream's shared
+    Gateway topology) by default. The Gateway's ``EnforcementCoordinator``
+    requires N-of-M consensus at the coordinator UNCONDITIONALLY when this
+    is set -- for EVERY authority source, including a genuinely verified
+    signed mandate (``execute_with_mandate`` never supplies consensus
+    votes; see ``coordinator.py``'s ``require_consensus`` gate) -- so a
+    deployment testing mandate-authority ALONE (Workstream C's
+    ``test_mandate_containment.py``) passes ``require_consensus=False``
+    here, exactly mirroring how the existing ``tests/test_mandate_http.py``
+    constructs its own coordinator (``EnforcementCoordinator``'s default is
+    already ``require_consensus=False``) -- a legitimate, precedented
+    alternative deployment topology, not a workaround."""
     from mcc_core.signing import SigningKey
 
     tmpdir = tempfile.mkdtemp(prefix="mcc-assurance-")
@@ -398,7 +475,34 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
     from tests.interoperability.harness import OPERATOR_KEY as GATEWAY_OPERATOR_KEY
     from tests.interoperability.harness import SharedGovernedGateway
 
-    gw = SharedGovernedGateway(n_evaluators=n_evaluators, threshold=threshold)
+    # A genuine, trusted signed-mandate issuer for the Gateway's own
+    # /mandates/* API (Workstream C mandate-forgery-containment: see
+    # SystemUnderTest.issue_mandate/forge_mandate/tamper_mandate below).
+    # This is the ONLY place this key's private half exists; the trust
+    # config written to disk carries only its PUBLIC half, exactly the
+    # config/trust.pilot.example.json convention a real operator would use.
+    mandate_issuer_key = SigningKey.generate("assurance-mandate-issuer-2026a")
+    mandate_issuer_id = "assurance-mandates"
+    mandate_trust_path = os.path.join(tmpdir, "mandate_trust.json")
+    with open(mandate_trust_path, "w", encoding="utf-8") as f:
+        json.dump({"issuers": [{
+            "issuer_id": mandate_issuer_id, "enabled": True,
+            "keys": [{"kid": mandate_issuer_key.kid,
+                      "public_key_b64": mandate_issuer_key.public_key_b64(),
+                      "not_after": None}],
+        }]}, f)
+
+    gateway_extra_env = {"MCC_TRUST_CONFIG": mandate_trust_path}
+    if not require_consensus:
+        # A mandate-authority-only deployment topology (see the
+        # require_consensus docstring above): the coordinator's mandatory
+        # consensus/challenge gates are an orthogonal OPERATIONAL policy
+        # from which authority source is used, and execute_with_mandate
+        # never supplies consensus evidence.
+        gateway_extra_env["MCC_REQUIRE_CONSENSUS"] = "0"
+        gateway_extra_env["MCC_REQUIRE_CHALLENGE"] = "0"
+    gw = SharedGovernedGateway(n_evaluators=n_evaluators, threshold=threshold,
+                                extra_env=gateway_extra_env)
 
     # -- actuator (the real protected egress_proxy executor) -------------
     actuator_evaluators = [SigningKey.generate(f"assurance-eval-{i}") for i in range(n_evaluators)]
@@ -432,6 +536,8 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
     )
     sut._actuator_policy_hash = actuator_policy_hash  # type: ignore[attr-defined]
     sut._gateway_harness = gw  # type: ignore[attr-defined]  # kept alive; closed by SystemUnderTest.close()
+    sut._mandate_issuer_key = mandate_issuer_key  # type: ignore[attr-defined]
+    sut._mandate_issuer_id = mandate_issuer_id  # type: ignore[attr-defined]
     original_close = sut.close
 
     def close_all() -> None:

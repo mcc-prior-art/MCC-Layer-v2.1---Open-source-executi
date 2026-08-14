@@ -75,13 +75,25 @@ reconstruct it from scattered comments. Read this together with
   HTTP API. `docs/EXECUTION_STATE_MACHINE.md` documents this as an
   implementation choice (a stronger, more conservative guarantee than the
   full 8-state model requires), not a gap.
-- **The actuator's mandate-issuer trust is not configured.** Workstream C
-  (`test_c8_mandate_execute_fails_closed_when_no_mandate_authority_is_configured`)
-  proves `/mandates/execute` fails closed with NO mandate authority
-  configured at all — it does NOT prove genuine-vs-forged SIGNED MANDATE
-  containment, because there is no genuinely-trusted mandate path in this
-  SUT to compare a forged one against. Only the consensus authority path
-  is exercised end-to-end.
+- **Genuine mandate-forgery containment is now exercised**
+  (`assurance/tests/test_mandate_containment.py`, C9-C23), closing what was
+  previously a stated gap. A real mandate issuer trust config
+  (`MCC_TRUST_CONFIG`) is provisioned on a dedicated, mandate-authority-only
+  Gateway topology (`build_system_under_test(require_consensus=False)` —
+  the shared topology's `EnforcementCoordinator` requires N-of-M consensus
+  unconditionally for every actuation, which the mandate HTTP API never
+  supplies, so mandate-only authority needs its own topology; see that
+  file's module docstring). Genuine mandates execute (C9); forged
+  (untrusted issuer), tampered-after-signing, expired, not-yet-valid,
+  subject-substituted, scope-mismatched, and revoked mandates are all
+  denied (C10-C18); `max_`/`min_`/`allowed_` constraint types are proven on
+  the mandate path too (C20-C23), the first coverage in this baseline of
+  constraint types beyond the actuator's `max_body.amount`. On the SHARED
+  (`require_consensus=True`) topology, `/mandates/execute` still fails
+  closed for every mandate regardless of trust configuration, because that
+  topology's mandatory consensus gate blocks it independently of mandate
+  validity — a real, different, and now correctly documented limitation
+  (`test_c8_mandate_execute_fails_closed_on_the_consensus_required_topology`).
 - **The negative control is deliberately minimal**, not a second
   implementation of `egress_proxy` with one bug — it removes FOUR
   invariants at once (auth, SSRF, consensus, replay) for clarity. It

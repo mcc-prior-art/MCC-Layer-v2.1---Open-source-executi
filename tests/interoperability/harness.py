@@ -105,10 +105,12 @@ class SharedGovernedGateway:
     runs the mock upstream in-process so the out-of-process Gateway calls it over
     loopback — exactly as a real deployment would."""
 
-    def __init__(self, *, n_evaluators: int = 3, threshold: int = 3) -> None:
+    def __init__(self, *, n_evaluators: int = 3, threshold: int = 3,
+                 extra_env: Optional[Dict[str, str]] = None) -> None:
         reset_receipts()
         self.profiles = ProfileRegistry.default_pilot()
         self._threshold = threshold
+        self._extra_env = dict(extra_env or {})
         self._tmp = tempfile.mkdtemp(prefix="interop-")
 
         # Mock upstream (the governed side effect target) on a real loopback port.
@@ -151,6 +153,7 @@ class SharedGovernedGateway:
             "MCC_INTEROP_API_KEY": API_KEY,
             "MCC_INTEROP_OPERATOR_KEY": OPERATOR_KEY,
         }
+        env.update(self._extra_env)
         return subprocess.Popen(
             [sys.executable, "-m", "tests.interoperability._gateway_process",
              "--port", str(self.port)],
