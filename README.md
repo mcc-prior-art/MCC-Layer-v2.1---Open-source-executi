@@ -57,6 +57,8 @@
   <a href="#decision-token-structure">Token</a>
   ·
   <a href="#proof-of-concept--first-run-gate-verification">Verification</a>
+  ·
+  <a href="#reproduce-the-assurance-baseline">Reproduce</a>
 </p>
 
 ---
@@ -116,6 +118,32 @@ Its reference runtime was implemented with an AI coding agent, tested against do
 **Evidence:** [PR #4 — Runtime Upgrade Merge](https://github.com/mcc-prior-art/mcc-layer/pull/4)
 
 Runtime upgrade record: PR #4 merged as commit `32d4d3a`, extending the reference runtime with a bounded 10,000-entry cache invariant under public CI verification.
+
+---
+
+## Reproduce the Assurance Baseline
+
+Don't take the claims below on faith — run them yourself, from a clean
+checkout, at a pinned commit:
+
+```bash
+git clone https://github.com/mcc-prior-art/mcc-layer
+cd mcc-layer
+git checkout <commit-sha>   # pin the exact commit you intend to verify
+pip install -r requirements.txt -r requirements-dev.txt
+make verify-assurance
+```
+
+Full prerequisites, the exact checkout procedure, what each stage covers,
+expected results, the documented verified scope and its limitations, and
+how to propose additional bypass tests or mutants:
+**[docs/REPRODUCING_ASSURANCE.md](docs/REPRODUCING_ASSURANCE.md)**.
+
+This is a self-administered test suite run by this project, not a
+third-party audit, and it does not establish universal safety — it verifies
+a specific, documented, finite set of properties at the commit you check
+out. See that document's own "Verified scope and limitations" section for
+the exact, non-overstated claim.
 
 ---
 

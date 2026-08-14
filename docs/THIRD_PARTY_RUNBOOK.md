@@ -1,9 +1,29 @@
 # Third-Party Runbook — running the Independent Assurance Baseline yourself (PR #71)
 
+> **For the current, single-command reproduction path** (`make
+> verify-assurance`, with exact prerequisites, a pinned-commit checkout
+> procedure, expected results, and the documented verified scope), see
+> **[docs/REPRODUCING_ASSURANCE.md](REPRODUCING_ASSURANCE.md)**. This
+> document remains useful for its "Mode 2" external-target instructions and
+> its `MCC_ASSURANCE_*` environment-variable reference, which
+> `REPRODUCING_ASSURANCE.md` does not duplicate — nothing here has been
+> removed. Read the note below on this document's title before treating
+> anything in it as third-party evidence, though: this repository has never
+> been run by an unaffiliated third party, and nothing in either document
+> claims otherwise.
+
 This document is for someone who did **not** write this code and wants to
 verify its claims independently — the necessary (but not sufficient, see
 ["What this is not"](#what-this-is-not) below) starting point for genuine
-independent certification.
+independent certification. **"Third-party" in the title names who this
+runbook is written for (a reader who is not this project), not a claim
+about who has produced any evidence using it.** No test result, evidence
+bundle, or claim anywhere in this repository has been produced or operated
+by an unaffiliated third party — every run to date, including any cited
+elsewhere in this repository's docs or PR history, was performed by this
+project itself. Calling that evidence "third-party" or "independent" would
+be false; it is self-administered, and is described that way in
+`docs/REPRODUCING_ASSURANCE.md`.
 
 ## Prerequisites
 
@@ -58,10 +78,16 @@ have the public half of (unsigned bundles verify as `INTACT`; signed but
 untrusted-key bundles verify as `INTACT_UNTRUSTED_SIGNER`, not `INVALID` —
 a tampered bundle is the only case that reports `INVALID`).
 
-## Mode 2 — external target (the genuine third-party mode)
+## Mode 2 — external target (pointing the suite at a deployment you provisioned)
 
 Point the suite at a deployment YOU control and did not have this session
-provision — the mode that actually matters for independent verification.
+provision. This is the mechanism a genuinely independent reviewer would
+need — but using this mode yourself does not, by itself, produce
+third-party or independent evidence; it is still you (or this project)
+running this project's own test suite. It becomes genuine third-party
+verification only when the person running it is the unaffiliated reviewer
+described in ["What this is not"](#what-this-is-not) below, on infrastructure
+they control, publishing their own signed findings.
 
 Set `MCC_ASSURANCE_EXTERNAL=1` plus:
 
