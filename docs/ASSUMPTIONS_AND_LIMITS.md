@@ -77,27 +77,46 @@ reconstruct it from scattered comments. Read this together with
   this baseline, but it means TLC's "no error found" is a claim about
   those specific bounded instances, not an inductive proof for arbitrary
   N. See `model/MCCExecutionStateMachine.tla`'s module docstring.
-- **Workstream J (mutation testing) covers 13 hand-picked defects**, not
-  an exhaustive mutation operator sweep across the codebase. 13/13 are
-  detected — see `mutation/defects.py`. A 14th, unimagined defect class
-  is untested by construction. **A genuine generic sweep was ALSO run**
-  (`mutmut` -- installed and configured, `[tool.mutmut]` in
-  `pyproject.toml`): 225 AST-level mutants against `src/mcc_core/gate.py`
-  (the single most security-critical file), against a narrow, fast oracle
-  (`tests/test_coordinator.py` alone, chosen for speed) — 97 killed, 128
-  survived. Manually spot-checking one flagged, security-relevant
-  survivor (a `GateResult` `False`→`True` flip on the non-executable-
-  verdict check) against the REAL, FULL existing test suite showed it IS
-  actually caught (`tests/test_mcc_core.py::
-  test_gate_denies_signed_deny_verdict`) — the raw 128-survivor count
-  materially OVERSTATES real coverage gaps because the fast oracle used
-  for the sweep itself was narrower than the full suite. A complete,
-  properly-triaged run (every relevant test file as oracle, all 128
-  survivors individually reviewed) was not completed — running the full
-  suite inside `mutmut`'s `mutants/` sandbox hit `main.py`-relative-
-  import friction, and manually triaging 128 individual survivors was not
-  attempted given the time this would take. This is genuine tool output
-  from a real run, not fabricated, but it is a narrowly-scoped
+- **Workstream J (mutation testing) covers 26 hand-picked defects** (the
+  original 13, plus a later 13-defect extension — see below), not an
+  exhaustive mutation operator sweep across the codebase. 26/26 are
+  detected — see `mutation/defects.py`. A defect class nobody has
+  imagined yet is still untested by construction. **A genuine generic
+  sweep was ALSO run** (`mutmut` -- installed and configured,
+  `[tool.mutmut]` in `pyproject.toml`): 225 AST-level mutants against
+  `src/mcc_core/gate.py` (the single most security-critical file), against
+  a narrow, fast oracle (`tests/test_coordinator.py` alone, chosen for
+  speed) — 97 killed, 128 survived. A second, broadened-but-still-partial
+  oracle (9 test files collectable inside mutmut's sandbox) raised this to
+  116 killed / 109 survived. Of the ~225 generic mutants, the large
+  majority are behaviorally inert by construction (`allowed: False→None`,
+  `reason: str→None`/arg-drop mutants that crash into the gate's own
+  `except Exception` catch-all, cosmetic string-literal recasing, unasserted
+  numeric-constant tweaks) — not real coverage gaps.
+  The one mutant *shape* that IS a genuine security regression is
+  `GateResult(False, ...)` → `GateResult(True, ...)` (a fail-open flip).
+  There are exactly 14 such call sites in `ExecutionGate._verify()`/
+  `verify()`. A pre-merge direct-verification addendum applied each of the
+  14 to the real (non-sandboxed) `gate.py` one at a time, reverting after
+  each, against a real 7-file oracle (`tests/test_mcc_core.py`,
+  `tests/test_gateway.py`, `tests/test_coordinator.py`,
+  `tests/test_mandate.py`, `tests/test_mandate_http.py`,
+  `assurance/tests/test_exclusive_execution_path.py`,
+  `assurance/tests/test_decision_authority_containment.py`) and found
+  12/14 caught — 2 survived (the `verify()` exception handler, and the
+  `nbf`/`exp` type-check). **Both gaps are now closed**: two new
+  regression tests were added
+  (`tests/test_mcc_core.py::test_gate_denies_when_verify_raises_unexpectedly`
+  and `tests/test_mcc_core.py::test_gate_denies_malformed_time_window`),
+  and all 14 fail-open sites are now permanent, individually-named,
+  CI-gated defects in `mutation/defects.py` (the `gate-*-fail-open`
+  block), each verified via the isolated-repo-copy harness rather than
+  mutmut's sandbox or a hand-run script — 14/14 detected, reproducibly, in
+  `python -m mutation` / `python -m assurance run` going forward. The
+  remaining ~211 generic survivors (the inert categories above) were not
+  individually re-triaged one-by-one; that would be a much larger, lower-
+  value undertaking than closing the 2 real gaps was, since none of them
+  represent an unaudited fail-open shape. This remains a narrowly-scoped
   demonstration that generic mutation testing IS achievable here, not a
   comprehensive codebase-wide sweep.
 - **Workstream H (property-based testing) uses bounded example counts**

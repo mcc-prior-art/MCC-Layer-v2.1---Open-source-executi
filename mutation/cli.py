@@ -1,7 +1,8 @@
-"""``python -m mutation`` -- run all 13 targeted mutations and report the
-mutation score (PR #71, Workstream J).
+"""``python -m mutation`` -- run all targeted mutations and report the
+mutation score (PR #71, Workstream J; 26 defects as of the gate.py
+fail-open matrix extension -- see mutation/defects.py).
 
-    python -m mutation                       # human + JSON summary, exit 0 iff 13/13 detected
+    python -m mutation                       # human + JSON summary, exit 0 iff all detected
     python -m mutation --output report.json   # also write the full report
 
 Exit code is 0 only when every defect was DETECTED; 1 if any survived. This

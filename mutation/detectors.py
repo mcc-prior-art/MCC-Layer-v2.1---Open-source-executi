@@ -26,8 +26,12 @@ gap masked to inflate a score:
 
 Kept as its own small module (not inside ``assurance/``) because these are
 neither black-box SUT tests nor a good fit for the existing ``tests/``
-suite's own fixtures -- they exist specifically to give Workstream J's 13
-targeted mutations complete, honest detection coverage.
+suite's own fixtures -- they exist specifically to give Workstream J's
+original 13 targeted mutations complete, honest detection coverage. (A
+later 13-defect extension covering the rest of ``gate.py``'s fail-open
+sites uses ``tests/test_mcc_core.py``/``tests/test_coordinator.py``
+directly instead -- see ``mutation/defects.py``'s ``gate-*-fail-open``
+block and module docstring.)
 """
 
 from __future__ import annotations
