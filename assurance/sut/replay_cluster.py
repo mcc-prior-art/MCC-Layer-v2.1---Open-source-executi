@@ -42,6 +42,14 @@ import httpx
 
 from assurance.sut.harness import FAR_FUTURE, REPO_ROOT, _Process, _wait_ready, free_port
 
+# ``iptables`` requires CAP_NET_ADMIN/CAP_NET_RAW. This process runs as root
+# in some environments (this session's sandbox) and as an unprivileged user
+# with passwordless sudo in others (GitHub Actions' ubuntu-latest runners,
+# which already use ``sudo apt-get install`` elsewhere in this same
+# workflow) -- prepend ``sudo -n`` only when not already root (see
+# ``assurance/sut/network_segmentation.py``'s identical pattern and rationale).
+_PRIV: List[str] = [] if os.geteuid() == 0 else ["sudo", "-n"]
+
 
 class RedisUnavailableError(RuntimeError):
     """The dedicated test Redis instance did not come up in time."""
@@ -150,7 +158,7 @@ class ReplayResistanceCluster:
         ``heal_partition()`` in a ``finally`` block -- this is a host-wide
         firewall rule, not scoped to a network namespace."""
         subprocess.run(
-            ["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", str(self.redis_port), "-j", "DROP"],
+            _PRIV + ["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", str(self.redis_port), "-j", "DROP"],
             check=True, capture_output=True,
         )
 
@@ -160,7 +168,7 @@ class ReplayResistanceCluster:
         at most once; failure is not raised so cleanup in a ``finally``
         block can never itself mask the original test failure)."""
         subprocess.run(
-            ["iptables", "-D", "OUTPUT", "-p", "tcp", "--dport", str(self.redis_port), "-j", "DROP"],
+            _PRIV + ["iptables", "-D", "OUTPUT", "-p", "tcp", "--dport", str(self.redis_port), "-j", "DROP"],
             check=False, capture_output=True,
         )
 
