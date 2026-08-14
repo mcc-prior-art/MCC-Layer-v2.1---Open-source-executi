@@ -73,10 +73,24 @@ ACTUATOR_HOST_SIDE_IP = "10.201.0.2"
 ACTUATOR_UPSTREAM_SIDE_IP = "10.201.1.1"
 UPSTREAM_IP = "10.201.1.2"
 
+# ``ip netns``/``ip link`` require CAP_NET_ADMIN. This process runs as root in
+# some environments (this session's sandbox) and as an unprivileged user with
+# passwordless sudo in others (GitHub Actions' ubuntu-latest runners, which
+# already use ``sudo apt-get install`` elsewhere in this same workflow) --
+# prepend ``sudo -n`` only when not already root, and fail fast (``-n``,
+# non-interactive) rather than hang on a password prompt if sudo isn't
+# actually passwordless.
+_PRIV: List[str] = [] if os.geteuid() == 0 else ["sudo", "-n"]
+
+
+def _ip(*args: str) -> List[str]:
+    return _PRIV + ["ip", *args]
+
 
 class NetnsUnavailableError(RuntimeError):
     """``ip netns``/veth setup failed -- this environment cannot build the
-    segmented topology (e.g. no ``CAP_NET_ADMIN``, no ``iproute2``)."""
+    segmented topology (e.g. no ``CAP_NET_ADMIN``, no ``iproute2``, no
+    passwordless ``sudo``)."""
 
 
 def _run(cmd: List[str], *, timeout: float = 10.0) -> None:
@@ -98,7 +112,7 @@ def _wait_ready_curl(*, netns: Optional[str], url: str, timeout: float = 30.0) -
     ``ip netns exec``) -- ``httpx`` in THIS process cannot reach addresses
     that only exist inside another namespace, so waiting must happen from
     inside that namespace too."""
-    cmd = (["ip", "netns", "exec", netns] if netns else []) + [
+    cmd = (_ip("netns", "exec", netns) if netns else []) + [
         "curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "2", url,
     ]
     deadline = time.time() + timeout
@@ -181,8 +195,8 @@ class SegmentedTopology:
 
     def receipt_count_privileged(self) -> int:
         r = subprocess.run(
-            ["ip", "netns", "exec", self.ns_upstream, "curl", "-sS", "--max-time", "3",
-             f"{self.upstream_private_url}/receipts"],
+            _ip("netns", "exec", self.ns_upstream, "curl", "-sS", "--max-time", "3",
+                f"{self.upstream_private_url}/receipts"),
             capture_output=True, text=True, timeout=5.0,
         )
         if r.returncode != 0:
@@ -221,9 +235,9 @@ class SegmentedTopology:
         # Deleting the namespaces also tears down every veth leg that lives
         # inside them; the host-side leg is deleted explicitly since one end
         # of a veth pair always survives in whichever namespace was NOT removed.
-        _run_ok(["ip", "netns", "del", self.ns_actuator])
-        _run_ok(["ip", "netns", "del", self.ns_upstream])
-        _run_ok(["ip", "link", "del", self.veth_host_side])
+        _run_ok(_ip("netns", "del", self.ns_actuator))
+        _run_ok(_ip("netns", "del", self.ns_upstream))
+        _run_ok(_ip("link", "del", self.veth_host_side))
 
     def __enter__(self) -> "SegmentedTopology":
         return self
@@ -235,16 +249,21 @@ class SegmentedTopology:
 def _check_prereqs() -> None:
     if not _run_ok(["ip", "-V"]):
         raise NetnsUnavailableError("iproute2 ('ip') is not available in this environment")
+    if _PRIV and not _run_ok(["sudo", "-n", "true"]):
+        raise NetnsUnavailableError(
+            "not running as root and passwordless sudo is unavailable -- "
+            "CAP_NET_ADMIN cannot be obtained to build a genuine network-segmented topology"
+        )
     # A throwaway create/delete proves CAP_NET_ADMIN is genuinely available,
     # not merely that the binary exists -- fail closed with a clear reason
     # rather than a confusing failure three steps into real provisioning.
     probe_ns = f"mcc-assurance-probe-{uuid.uuid4().hex[:8]}"
-    if not _run_ok(["ip", "netns", "add", probe_ns]):
+    if not _run_ok(_ip("netns", "add", probe_ns)):
         raise NetnsUnavailableError(
             "'ip netns add' failed -- CAP_NET_ADMIN (or root) is required to build "
             "a genuine network-segmented topology; this environment/user cannot"
         )
-    _run_ok(["ip", "netns", "del", probe_ns])
+    _run_ok(_ip("netns", "del", probe_ns))
 
 
 def build_segmented_topology(*, n_evaluators: int = 3, threshold: int = 3) -> SegmentedTopology:
@@ -266,50 +285,63 @@ def build_segmented_topology(*, n_evaluators: int = 3, threshold: int = 3) -> Se
 
     created: List[str] = []
     try:
-        _run(["ip", "netns", "add", ns_actuator]); created.append("ns_actuator")
-        _run(["ip", "netns", "add", ns_upstream]); created.append("ns_upstream")
+        _run(_ip("netns", "add", ns_actuator)); created.append("ns_actuator")
+        _run(_ip("netns", "add", ns_upstream)); created.append("ns_upstream")
 
-        _run(["ip", "link", "add", veth_host, "type", "veth", "peer", "name", veth_act_h])
-        _run(["ip", "link", "add", veth_act_up, "type", "veth", "peer", "name", veth_up_act])
-        _run(["ip", "link", "set", veth_act_h, "netns", ns_actuator])
-        _run(["ip", "link", "set", veth_act_up, "netns", ns_actuator])
-        _run(["ip", "link", "set", veth_up_act, "netns", ns_upstream])
+        _run(_ip("link", "add", veth_host, "type", "veth", "peer", "name", veth_act_h))
+        _run(_ip("link", "add", veth_act_up, "type", "veth", "peer", "name", veth_up_act))
+        _run(_ip("link", "set", veth_act_h, "netns", ns_actuator))
+        _run(_ip("link", "set", veth_act_up, "netns", ns_actuator))
+        _run(_ip("link", "set", veth_up_act, "netns", ns_upstream))
 
         # host <-> actuator-netns
-        _run(["ip", "addr", "add", f"{HOST_IP}/30", "dev", veth_host])
-        _run(["ip", "link", "set", veth_host, "up"])
-        _run(["ip", "netns", "exec", ns_actuator, "ip", "addr", "add", f"{ACTUATOR_HOST_SIDE_IP}/30", "dev", veth_act_h])
-        _run(["ip", "netns", "exec", ns_actuator, "ip", "link", "set", veth_act_h, "up"])
+        _run(_ip("addr", "add", f"{HOST_IP}/30", "dev", veth_host))
+        _run(_ip("link", "set", veth_host, "up"))
+        _run(_ip("netns", "exec", ns_actuator, "ip", "addr", "add", f"{ACTUATOR_HOST_SIDE_IP}/30", "dev", veth_act_h))
+        _run(_ip("netns", "exec", ns_actuator, "ip", "link", "set", veth_act_h, "up"))
 
         # actuator-netns <-> upstream-netns
-        _run(["ip", "netns", "exec", ns_actuator, "ip", "addr", "add", f"{ACTUATOR_UPSTREAM_SIDE_IP}/30", "dev", veth_act_up])
-        _run(["ip", "netns", "exec", ns_actuator, "ip", "link", "set", veth_act_up, "up"])
-        _run(["ip", "netns", "exec", ns_upstream, "ip", "addr", "add", f"{UPSTREAM_IP}/30", "dev", veth_up_act])
-        _run(["ip", "netns", "exec", ns_upstream, "ip", "link", "set", veth_up_act, "up"])
+        _run(_ip("netns", "exec", ns_actuator, "ip", "addr", "add", f"{ACTUATOR_UPSTREAM_SIDE_IP}/30", "dev", veth_act_up))
+        _run(_ip("netns", "exec", ns_actuator, "ip", "link", "set", veth_act_up, "up"))
+        _run(_ip("netns", "exec", ns_upstream, "ip", "addr", "add", f"{UPSTREAM_IP}/30", "dev", veth_up_act))
+        _run(_ip("netns", "exec", ns_upstream, "ip", "link", "set", veth_up_act, "up"))
 
-        _run(["ip", "netns", "exec", ns_actuator, "ip", "link", "set", "lo", "up"])
-        _run(["ip", "netns", "exec", ns_upstream, "ip", "link", "set", "lo", "up"])
+        _run(_ip("netns", "exec", ns_actuator, "ip", "link", "set", "lo", "up"))
+        _run(_ip("netns", "exec", ns_upstream, "ip", "link", "set", "lo", "up"))
 
         # The upstream namespace's ONLY route anywhere is through the
         # actuator's namespace -- deliberately no route back to the host's
         # default-namespace subnet at all, so this is not merely "unrouted
         # by convention," it is topologically absent.
-        _run(["ip", "netns", "exec", ns_upstream, "ip", "route", "add", "default", "via", ACTUATOR_UPSTREAM_SIDE_IP])
+        _run(_ip("netns", "exec", ns_upstream, "ip", "route", "add", "default", "via", ACTUATOR_UPSTREAM_SIDE_IP))
 
-        env_base = dict(os.environ)
-        env_base["PYTHONPATH"] = os.pathsep.join(
+        pythonpath = os.pathsep.join(
             filter(None, [str(REPO_ROOT / "src"), str(REPO_ROOT), str(REPO_ROOT / "sdk" / "python" / "src"),
-                           env_base.get("PYTHONPATH")])
+                           os.environ.get("PYTHONPATH")])
         )
+
+        def _popen_in_netns(ns: str, argv: List[str], *, extra_env: Dict[str, str]) -> subprocess.Popen:
+            # A ``sudo`` boundary (see ``_PRIV``) may reset the ambient
+            # environment by policy, dropping PYTHONPATH/etc before they'd
+            # reach the exec'd process -- forward the SPECIFIC vars needed
+            # explicitly via ``env KEY=VALUE ...`` inside the privileged
+            # command itself, which works regardless of sudoers' env_reset
+            # setting (never the whole ``os.environ`` -- keeps secrets out
+            # of the argv other host processes can observe via ``ps``).
+            all_env = {"PYTHONPATH": pythonpath, **extra_env}
+            assignments = [f"{k}={v}" for k, v in all_env.items()]
+            cmd = _ip("netns", "exec", ns, "env", *assignments, *argv)
+            return subprocess.Popen(cmd, cwd=str(REPO_ROOT))
 
         tmpdir = tempfile.mkdtemp(prefix="mcc-assurance-netseg-")
         upstream_port = free_port()
         actuator_port = free_port()
 
-        notify_proc = subprocess.Popen(
-            ["ip", "netns", "exec", ns_upstream, sys.executable, "-m", "assurance.sut.notify_process",
-             "--port", str(upstream_port), "--host", UPSTREAM_IP],
-            cwd=str(REPO_ROOT), env=env_base,
+        notify_proc = _popen_in_netns(
+            ns_upstream,
+            [sys.executable, "-m", "assurance.sut.notify_process", "--port", str(upstream_port),
+             "--host", UPSTREAM_IP],
+            extra_env={},
         )
         upstream_private_url = f"http://{UPSTREAM_IP}:{upstream_port}"
         _wait_ready_curl(netns=ns_actuator, url=f"{upstream_private_url}/health")
@@ -327,16 +359,17 @@ def build_segmented_topology(*, n_evaluators: int = 3, threshold: int = 3) -> Se
             json.dump(trust, f)
         audit_path = os.path.join(tmpdir, "actuator-audit.jsonl")
 
-        actuator_env = dict(env_base)
-        actuator_env["MCC_ASSURANCE_ACTUATOR_API_KEY"] = "assurance-netseg-actuator-key"
-        actuator_env["MCC_ASSURANCE_OPERATOR_KEY"] = "assurance-netseg-operator-key"
-        actuator_env["MCC_ASSURANCE_THRESHOLD"] = str(threshold)
-        actuator_proc = subprocess.Popen(
-            ["ip", "netns", "exec", ns_actuator, sys.executable, "-m", "assurance.sut.actuator_process",
-             "--port", str(actuator_port), "--host", ACTUATOR_HOST_SIDE_IP,
-             "--notify-base", upstream_private_url, "--trust-config", trust_path, "--audit-log", audit_path,
+        actuator_proc = _popen_in_netns(
+            ns_actuator,
+            [sys.executable, "-m", "assurance.sut.actuator_process", "--port", str(actuator_port),
+             "--host", ACTUATOR_HOST_SIDE_IP, "--notify-base", upstream_private_url,
+             "--trust-config", trust_path, "--audit-log", audit_path,
              "--allowed-hosts", UPSTREAM_IP, "--allow-private"],
-            cwd=str(REPO_ROOT), env=actuator_env,
+            extra_env={
+                "MCC_ASSURANCE_ACTUATOR_API_KEY": "assurance-netseg-actuator-key",
+                "MCC_ASSURANCE_OPERATOR_KEY": "assurance-netseg-operator-key",
+                "MCC_ASSURANCE_THRESHOLD": str(threshold),
+            },
         )
         actuator_url = f"http://{ACTUATOR_HOST_SIDE_IP}:{actuator_port}"
         _wait_ready_curl(netns=None, url=f"{actuator_url}/ready")
@@ -351,7 +384,7 @@ def build_segmented_topology(*, n_evaluators: int = 3, threshold: int = 3) -> Se
             _tmpdir=tmpdir, _actuator_proc=actuator_proc, _notify_proc=notify_proc, _evaluators=evaluators,
         )
     except Exception:
-        _run_ok(["ip", "netns", "del", ns_actuator])
-        _run_ok(["ip", "netns", "del", ns_upstream])
-        _run_ok(["ip", "link", "del", veth_host])
+        _run_ok(_ip("netns", "del", ns_actuator))
+        _run_ok(_ip("netns", "del", ns_upstream))
+        _run_ok(_ip("link", "del", veth_host))
         raise
