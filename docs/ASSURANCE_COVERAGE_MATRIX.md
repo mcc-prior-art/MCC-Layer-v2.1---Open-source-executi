@@ -37,7 +37,7 @@ maps requirements onto.
 | 8-state reference model with transition validator | **IMPLEMENTED** | 71A (model) / 71B (fault-injection test) | `assurance/state_machine.py` |
 | Real fault injection (not mocked) | **IMPLEMENTED** | 71B | `assurance/sut/harness.py::kill_notify/restart_notify` — genuine OS process kill/restart |
 | Proof no false EXECUTED under fault, no phantom receipt, exactly-once retry | **IMPLEMENTED** | 71B | `assurance/tests/test_execution_atomicity.py` (`test_b5`, `test_b6`) |
-| `EXECUTION_UNKNOWN` observable as a distinct, persistent caller-visible state | **NOT IMPLEMENTED** — this implementation resolves it synchronously | 71B | Documented as an implementation property, not a suite gap, in `docs/EXECUTION_STATE_MACHINE.md` |
+| `EXECUTION_UNKNOWN` observable as a distinct, persistent caller-visible state | **NOT IMPLEMENTED** — this implementation resolves it synchronously; CONFIRMED not a normative gap by direct comparison against `docs/INTEGRATION_CONTRACT.md`'s own binding lifecycle table (which has no `EXECUTION_UNKNOWN` state at all) — `EXECUTION_UNKNOWN` is exclusively a reference-model construct of this baseline's own `assurance/state_machine.py`/TLA+ model, not a contract requirement | 71B | `docs/ASSUMPTIONS_AND_LIMITS.md`; `docs/INTEGRATION_CONTRACT.md`'s lifecycle table |
 
 ## Workstream C — Decision authority containment
 

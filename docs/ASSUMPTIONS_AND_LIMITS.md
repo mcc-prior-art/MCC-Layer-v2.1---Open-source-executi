@@ -68,13 +68,23 @@ reconstruct it from scattered comments. Read this together with
   in-memory default) — a genuine, real code path (and the one this
   repository's own dev/pilot deployments use), but not the Redis-backed
   path a production multi-replica deployment would run under load.
-- **`EXECUTION_UNKNOWN` is never directly observable.** This
+- **`EXECUTION_UNKNOWN` is never directly observable, and this is
+  confirmed NOT a normative gap** (checked directly against
+  `docs/INTEGRATION_CONTRACT.md`'s own binding lifecycle table, which
+  defines `CREATED`/`VALIDATED`/`SUBMITTED`/`DECIDED`/`ESCALATED`/
+  `VERIFIED`/`ENFORCED`/`EXECUTING`/`COMPLETED`/`REFUSED`/`FAILED` and has
+  **no** `EXECUTION_UNKNOWN` state at all — its closest terminal state is
+  `FAILED` ("error/ambiguous"), not a distinct "unknown, come back later"
+  status). `EXECUTION_UNKNOWN` is exclusively a reference-model construct
+  of `assurance/state_machine.py`/`model/MCCExecutionStateMachine.tla`
+  (built for this baseline's own black-box and formal checks), not
+  something the actual contract requires this implementation to expose.
+  Production code is therefore correctly left unchanged here: this
   implementation's receipt-verifying executor resolves a transport
-  failure synchronously to `executed=false` within the same response — it
-  never exposes a persistent "unknown, come back later" status over the
-  HTTP API. `docs/EXECUTION_STATE_MACHINE.md` documents this as an
-  implementation choice (a stronger, more conservative guarantee than the
-  full 8-state model requires), not a gap.
+  failure synchronously to `executed=false` within the same response — a
+  stronger, more conservative guarantee than the reference model's 8
+  states technically require, not a gap against either the reference
+  model or (confirmed here) the normative contract.
 - **Genuine mandate-forgery containment is now exercised**
   (`assurance/tests/test_mandate_containment.py`, C9-C23), closing what was
   previously a stated gap. A real mandate issuer trust config
