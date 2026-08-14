@@ -1,15 +1,18 @@
 # Assumptions and Limits — the honest boundary (PR #71)
 
-> **PR #71C scope note:** this is the master limitations document for the
+> **PR #71D scope note:** this is the master limitations document for the
 > whole baseline, delivered incrementally across stacked PRs 71A–71D (see
 > `docs/ASSURANCE_COVERAGE_MATRIX.md` for exactly what lands where). As of
-> this PR, Workstreams A, B, C, D, E, F, G, H, I, J, K and the negative
-> control are ALL implemented (I and J landed in this PR, on top of 71B).
-> Only the CI workflow (`.github/workflows/mcc-independent-assurance.yml`)
-> and the remaining external-runner/final-evidence documentation
-> (`docs/INDEPENDENT_ASSURANCE.md`, `docs/THIRD_PARTY_RUNBOOK.md`,
-> `docs/ASSURANCE_CLAIMS.md`) remain, landing in #71D. Until #71D lands,
-> `docs/ASSURANCE_COVERAGE_MATRIX.md` is authoritative on exact status.
+> this PR, ALL 13 workstreams (A–K), the negative control, the CI workflow,
+> and all 8 required docs are implemented. This document remains, however,
+> a record of GENUINE, PERMANENT scope limitations — it is not a checklist
+> that empties out to zero; see `docs/ASSURANCE_COVERAGE_MATRIX.md` for the
+> authoritative IMPLEMENTED / PARTIALLY IMPLEMENTED / NOT IMPLEMENTED /
+> BLOCKED BY ENVIRONMENT status of every individual requirement, including
+> several that remain permanently NOT or PARTIALLY implemented even at this
+> final stage (e.g. genuine mandate-forgery containment, PlusCal, signed
+> external audit checkpoints, 4/5 Workstream K adapters run only in CI, not
+> locally).
 
 Every workstream in the **MCC-Core Independent Adversarial Assurance
 Baseline** makes a narrower, more specific claim than "MCC-Core is secure."
@@ -184,6 +187,17 @@ reconstruct it from scattered comments. Read this together with
   invariants at once (auth, SSRF, consensus, replay) for clarity. It
   demonstrates the assurance methodology can fail a broken system; it is
   not itself a fuzzing target for "how many ways can a real system break."
+- **Signed external audit checkpoints are now implemented**
+  (`assurance/audit_checkpoint.py`, `assurance/tests/test_audit_checkpoint.py`
+  G4-G8), closing a previously-stated gap. Scoped honestly: self-contained-
+  mode-only (reads the audit log file directly — the same class of
+  operation `corrupt_gateway_audit_chain` already uses, not a network
+  observation), not a production feature (does not run inside the
+  Gateway, does not change `mcc_core.audit`'s runtime behavior), and not
+  a full always-on external timestamping service (e.g. RFC 3161) — this
+  closes "no independent signer touches the chain at all," not the
+  larger production-grade external-anchoring architecture a real
+  deployment might eventually want.
 
 ## Third-party / external execution mode
 
@@ -194,12 +208,27 @@ reconstruct it from scattered comments. Read this together with
   without being handed valid authorization by its own operator — this is
   a structural property of black-box testing, not something this suite
   can design around. See `docs/THIRD_PARTY_RUNBOOK.md`.
-- **External mode has not been exercised end-to-end against a real,
-  separately-hosted deployment** in this session — only the self-contained
-  (locally-provisioned) mode has been run. The code path
-  (`assurance/sut/harness.py`'s `connect_external`) is written and
-  reviewed but its live behavior against a genuinely remote target is
-  untested here.
+- **External mode is now genuinely exercised end-to-end**
+  (`assurance/tests/test_external_mode.py`, L1-L4): a real `mcc-assurance
+  run --target ... --actuator ... --notify ... --external-config ...` OS
+  subprocess (the literal, named CLI interface) attaches to an
+  already-running deployment it did NOT itself provision, and its
+  evidence bundle is independently verified against that target's own
+  receipt oracle — not the CLI's self-reported summary. This exercise
+  surfaced and fixed several REAL, previously-latent bugs:
+  `gateway_notification_receipt_count`/`gateway_vote_as`/
+  `gateway_consensus_votes` all silently depended on self-contained-mode-
+  only internal state (`_gateway_harness`) and would have crashed
+  (`AttributeError`) or misbehaved the first time any external deployment
+  reached those code paths, because no prior test in this baseline ever
+  exercised `connect_external` at all. **What remains genuinely untested**:
+  a truly remote, separately-hosted, cross-organization-trust-boundary
+  deployment — the "target" in this exercise is still a process on the
+  same sandbox machine; only the CODE PATH (HTTP + config file, no
+  subprocess spawned or torn down by the CLI) is genuinely exercised the
+  way an external operator would use it, not the trust boundary itself.
+  There is no second organization or separate host available in this
+  environment to close that specific, narrower claim.
 
 ## What this baseline does not attempt at all
 

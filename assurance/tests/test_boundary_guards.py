@@ -52,7 +52,7 @@ def test_only_reaches_the_sut_through_the_harness_or_http(path: Path):
     imported = _imported_modules(path.read_text(encoding="utf-8"))
     allowed_prefixes = (
         "assurance.sut.harness", "assurance.sut.vulnerable_target", "assurance.canonical_action",
-        "assurance.state_machine", "assurance.evidence", "httpx", "hypothesis",
+        "assurance.state_machine", "assurance.evidence", "assurance.audit_checkpoint", "httpx", "hypothesis",
         "tests.interoperability.adapters",  # test_semantic_equivalence.py: reuses the PR #48 adapters
         "mutation",  # test_mutation_score.py: runs the mutation harness, never touches the SUT
     )
@@ -61,7 +61,7 @@ def test_only_reaches_the_sut_through_the_harness_or_http(path: Path):
                 "hashlib", "uuid", "threading", "concurrent", "concurrent.futures", "subprocess", "socket",
                 "dataclasses", "typing", "pathlib", "re", "random", "string", "itertools", "collections",
                 "pytest", "unicodedata", "decimal", "cbor2", "struct", "base64", "copy", "__future__",
-                "importlib", "shutil"):
+                "importlib", "shutil", "tempfile"):
             continue
         assert any(m == p or m.startswith(p + ".") for p in allowed_prefixes) or m.startswith("assurance."), (
             f"{path}: unexpected import {m!r} -- workstream tests reach the SUT only via "

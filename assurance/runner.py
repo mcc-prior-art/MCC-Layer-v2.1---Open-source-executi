@@ -146,10 +146,20 @@ class _ResultCollector:
             self.collection_errors.append(str(report.longrepr))
 
 
+#: Modules excluded from the discovered sweep because they invoke ``python
+#: -m assurance run`` (this exact function, recursively) as a genuine OS
+#: subprocess to test the CLI itself -- including them here would make
+#: EVERY ``run_all()`` call (including the one inside the subprocess they
+#: spawn) rediscover and re-run them, spawning another subprocess that does
+#: the same, without bound. Run them directly instead:
+#: ``pytest assurance/tests/test_external_mode.py``.
+NOT_DISCOVERED = frozenset({"test_external_mode.py"})
+
+
 def discover_test_modules(tests_dir: Path = TESTS_DIR) -> List[Path]:
     return sorted(
         p for p in tests_dir.glob("test_*.py")
-        if p.name != "__init__.py"
+        if p.name != "__init__.py" and p.name not in NOT_DISCOVERED
     )
 
 

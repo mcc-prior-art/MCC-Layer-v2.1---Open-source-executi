@@ -96,6 +96,7 @@ class SystemUnderTest:
     _actuator_evaluators: List[Any] = field(default_factory=list)
     _actuator_policy_hash: str = ""
     _gateway_harness: Any = None
+    _gateway_notify_base: str = ""
     _mandate_issuer_key: Any = None
     _mandate_issuer_id: str = ""
     _threshold: int = 3
@@ -265,7 +266,17 @@ class SystemUnderTest:
         threat (a DIFFERENT threat model than a network attacker; see
         ``ASSUMPTIONS_AND_LIMITS.md``). Exists so Workstream G can prove
         ``/verify`` is genuinely tamper-EVIDENT (flips to invalid) rather
-        than a check that always reports success."""
+        than a check that always reports success. Self-contained mode
+        only -- see ``connect_external``'s docstring for why a genuine
+        third party's audit log filesystem is out of reach by design."""
+        if self._gateway_harness is None:
+            raise RuntimeError(
+                "corrupt_gateway_audit_chain requires direct filesystem access to the "
+                "Gateway's audit log, only available in self-contained mode -- a genuine "
+                "external/third-party deployment cannot be expected to hand this over "
+                "(see connect_external's docstring); this is a permanent external-mode "
+                "limitation, not a bug"
+            )
         path = self._gateway_harness._audit_path  # noqa: SLF001 -- provisioning-layer access, by design
         with open(path, "a", encoding="utf-8") as f:
             f.write('{"tampered": true, "not-a-real-audit-entry": "' + "x" * 64 + '"}\n')
@@ -275,8 +286,23 @@ class SystemUnderTest:
         instance from the actuator's -- see ``SharedGovernedGateway``),
         observed independently over real HTTP. Used by Workstream C tests
         that exercise the Gateway's own ``/consensus/*``/``/mandates/*``
-        HTTP API directly, rather than through the actuator."""
-        return httpx.get(f"{self._gateway_harness.notify_base}/receipts", timeout=5.0).json()["count"]
+        HTTP API directly, rather than through the actuator. Reads
+        ``self._gateway_notify_base`` (set for BOTH self-contained and
+        genuine external-mode deployments -- see ``connect_external``'s
+        ``gateway_notify_url`` parameter), never the self-contained-only
+        ``_gateway_harness`` handle, so this works identically against a
+        real third party's own deployment -- PROVIDED that party supplied
+        ``gateway_notify_url`` to ``connect_external`` (optional; see its
+        docstring)."""
+        if not self._gateway_notify_base:
+            raise RuntimeError(
+                "gateway_notification_receipt_count requires the Gateway's own "
+                "external-effect-sink URL, which this deployment was not given "
+                "(self-contained mode always has one; external mode needs "
+                "gateway_notify_url / MCC_ASSURANCE_GATEWAY_NOTIFY_URL) -- "
+                "fails closed rather than silently observing the wrong sink"
+            )
+        return httpx.get(f"{self._gateway_notify_base}/receipts", timeout=5.0).json()["count"]
 
     def gateway_vote_as(self, *, evaluator_index: int, verdict: str, action: str, payload: Dict[str, Any],
                          actor: str, nonce: str, resource: Optional[str] = None,
@@ -285,10 +311,12 @@ class SystemUnderTest:
         (identified by index into the pool the Gateway's own trust config
         was built from), with an explicit verdict -- e.g. a trusted DENY
         vote for a veto test, which ``gateway_consensus_votes`` (uniformly
-        ALLOW) cannot produce."""
+        ALLOW) cannot produce. Uses ``self._evaluators`` -- populated
+        identically in self-contained and external mode -- not
+        ``_gateway_harness``, so this works in both."""
         from mcc_core.consensus import issue_vote
 
-        evaluator = self._gateway_harness.evaluators[evaluator_index]
+        evaluator = self._evaluators[evaluator_index]
         return issue_vote(
             evaluator, evaluator_id=evaluator.kid, verdict=verdict, action=action, payload=payload,
             actor=actor, not_before=0, not_after=FAR_FUTURE, resource=resource,
@@ -298,13 +326,24 @@ class SystemUnderTest:
     def gateway_consensus_votes(self, *, action: str, payload: Dict[str, Any], actor: str, nonce: str,
                                  resource: Optional[str] = None,
                                  policy_hash: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Genuine votes for the GATEWAY's own consensus policy, reusing the
-        already-proven ``SharedGovernedGateway.votes`` helper (which applies
-        the same ``ActionProfile`` canonicalization the Gateway itself uses
-        server-side to compute the authoritative payload hash) rather than
-        re-implementing that canonicalization here."""
-        return self._gateway_harness.votes(action=action, payload=payload, actor=actor, resource=resource,
-                                            nonce=nonce, policy_hash=policy_hash)
+        """Genuine votes for the GATEWAY's own consensus policy. Applies the
+        same ``ActionProfile`` canonicalization the Gateway itself uses
+        server-side to compute the authoritative payload hash (the
+        registry is a stateless, universal mapping -- not something unique
+        to a particular running Gateway process -- so this is exactly the
+        canonicalization any deployment, self-contained or a genuine third
+        party's, actually applies), using ``self._evaluators`` rather than
+        reaching into the self-contained-only ``_gateway_harness``."""
+        from mcc_core import ProfileRegistry
+        from mcc_core.consensus import issue_vote
+
+        canonical = ProfileRegistry.default_pilot().for_action(action).canonical_payload(dict(payload))
+        return [
+            issue_vote(e, evaluator_id=e.kid, verdict="ALLOW", action=action, payload=canonical,
+                       actor=actor, not_before=0, not_after=FAR_FUTURE, resource=resource,
+                       policy_hash=policy_hash or self.policy_hash, nonce=nonce)
+            for e in self._evaluators
+        ]
 
     def propose_notification(self, *, actor: str = "agent/egress", resource: str = "notify",
                               transaction_id: str, idempotency_key: str,
@@ -391,6 +430,42 @@ class SystemUnderTest:
         self.close()
 
 
+def export_evaluator_keys_for_external_mode(sut: "SystemUnderTest", directory: str) -> Dict[str, str]:
+    """Serialize a self-contained SUT's evaluator private keys to PEM files
+    plus the ``[{"kid": ..., "pem_path": ...}, ...]`` index JSON
+    ``_load_evaluator_keys``/``connect_external`` expect -- so a test can
+    stand up a real deployment via ``build_system_under_test`` and then
+    genuinely exercise the SEPARATE ``connect_external``/CLI ``--target``
+    code path against it as if it were a third party's own deployment
+    (never a mock of the external-mode mechanism itself). Returns
+    ``{"evaluator_keys_path": ..., "actuator_evaluator_keys_path": ...}``.
+    Provisioning-layer only -- never imported from ``assurance/tests/``."""
+    from cryptography.hazmat.primitives import serialization
+
+    def _export(evaluators: List[Any], subdir: str) -> str:
+        keys_dir = os.path.join(directory, subdir)
+        os.makedirs(keys_dir, exist_ok=True)
+        index = []
+        for ev in evaluators:
+            pem_path = os.path.join(keys_dir, f"{ev.kid}.pem")
+            pem = ev._private_key.private_bytes(  # noqa: SLF001 -- provisioning-layer export, by design
+                serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                serialization.NoEncryption(),
+            )
+            with open(pem_path, "wb") as f:
+                f.write(pem)
+            index.append({"kid": ev.kid, "pem_path": pem_path})
+        index_path = os.path.join(keys_dir, "index.json")
+        with open(index_path, "w", encoding="utf-8") as f:
+            json.dump(index, f)
+        return index_path
+
+    return {
+        "evaluator_keys_path": _export(sut._evaluators, "gateway-evaluators"),  # noqa: SLF001
+        "actuator_evaluator_keys_path": _export(sut._actuator_evaluators, "actuator-evaluators"),  # noqa: SLF001
+    }
+
+
 def _load_evaluator_keys(keys_path: str) -> List[Any]:
     """Load evaluator SigningKeys from a JSON file of
     ``[{"kid": "...", "pem_path": "..."}, ...]``. Only a file PATH crosses
@@ -407,7 +482,8 @@ def _load_evaluator_keys(keys_path: str) -> List[Any]:
 def connect_external(*, gateway_url: str, actuator_url: str, notify_url: str, api_key: str,
                       operator_key: str, actuator_api_key: str, policy_hash: str,
                       actuator_policy_hash: str, evaluator_keys_path: str,
-                      actuator_evaluator_keys_path: str, threshold: int = 3) -> SystemUnderTest:
+                      actuator_evaluator_keys_path: str, threshold: int = 3,
+                      gateway_notify_url: Optional[str] = None) -> SystemUnderTest:
     """Attach to an ALREADY-RUNNING, externally provisioned MCC deployment
     instead of spawning one. This is the genuine third-party mode: the
     operator of the target deployment runs their own Gateway/actuator/
@@ -419,12 +495,25 @@ def connect_external(*, gateway_url: str, actuator_url: str, notify_url: str, ap
     No subprocess is spawned and ``.close()`` is a no-op -- this function
     connects to infrastructure it does not own and must not tear down.
 
+    ``gateway_notify_url`` is the Gateway's OWN external-effect sink -- a
+    SEPARATE service from ``notify_url`` (the actuator's), used
+    independently by Workstream C/K tests that exercise the Gateway's
+    ``/consensus/*``/``/mandates/*`` HTTP API directly
+    (``gateway_notification_receipt_count``). Optional: a third party who
+    only exposes one sink can omit it, in which case those specific tests
+    fail closed with a clear, explicit error (see
+    ``gateway_notification_receipt_count``) rather than a silent wrong
+    answer or a confusing internal AttributeError.
+
     Limitation (documented in ``ASSUMPTIONS_AND_LIMITS.md``): the assurance
     suite still requires the operator to hand it valid evaluator credentials
     for the positive-path (ALLOW/CONSTRAIN) scenarios -- a system cannot
     prove "valid authorization works" without being handed valid authorization
     by its own operator. This is a stated, honest boundary, not a gap the
-    suite hides."""
+    suite hides. A second, separate limitation: ``corrupt_gateway_audit_chain``
+    (Workstream G's filesystem-tamper test) requires direct filesystem access
+    to the Gateway's audit log, which a genuine third party cannot be expected
+    to hand over -- it is unavailable in external mode by design, not a bug."""
     evaluators = _load_evaluator_keys(evaluator_keys_path)
     actuator_evaluators = _load_evaluator_keys(actuator_evaluator_keys_path)
     return SystemUnderTest(
@@ -433,6 +522,7 @@ def connect_external(*, gateway_url: str, actuator_url: str, notify_url: str, ap
         policy_hash=policy_hash, _tmpdir="", _procs=[], _evaluators=evaluators,
         _actuator_evaluators=actuator_evaluators, _threshold=threshold,
         _actuator_policy_hash=actuator_policy_hash,
+        _gateway_notify_base=gateway_notify_url or "",
     )
 
 
@@ -563,6 +653,7 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
     )
     sut._actuator_policy_hash = actuator_policy_hash  # type: ignore[attr-defined]
     sut._gateway_harness = gw  # type: ignore[attr-defined]  # kept alive; closed by SystemUnderTest.close()
+    sut._gateway_notify_base = gw.notify_base  # type: ignore[attr-defined]
     sut._mandate_issuer_key = mandate_issuer_key  # type: ignore[attr-defined]
     sut._mandate_issuer_id = mandate_issuer_id  # type: ignore[attr-defined]
     original_close = sut.close

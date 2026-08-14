@@ -1,0 +1,11 @@
+{
+  "_comment": "Third-party mcc-assurance --external-config example (PR #71 Workstream L). Fill in with YOUR deployment's real values, keep this file OUTSIDE version control (it holds live API keys and file paths to your evaluator private keys), and pass its path via --external-config -- never as a flag, so nothing here appears in shell history or a process listing. See docs/THIRD_PARTY_RUNBOOK.md for the full walkthrough.",
+  "api_key": "REPLACE_WITH_YOUR_GATEWAY_AGENT_API_KEY",
+  "operator_key": "REPLACE_WITH_YOUR_GATEWAY_OPERATOR_KEY",
+  "actuator_api_key": "REPLACE_WITH_YOUR_ACTUATOR_API_KEY",
+  "policy_hash": "REPLACE_WITH_YOUR_GATEWAY_POLICY_HASH",
+  "actuator_policy_hash": "REPLACE_WITH_YOUR_ACTUATOR_POLICY_HASH_OR_LEAVE_EMPTY",
+  "evaluator_keys_path": "/path/to/your/gateway-evaluator-private-keys.json",
+  "actuator_evaluator_keys_path": "/path/to/your/actuator-evaluator-private-keys.json",
+  "gateway_notify_url": "OPTIONAL: your Gateway's OWN external-effect-sink base URL (a SEPARATE service from --notify, the actuator's) -- required only for the Workstream C/K tests that observe the Gateway's own oracle independently; omit if you don't expose one, and those specific tests will fail closed with a clear error instead of a wrong answer"
+}

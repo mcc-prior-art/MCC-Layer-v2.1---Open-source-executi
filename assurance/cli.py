@@ -7,16 +7,28 @@ Workstream L).
     python -m assurance list-workstreams
 
 External-target mode (a genuine third party pointing this CLI at their OWN
-already-running deployment, per ``THIRD_PARTY_RUNBOOK.md``) is selected by
-setting ``MCC_ASSURANCE_EXTERNAL=1`` plus the ``MCC_ASSURANCE_*`` variables
-consumed by ``assurance/tests/conftest.py`` -- never by a CLI flag, so
-secrets and key paths never appear in shell history or process listings.
+already-running deployment, per ``THIRD_PARTY_RUNBOOK.md``) is selected two
+ways, both ultimately setting the same ``MCC_ASSURANCE_*`` environment
+variables ``assurance/tests/conftest.py`` reads:
+
+1. Directly: ``MCC_ASSURANCE_EXTERNAL=1`` plus the ``MCC_ASSURANCE_*``
+   variables, set before invoking this CLI (never a flag -- the original,
+   still-supported path).
+2. ``run --target <gateway-base-url> --actuator <actuator-base-url>
+   --notify <notify-base-url> --external-config <config.json>``: the
+   NON-secret target URLs are ordinary flags; every secret and key-file
+   path (API keys, policy hashes, evaluator key-file paths) stays in
+   ``--external-config`` (never shell history or a process listing) --
+   see ``examples/assurance_external_config.example.json``. This mode
+   internally sets the exact same environment variables mode 1 does; it
+   is a convenience wrapper over the same mechanism, not a second one.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -38,7 +50,58 @@ def _cmd_list_workstreams(_args: argparse.Namespace) -> int:
     return 0
 
 
+_EXTERNAL_CONFIG_REQUIRED_KEYS = (
+    "api_key", "operator_key", "actuator_api_key", "policy_hash",
+    "evaluator_keys_path", "actuator_evaluator_keys_path",
+)
+
+
+def _apply_external_target(args: argparse.Namespace) -> Optional[str]:
+    """Translate --target/--actuator/--notify/--external-config into the
+    MCC_ASSURANCE_* environment variables assurance/tests/conftest.py
+    reads, exactly as if the operator had set them directly (mode 1 in
+    this module's docstring) -- no new authorization mechanism, just a
+    friendlier interface over the same one. Returns an error string, or
+    None on success."""
+    if args.target is None and args.actuator is None:
+        return None
+    if args.target is None or args.actuator is None:
+        return "--target and --actuator must be supplied together"
+    if not args.notify:
+        return "--notify is required with --target/--actuator (the external-effect sink URL)"
+    if not args.external_config:
+        return "--external-config is required with --target/--actuator (API keys, policy hashes, evaluator key paths)"
+
+    try:
+        config = json.loads(Path(args.external_config).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"--external-config could not be read/parsed: {exc}"
+    missing = [k for k in _EXTERNAL_CONFIG_REQUIRED_KEYS if k not in config]
+    if missing:
+        return f"--external-config is missing required keys: {', '.join(missing)}"
+
+    os.environ["MCC_ASSURANCE_EXTERNAL"] = "1"
+    os.environ["MCC_ASSURANCE_GATEWAY_URL"] = args.target
+    os.environ["MCC_ASSURANCE_ACTUATOR_URL"] = args.actuator
+    os.environ["MCC_ASSURANCE_NOTIFY_URL"] = args.notify
+    os.environ["MCC_ASSURANCE_API_KEY"] = config["api_key"]
+    os.environ["MCC_ASSURANCE_OPERATOR_KEY"] = config["operator_key"]
+    os.environ["MCC_ASSURANCE_ACTUATOR_API_KEY"] = config["actuator_api_key"]
+    os.environ["MCC_ASSURANCE_POLICY_HASH"] = config["policy_hash"]
+    os.environ["MCC_ASSURANCE_ACTUATOR_POLICY_HASH"] = config.get("actuator_policy_hash", "")
+    os.environ["MCC_ASSURANCE_EVALUATOR_KEYS_PATH"] = config["evaluator_keys_path"]
+    os.environ["MCC_ASSURANCE_ACTUATOR_EVALUATOR_KEYS_PATH"] = config["actuator_evaluator_keys_path"]
+    if config.get("gateway_notify_url"):
+        os.environ["MCC_ASSURANCE_GATEWAY_NOTIFY_URL"] = config["gateway_notify_url"]
+    return None
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
+    error = _apply_external_target(args)
+    if error is not None:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+
     output_dir = Path(args.output)
     report = run_all()
 
@@ -89,6 +152,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--output", required=True, help="Directory to write the evidence bundle into.")
     p_run.add_argument("--signing-key-pem", default=None, help="Optional Ed25519 PEM to sign the bundle's findings manifest.")
     p_run.add_argument("--signing-key-id", default=None, help="Key ID for --signing-key-pem (required if that flag is set).")
+    p_run.add_argument("--target", default=None, metavar="GATEWAY_BASE_URL",
+                        help="External mode: base URL of an already-running, third-party-operated Gateway "
+                             "(requires --actuator, --notify, --external-config). Omit for self-contained mode.")
+    p_run.add_argument("--actuator", default=None, metavar="ACTUATOR_BASE_URL",
+                        help="External mode: base URL of the third party's protected actuator.")
+    p_run.add_argument("--notify", default=None, metavar="NOTIFY_BASE_URL",
+                        help="External mode: base URL of the third party's external-effect sink.")
+    p_run.add_argument("--external-config", default=None, metavar="CONFIG_JSON",
+                        help="External mode: path to a JSON file holding API keys, policy hashes, and "
+                             "evaluator key-file paths -- see examples/assurance_external_config.example.json. "
+                             "Never passed as flags, so secrets never appear in shell history.")
     p_run.set_defaults(func=_cmd_run)
 
     p_verify = sub.add_parser("verify", help="Offline-verify a previously produced evidence bundle.")
