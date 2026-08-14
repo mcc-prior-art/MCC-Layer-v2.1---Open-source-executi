@@ -111,3 +111,17 @@ follow_imports = "silent"
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+
+# PR #71 Workstream J (generic mutation sweep, complementing the 13
+# hand-picked targeted defects in mutation/defects.py): scoped narrowly to
+# the fail-closed execution gate -- the single most security-critical
+# file -- rather than the whole codebase, which would produce many
+# non-security-relevant mutants requiring manual triage (see
+# docs/ASSUMPTIONS_AND_LIMITS.md for the full result and its honest
+# caveats). Not part of the package build; a dev-tool config section like
+# [tool.mypy]/[tool.ruff] above. Run with: mutmut run
+[tool.mutmut]
+source_paths = ["src/mcc_core"]
+only_mutate = ["src/mcc_core/gate.py"]
+pytest_add_cli_args_test_selection = ["tests/test_coordinator.py"]
+runner = "env PYTHONPATH=src:.:sdk/python/src python -m pytest -x -q"
