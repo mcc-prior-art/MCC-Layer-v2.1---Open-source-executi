@@ -178,12 +178,27 @@ reconstruct it from scattered comments. Read this together with
   without being handed valid authorization by its own operator — this is
   a structural property of black-box testing, not something this suite
   can design around. See `docs/THIRD_PARTY_RUNBOOK.md`.
-- **External mode has not been exercised end-to-end against a real,
-  separately-hosted deployment** in this session — only the self-contained
-  (locally-provisioned) mode has been run. The code path
-  (`assurance/sut/harness.py`'s `connect_external`) is written and
-  reviewed but its live behavior against a genuinely remote target is
-  untested here.
+- **External mode is now genuinely exercised end-to-end**
+  (`assurance/tests/test_external_mode.py`, L1-L4): a real `mcc-assurance
+  run --target ... --actuator ... --notify ... --external-config ...` OS
+  subprocess (the literal, named CLI interface) attaches to an
+  already-running deployment it did NOT itself provision, and its
+  evidence bundle is independently verified against that target's own
+  receipt oracle — not the CLI's self-reported summary. This exercise
+  surfaced and fixed several REAL, previously-latent bugs:
+  `gateway_notification_receipt_count`/`gateway_vote_as`/
+  `gateway_consensus_votes` all silently depended on self-contained-mode-
+  only internal state (`_gateway_harness`) and would have crashed
+  (`AttributeError`) or misbehaved the first time any external deployment
+  reached those code paths, because no prior test in this baseline ever
+  exercised `connect_external` at all. **What remains genuinely untested**:
+  a truly remote, separately-hosted, cross-organization-trust-boundary
+  deployment — the "target" in this exercise is still a process on the
+  same sandbox machine; only the CODE PATH (HTTP + config file, no
+  subprocess spawned or torn down by the CLI) is genuinely exercised the
+  way an external operator would use it, not the trust boundary itself.
+  There is no second organization or separate host available in this
+  environment to close that specific, narrower claim.
 
 ## What this baseline does not attempt at all
 

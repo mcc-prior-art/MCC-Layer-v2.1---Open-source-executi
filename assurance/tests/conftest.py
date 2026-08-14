@@ -55,6 +55,7 @@ def sut():
             actuator_policy_hash=os.environ.get("MCC_ASSURANCE_ACTUATOR_POLICY_HASH", ""),
             evaluator_keys_path=os.environ["MCC_ASSURANCE_EVALUATOR_KEYS_PATH"],
             actuator_evaluator_keys_path=os.environ["MCC_ASSURANCE_ACTUATOR_EVALUATOR_KEYS_PATH"],
+            gateway_notify_url=os.environ.get("MCC_ASSURANCE_GATEWAY_NOTIFY_URL") or None,
         )
         yield s
         return

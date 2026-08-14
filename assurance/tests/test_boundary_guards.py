@@ -61,7 +61,7 @@ def test_only_reaches_the_sut_through_the_harness_or_http(path: Path):
                 "hashlib", "uuid", "threading", "concurrent", "concurrent.futures", "subprocess", "socket",
                 "dataclasses", "typing", "pathlib", "re", "random", "string", "itertools", "collections",
                 "pytest", "unicodedata", "decimal", "cbor2", "struct", "base64", "copy", "__future__",
-                "importlib", "shutil"):
+                "importlib", "shutil", "tempfile"):
             continue
         assert any(m == p or m.startswith(p + ".") for p in allowed_prefixes) or m.startswith("assurance."), (
             f"{path}: unexpected import {m!r} -- workstream tests reach the SUT only via "
