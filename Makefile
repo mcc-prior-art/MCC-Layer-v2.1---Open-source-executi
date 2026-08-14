@@ -184,10 +184,13 @@ clinic-pilot-down: ## Stop the clinic stack, KEEPING volumes (audit persists)
 clinic-pilot-clean: ## Stop the clinic stack and REMOVE volumes (wipes the audit chain)
 	$(CLINIC_COMPOSE) down -v --remove-orphans
 
-.PHONY: independent-assurance mutation-test
+.PHONY: independent-assurance mutation-test verify-assurance
 ASSURANCE_PYTHONPATH := src:.:sdk/python/src
 independent-assurance: ## Run the independent adversarial assurance suite (PR #71); writes a signed evidence bundle
 	PYTHONPATH=$(ASSURANCE_PYTHONPATH) python -m assurance run --output artifacts/independent-assurance
 
-mutation-test: ## Run the 13 targeted security-critical mutations (PR #71 Workstream J); exit 0 iff 13/13 detected
+mutation-test: ## Run the mutation/defects.py corpus (PR #71 Workstream J); exit 0 iff every defect is detected
 	PYTHONPATH=. python -m mutation --output artifacts/mutation-report.json
+
+verify-assurance: ## Reproducible entry point: independent-assurance + TLC + mutation-test, in order, fail-fast, non-destructive. See docs/REPRODUCING_ASSURANCE.md. NOTE: make's own exit code is always 0/2 (GNU Make convention) -- run scripts/verify_assurance.sh directly for the exact originating exit code.
+	@bash scripts/verify_assurance.sh
