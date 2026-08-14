@@ -53,7 +53,12 @@ reconstruct it from scattered comments. Read this together with
   (200 for pure/fast properties, 25 for the network-bound differential
   test, 8 stateful sequences of 6 steps each) — Hypothesis explores a
   large but finite, randomly-seeded slice of the input space per run, not
-  the whole space.
+  the whole space. **Failing examples now persist in a genuine, committed
+  regression corpus**, not just Hypothesis's default git-ignored local
+  cache: the `assurance` profile (`assurance/tests/conftest.py`)
+  redirects the example database to `assurance/tests/
+  hypothesis_seed_corpus/` (tracked in git) and enables `print_blob=True`
+  so any failure also prints a reproducible decorator in logs.
 - **Workstream K: only `generic-http` runs locally.** The other four
   adapters (LangGraph, AutoGen, CrewAI, VoltAgent) require their native
   framework installed; this environment has none of them. Their

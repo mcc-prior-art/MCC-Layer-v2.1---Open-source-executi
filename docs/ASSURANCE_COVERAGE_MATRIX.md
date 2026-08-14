@@ -88,7 +88,7 @@ maps requirements onto.
 |---|---|---|---|
 | Property-based testing of the canonical format (generative, not fixed-corpus) | **IMPLEMENTED** (200 pure examples, 25 network-bound examples) | 71A | `assurance/tests/test_property_based.py` (`test_h1_*`, `test_h2_*`) |
 | Stateful testing of the actuator protocol | **IMPLEMENTED** (8 examples × 6 steps, `RuleBasedStateMachine`) | 71A | `ActuatorProtocolMachine` in the same file |
-| **Persisted failing seeds** (a durable regression corpus of counterexamples found) | **PARTIALLY IMPLEMENTED** — relies entirely on Hypothesis's own built-in example database (`.hypothesis/`, git-ignored); no CUSTOM seed-persistence/regression-corpus mechanism was built on top of it | 71A | `.gitignore`'s `.hypothesis/` entry; no dedicated seed-corpus file exists |
+| **Persisted failing seeds** (a durable regression corpus of counterexamples found) | **IMPLEMENTED** — the `assurance` Hypothesis profile (`assurance/tests/conftest.py`) redirects the example database from the default `.hypothesis/` (repo root, git-ignored -- a failure found on one machine/CI run never reaches another) to `assurance/tests/hypothesis_seed_corpus/`, which is NOT git-ignored: a genuine, durable, committable regression corpus. Also enables `print_blob=True` so any failure additionally prints a copy-pasteable `@reproduce_failure` decorator directly in CI/test logs. Verified with a deliberately-failing throwaway property: the corpus directory was genuinely populated with real failing-example entries, then the throwaway test was removed | 71A | `assurance/tests/conftest.py`; `assurance/tests/hypothesis_seed_corpus/` (populated on first real failure) |
 
 ## Workstream I — Formal model checking
 
@@ -168,9 +168,9 @@ maps requirements onto.
 
 ## Summary counts (at the point this matrix was written)
 
-- **IMPLEMENTED:** the large majority of line items — every workstream has real, passing, black-box tests against a live 3-process deployment. As of the mandate-containment closure work, this now also includes genuine mandate-forgery containment (C9-C18) and `min_`/`allowed_` constraint types (C20-C23), both previously NOT IMPLEMENTED — see `assurance/tests/test_mandate_containment.py`.
-- **PARTIALLY IMPLEMENTED:** 7 line items (D's corpus exhaustiveness, H's seed persistence, I's PlusCal, K's 4/5 adapters, L's exact CLI interface + unexercised external mode, CI's required-status-check, D-and-elsewhere's "beyond what's tested" caveats).
-- **NOT IMPLEMENTED:** 5 line items (network-segmentation proof, `EXECUTION_UNKNOWN` external observability, signed external audit checkpoints, PlusCal, external-mode live exercise — mandate forgery containment and constraint types beyond one are now IMPLEMENTED, moved out of this count).
+- **IMPLEMENTED:** the large majority of line items — every workstream has real, passing, black-box tests against a live 3-process deployment. As of this PR's closure work, this now also includes genuine mandate-forgery containment (C9-C18), `min_`/`allowed_` constraint types (C20-C23), and a durable Hypothesis seed-persistence corpus (H) — all previously NOT/PARTIALLY IMPLEMENTED — see `assurance/tests/test_mandate_containment.py` and `assurance/tests/conftest.py`.
+- **PARTIALLY IMPLEMENTED:** 6 line items (D's corpus exhaustiveness, I's PlusCal, K's 4/5 adapters, L's exact CLI interface + unexercised external mode, CI's required-status-check, D-and-elsewhere's "beyond what's tested" caveats).
+- **NOT IMPLEMENTED:** 5 line items (network-segmentation proof, `EXECUTION_UNKNOWN` external observability, signed external audit checkpoints, PlusCal, external-mode live exercise — mandate forgery containment, constraint types beyond one, and seed persistence are now IMPLEMENTED, moved out of this count).
 - **BLOCKED BY ENVIRONMENT:** 4 line items (multi-node E, Redis failover, network partition, production-scale I) — all explicitly infrastructure-gated, not skipped by choice.
 - **NOT VERIFIED IN CI:** the entire CI workflow (0 real GitHub Actions runs as of this report) and the 4 framework-dependent Workstream K adapters (0 confirmed passing runs anywhere, local or CI).
 
