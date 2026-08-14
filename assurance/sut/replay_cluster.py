@@ -12,13 +12,18 @@ SHARED backend, not merely by one process's own local memory.
 
 Scope, stated honestly (see ``docs/ASSUMPTIONS_AND_LIMITS.md``): this is
 single-HOST, single-Redis-node replay resistance across two OS processes --
-not a multi-node cluster, not Redis Sentinel/Cluster failover, and not a
-real network partition between hosts. Those require infrastructure (Docker,
-multiple hosts) unavailable in this environment; this module proves the
-narrower, still-real property that is available: two independent processes
+not a multi-node cluster, and not Redis Sentinel/Cluster failover (both
+require infrastructure -- Docker image pulls, multiple hosts -- unavailable
+in this environment). It DOES now include a genuine, host-local network
+partition (``partition_from_redis()``/``heal_partition()``, an ``iptables``
+DROP rule against the shared Redis port) in addition to process-kill
+(``kill_redis()``) -- two independent fault-injection mechanisms against the
+same shared backend, not a substitute for a real inter-host partition. This
+module proves the property that is available: two independent processes
 sharing one Redis instance cannot be tricked into double-honoring a nonce
-or challenge, and the actuator fails closed if that shared backend becomes
-unreachable.
+or challenge, and the actuator fails closed whether that shared backend
+becomes unreachable because the process died or because the network path to
+it went dark, and recovers once the path heals.
 """
 
 from __future__ import annotations
@@ -120,7 +125,8 @@ class ReplayResistanceCluster:
         return httpx.get(f"{self.notify_url}/receipts", timeout=5.0).json()["count"]
 
     def kill_redis(self) -> None:
-        """Fault injection: the shared backend becomes unreachable."""
+        """Fault injection: the shared backend becomes unreachable because
+        the process dies."""
         if self._redis_proc is not None:
             self._redis_proc.terminate()
             try:
@@ -128,9 +134,40 @@ class ReplayResistanceCluster:
             except Exception:  # noqa: BLE001
                 self._redis_proc.kill()
 
+    def partition_from_redis(self) -> None:
+        """Fault injection: the shared backend becomes unreachable because
+        the NETWORK path to it is severed, not because the process dies --
+        a genuine (host-local) network partition, distinct from
+        ``kill_redis()``. Implemented as a host ``iptables`` rule dropping
+        outbound TCP packets to the Redis port; this environment has no
+        multi-host network to partition (see ``docs/ASSUMPTIONS_AND_LIMITS.md``),
+        so this is the strongest partition simulation available: the
+        redis-server process stays alive and healthy throughout, only the
+        path to it goes dark, exercising the client's connect/read timeout
+        path (see ``src/mcc_core/redis_client.py``'s
+        ``socket_connect_timeout``/``socket_timeout``) rather than an
+        immediate connection-refused error. Always pair with
+        ``heal_partition()`` in a ``finally`` block -- this is a host-wide
+        firewall rule, not scoped to a network namespace."""
+        subprocess.run(
+            ["iptables", "-A", "OUTPUT", "-p", "tcp", "--dport", str(self.redis_port), "-j", "DROP"],
+            check=True, capture_output=True,
+        )
+
+    def heal_partition(self) -> None:
+        """Reverse ``partition_from_redis()``. Safe to call even if no
+        partition rule is currently installed (rule deletion is attempted
+        at most once; failure is not raised so cleanup in a ``finally``
+        block can never itself mask the original test failure)."""
+        subprocess.run(
+            ["iptables", "-D", "OUTPUT", "-p", "tcp", "--dport", str(self.redis_port), "-j", "DROP"],
+            check=False, capture_output=True,
+        )
+
     def close(self) -> None:
         for p in self._procs:
             p.stop()
+        self.heal_partition()
         self.kill_redis()
 
     def __enter__(self) -> "ReplayResistanceCluster":
