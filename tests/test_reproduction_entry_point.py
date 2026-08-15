@@ -13,7 +13,8 @@ What this file DOES prove, cheaply and every time ``pytest tests/`` runs:
 * the ``verify-assurance`` Makefile target exists;
 * ``scripts/verify_assurance.sh`` exists, is syntactically valid, and is
   executable;
-* the README links to ``docs/REPRODUCING_ASSURANCE.md`` and that file exists;
+* the README links to ``docs/REPRODUCING_ASSURANCE.md`` and
+  ``docs/ASSURANCE_INDEX.md``, and both files exist with the required content;
 * every path ``docs/REPRODUCING_ASSURANCE.md`` names (the 3 gate-bypass test
   files, ``mutation/defects.py``, ``mutation/harness.py``, the TLA+ model,
   ``docs/THIRD_PARTY_RUNBOOK.md``) actually exists;
@@ -70,6 +71,7 @@ DOCUMENTED_BYPASS_TESTS = [
 
 OTHER_REFERENCED_PATHS = [
     "docs/REPRODUCING_ASSURANCE.md",
+    "docs/ASSURANCE_INDEX.md",
     "docs/THIRD_PARTY_RUNBOOK.md",
     "docs/ASSUMPTIONS_AND_LIMITS.md",
     "mutation/defects.py",
@@ -103,13 +105,33 @@ def test_verify_assurance_script_exists_and_is_valid_and_executable():
 
 def test_readme_links_to_reproduction_doc():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "Reproduce the Assurance Baseline" in readme, (
-        "README.md is missing the required 'Reproduce the Assurance Baseline' section"
+    assert "Reproducible Assurance Baseline" in readme, (
+        "README.md is missing the required 'Reproducible Assurance Baseline' section"
     )
     assert "docs/REPRODUCING_ASSURANCE.md" in readme, (
         "README.md does not link to docs/REPRODUCING_ASSURANCE.md"
     )
+    assert "docs/ASSURANCE_INDEX.md" in readme, (
+        "README.md does not link to docs/ASSURANCE_INDEX.md"
+    )
     assert "make verify-assurance" in readme
+
+
+def test_assurance_index_exists_and_links_correctly():
+    index = ROOT / "docs" / "ASSURANCE_INDEX.md"
+    assert index.is_file(), f"missing: {index}"
+    text = index.read_text(encoding="utf-8")
+    for required in (
+        "make verify-assurance",
+        "REPRODUCING_ASSURANCE.md",
+        "THIRD_PARTY_RUNBOOK.md",
+        "../assurance/tests/",
+        "../mutation/defects.py",
+        "../model/MCCExecutionStateMachine.tla",
+        "self-administered",
+        "not a third-party audit",
+    ):
+        assert required in text, f"docs/ASSURANCE_INDEX.md is missing required content: {required!r}"
 
 
 @pytest.mark.parametrize("relative_path", OTHER_REFERENCED_PATHS)
