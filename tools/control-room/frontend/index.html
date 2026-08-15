@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCC-Core Control Room</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="disclaimer">
+    <strong>Local Self-Administered Demonstration — Not a Production Administrative Console</strong>
+    <p>
+      This is a local, self-administered demonstration of the MCC-Core protocol
+      implementation. It is not a third-party audit, production administrative
+      console, or production deployment.
+    </p>
+  </header>
+
+  <header class="topbar">
+    <h1>MCC-Core Control Room</h1>
+    <div id="gateway-status" class="status status--pending">checking real gateway…</div>
+  </header>
+
+  <main>
+    <section class="pipeline-legend">
+      <h2>The live protocol path</h2>
+      <ol class="legend-steps">
+        <li>Proposed Action</li>
+        <li>MCC Decision</li>
+        <li>Signed Decision Token</li>
+        <li>Execution Gate Verification</li>
+        <li>Actuation Result</li>
+        <li>Audit Record</li>
+      </ol>
+      <p class="muted">
+        Every stage below is copied verbatim from the real, running
+        <code>gateway.app</code> process — nothing on this page computes,
+        predicts, or overrides a decision, a token, a gate verdict, or an
+        audit entry.
+      </p>
+    </section>
+
+    <section class="scenarios">
+      <h2>Required live demonstration scenarios</h2>
+      <div id="scenario-list" class="scenario-grid"></div>
+    </section>
+
+    <section class="custom">
+      <h2>Submit a custom proposed action</h2>
+      <form id="custom-form">
+        <label>Identity / actor
+          <input type="text" id="custom-identity" value="agent/payments-bot" required>
+        </label>
+        <label>Action
+          <input type="text" id="custom-action" value="send_payment" required>
+        </label>
+        <label>Resource (optional)
+          <input type="text" id="custom-resource" placeholder="e.g. acct-1">
+        </label>
+        <label>Context (JSON)
+          <textarea id="custom-context" rows="4">{"amount": 1000}</textarea>
+        </label>
+        <div class="form-actions">
+          <button type="submit" data-mode="propose">Propose (Stages 1–3)</button>
+          <button type="submit" data-mode="execute">Propose + Execute through Gate (Stages 1–6)</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="result" class="result" hidden>
+      <h2 id="result-title"></h2>
+      <p id="result-summary" class="muted"></p>
+      <div id="result-stages"></div>
+    </section>
+
+    <section class="audit-tools">
+      <h2>Audit chain</h2>
+      <button id="verify-chain-btn">Verify hash chain now</button>
+      <pre id="verify-chain-output"></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p class="muted">
+      MCC-Core Control Room lives entirely under <code>tools/control-room/</code>.
+      It is outside the MCC-Core trusted computing base, the canonical
+      execution path, and the security enforcement boundary. See
+      <code>tools/control-room/README.md</code>.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+:root {
+  --bg: #0b1220;
+  --panel: #111a2e;
+  --panel-border: #23304d;
+  --text: #e7ecf7;
+  --muted: #93a1c2;
+  --accent: #00b8db;
+  --ok: #33c481;
+  --blocked: #e5484d;
+  --pending: #d9a441;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+header.disclaimer {
+  background: #2a1a0a;
+  border-bottom: 2px solid var(--pending);
+  padding: 0.75rem 1.5rem;
+}
+header.disclaimer strong { color: var(--pending); }
+header.disclaimer p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+
+header.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+header.topbar h1 { font-size: 1.25rem; margin: 0; }
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+.status--pending { background: #3a2f10; color: var(--pending); }
+.status--ok { background: #103a24; color: var(--ok); }
+.status--error { background: #3a1013; color: var(--blocked); }
+
+main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+
+section { margin-bottom: 2.5rem; }
+h2 { font-size: 1.05rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.4rem; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+code { background: #0e1830; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
+
+.legend-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  counter-reset: step;
+}
+.legend-steps li {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  counter-increment: step;
+}
+.legend-steps li::before { content: counter(step) ". "; color: var(--accent); font-weight: 600; }
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+.scenario-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.scenario-card h3 { margin: 0; font-size: 1rem; }
+.scenario-card p { margin: 0; color: var(--muted); font-size: 0.85rem; flex-grow: 1; }
+.scenario-card button {
+  align-self: flex-start;
+}
+
+button {
+  background: var(--accent);
+  color: #05131c;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover { opacity: 0.9; }
+button:disabled { opacity: 0.5; cursor: wait; }
+
+form { display: flex; flex-direction: column; gap: 0.75rem; }
+label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
+input, textarea {
+  background: #0e1830;
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-family: monospace;
+}
+.form-actions { display: flex; gap: 0.75rem; }
+
+.result { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 1.25rem; }
+
+.stage {
+  border-left: 4px solid var(--panel-border);
+  padding: 0.6rem 0.9rem;
+  margin: 0.6rem 0;
+  border-radius: 4px;
+  background: #0e1830;
+}
+.stage--ok { border-left-color: var(--ok); }
+.stage--blocked { border-left-color: var(--blocked); }
+.stage h4 { margin: 0 0 0.35rem; font-size: 0.95rem; display: flex; justify-content: space-between; }
+.stage .badge { font-family: monospace; font-size: 0.75rem; }
+.stage--ok .badge { color: var(--ok); }
+.stage--blocked .badge { color: var(--blocked); }
+.stage pre {
+  margin: 0.3rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  color: var(--muted);
+  max-height: 260px;
+  overflow: auto;
+}
+
+.audit-tools pre {
+  background: #0e1830;
+  border: 1px solid var(--panel-border);
+  padding: 0.75rem;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 300px;
+  font-size: 0.8rem;
+}
+
+footer { text-align: center; padding: 2rem 1rem; }

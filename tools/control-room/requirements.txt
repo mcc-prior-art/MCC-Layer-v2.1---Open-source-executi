@@ -1,0 +1,10 @@
+# The Control Room adds NO new third-party dependencies. It reuses the
+# repository's existing runtime requirements (../../requirements.txt):
+# fastapi, uvicorn, httpx, pydantic, cryptography -- the same packages the
+# real gateway and the existing pilot/example scripts already depend on.
+#
+#   pip install -r ../../requirements.txt
+#
+# This file exists only so the dependency set the Control Room relies on is
+# documented in its own directory; it intentionally has no entries of its
+# own to pin.
