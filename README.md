@@ -8,6 +8,16 @@
 **Doctrine record:** `2026-06-02`  
 **Latest exhibit record:** `Runtime Upgrade Merge — PR #4`
 
+## Reproducible Assurance Baseline
+
+```bash
+make verify-assurance
+```
+
+[Reproducing Assurance](docs/REPRODUCING_ASSURANCE.md) · [Assurance Index](docs/ASSURANCE_INDEX.md)
+
+**Boundary:** self-administered reproducible assurance, not a third-party audit.
+
 ---
 
 <p align="center">
