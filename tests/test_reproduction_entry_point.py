@@ -117,6 +117,25 @@ def test_readme_links_to_reproduction_doc():
     assert "make verify-assurance" in readme
 
 
+def test_readme_surfaces_reproduction_entry_point_above_the_fold():
+    """A first-time technical reviewer must see the reproduction command on
+    the first visible screen, directly under the project metadata block --
+    not several scrolls down. Regression guard for the top-of-README
+    compact 'Reproducible Assurance Baseline' block."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    first_screen = readme[: readme.index("\n---\n")]
+    assert "## Reproducible Assurance Baseline" in first_screen, (
+        "the compact 'Reproducible Assurance Baseline' block must appear "
+        "before the first '---' separator, directly under the project "
+        "metadata block -- it was not found there"
+    )
+    assert "make verify-assurance" in first_screen
+    assert "docs/REPRODUCING_ASSURANCE.md" in first_screen
+    assert "docs/ASSURANCE_INDEX.md" in first_screen
+    assert "self-administered reproducible assurance, not a third-party audit" in first_screen
+
+
 def test_assurance_index_exists_and_links_correctly():
     index = ROOT / "docs" / "ASSURANCE_INDEX.md"
     assert index.is_file(), f"missing: {index}"
