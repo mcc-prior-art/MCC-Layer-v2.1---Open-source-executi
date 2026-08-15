@@ -176,17 +176,52 @@ before exiting. (In foreground mode, Ctrl+C does the same thing.)
 4. Click **ESCALATE → Approve → EXECUTED** to see the full human-in-the-loop
    path: an agent escalates, an operator (held only on the backend) approves
    it, and the same coordinator path actuates it for real.
-5. Click **Replay rejected**, **Tamper rejected**, **Expired evidence
-   rejected**, and **Invalid signature rejected** to see the real gate
-   fail-closed on each attack, using the exact mechanisms
+5. Click **Consensus-evidence replay rejected**, **Action-binding tamper
+   rejected**, **Expired consensus-challenge rejected**, and **Invalid
+   evaluator signature rejected** to see the real gate fail-closed on each
+   attack, using the exact mechanisms
    `tests/test_consensus_enforcement_http.py` and
-   `tests/test_challenge_http.py` already prove over HTTP.
+   `tests/test_challenge_http.py` already prove over HTTP. See
+   [What the four rejection scenarios actually demonstrate](#what-the-four-rejection-scenarios-actually-demonstrate)
+   below for exactly which real invariant each one proves.
 6. Use **Submit a custom proposed action** to try your own identity, action,
    and JSON context — `Propose` shows Stages 1–3; `Propose + Execute through
    Gate` runs the full pipeline for ALLOW/CONSTRAIN decisions.
 7. Click **Verify hash chain now** to recompute the append-only audit log's
    integrity on demand.
 8. `python tools/control-room/stop.py` when done.
+
+-----
+
+## What the four rejection scenarios actually demonstrate
+
+MCC-Core deliberately provides **no** HTTP endpoint that accepts a
+previously-issued, client-supplied Decision Token for direct re-verification
+— by design, there is no second execution path (see
+`gateway/governance_service.py`'s own module docstring: "There is no second
+execution path"). This Control Room does **not** add one for demonstration
+purposes.
+
+So instead of a literal "resubmit this Decision Token" button, these four
+scenarios exercise the same real, already-tested invariants at the layer
+where MCC-Core actually exposes them for a client-driven governed
+execution — the consensus-challenge and evaluator-vote evidence a
+`POST /consensus/execute` call is bound to, verified by the exact same
+`EnforcementCoordinator.enforce()` / `ExecutionGate` code a Decision Token
+itself passes through at actuation:
+
+| Scenario (precise label) | What is submitted twice / altered | Real invariant demonstrated | Not to be confused with |
+|---|---|---|---|
+| **Consensus-evidence replay rejected** | The identical signed evaluator votes and the identical one-time gateway-issued nonce, submitted a second time | The gate's one-time nonce consumption (`src/mcc_core/nonce.py`) — the same mechanism a Decision Token's `nonce` claim is checked against | "Decision Token replay" — no endpoint re-verifies a previously-issued token |
+| **Action-binding tamper rejected** | A payload different from the one the consensus evidence was issued for | Action/payload-hash binding — the same invariant a Decision Token's `action_hash` / `payload_hash` claims enforce | Modifying a Decision Token's own claims post-issuance — there is no endpoint that would accept one |
+| **Expired consensus-challenge rejected** | A gateway-issued challenge used after its own TTL has passed | Time-bounded validity — the same invariant a Decision Token's `exp` claim enforces | An expired Decision Token being resubmitted — again, no such endpoint exists |
+| **Invalid evaluator signature rejected** | An evaluator vote altered after being signed | Real Ed25519 signature verification failing closed — the same primitive (`src/mcc_core/signing.py`) that verifies a Decision Token's own `sig` | A tampered Decision Token being resubmitted for re-verification |
+
+Every one of these calls the **real** gateway's `/consensus/challenge` and
+`/consensus/execute` endpoints, over real HTTP, using votes signed by the
+demo's own ephemeral evaluator keys — nothing is simulated in the frontend,
+and no new bypass or second engine was added to make any of the four
+possible.
 
 -----
 

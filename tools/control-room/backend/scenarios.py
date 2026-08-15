@@ -391,9 +391,9 @@ def scenario_execution_replay(rt: DemoRuntime) -> ScenarioResult:
     stages.append(audit_record_stage(entries, client.verify_chain()))
 
     passed = first.executed and not replay.executed
-    return ScenarioResult("replay", "Replay of the same signed evidence / nonce", "BLOCKED on replay",
-                          stages, f"First attempt {first.status}; replay {replay.status} "
-                          f"({replay.reason}).", passed)
+    return ScenarioResult("replay", "Replay of the same signed consensus evidence / one-time nonce",
+                          "BLOCKED on replay", stages, f"First attempt {first.status}; replay "
+                          f"{replay.status} ({replay.reason}).", passed)
 
 
 def scenario_execution_tamper(rt: DemoRuntime) -> ScenarioResult:
@@ -421,7 +421,7 @@ def scenario_execution_tamper(rt: DemoRuntime) -> ScenarioResult:
     entries = audit_new_entries(client, before)
     stages.append(audit_record_stage(entries, client.verify_chain()))
 
-    return ScenarioResult("tamper", "Action modified after token/evidence issuance", "BLOCKED",
+    return ScenarioResult("tamper", "Action modified after consensus-evidence issuance", "BLOCKED",
                           stages, f"Real payload-binding check: {outcome.status} ({outcome.reason}).",
                           not outcome.executed)
 
@@ -449,7 +449,7 @@ def scenario_expired_challenge(rt: DemoRuntime) -> ScenarioResult:
     entries = audit_new_entries(client, before)
     stages.append(audit_record_stage(entries, client.verify_chain()))
 
-    return ScenarioResult("expired", "Expired token/evidence validity window", "BLOCKED",
+    return ScenarioResult("expired", "Expired consensus-challenge validity window", "BLOCKED",
                           stages, f"Real expiry enforcement: {outcome.status} ({outcome.reason}).",
                           not outcome.executed)
 
@@ -504,8 +504,19 @@ SCENARIO_METADATA = [
     {"id": "constrain", "title": "CONSTRAIN", "description": "A payment over the cap — clamped to the authorized amount, then executed."},
     {"id": "escalate_then_approve", "title": "ESCALATE → Approve → EXECUTED",
      "description": "The full human-in-the-loop path: escalate, a real operator approval, then real execution."},
-    {"id": "replay", "title": "Replay rejected", "description": "The identical signed evidence and one-time nonce, submitted twice."},
-    {"id": "tamper", "title": "Tamper rejected", "description": "The action is modified after evidence/token issuance."},
-    {"id": "expired", "title": "Expired evidence rejected", "description": "A gateway-issued challenge used after its validity window has passed."},
-    {"id": "bad_signature", "title": "Invalid signature rejected", "description": "One evaluator vote is altered after being signed."},
+    {"id": "replay", "title": "Consensus-evidence replay rejected",
+     "description": "The identical signed evaluator votes and one-time gateway-issued nonce, submitted twice — "
+                    "demonstrates the gate's one-time nonce consumption. Not a resubmitted Decision Token: MCC-Core "
+                    "has no endpoint that accepts a client-supplied Decision Token for re-verification (no second "
+                    "execution path); see the note in tools/control-room/README.md."},
+    {"id": "tamper", "title": "Action-binding tamper rejected",
+     "description": "The action is submitted with a different payload than the one the consensus evidence was "
+                    "issued for — demonstrates the same action/payload-hash binding check a Decision Token is "
+                    "itself bound by."},
+    {"id": "expired", "title": "Expired consensus-challenge rejected",
+     "description": "A gateway-issued challenge used after its validity window has passed — demonstrates the same "
+                    "time-bounded-validity invariant a Decision Token's own expiry (`exp`) enforces."},
+    {"id": "bad_signature", "title": "Invalid evaluator signature rejected",
+     "description": "One evaluator vote is altered after being signed — demonstrates real Ed25519 signature "
+                    "verification failing closed, the same primitive that verifies a Decision Token's own signature."},
 ]
