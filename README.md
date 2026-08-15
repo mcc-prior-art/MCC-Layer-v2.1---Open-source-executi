@@ -408,6 +408,18 @@ or alters a decision, and observability never weakens fail-closed behavior. See
 [alert rules](deploy/observability/alerts.yml), and the
 [incident runbook](deploy/observability/INCIDENT_RUNBOOK.md).
 
+**MCC-Core Control Room — a browser-based live demonstrator.** A local,
+self-administered UI that drives the real gateway end to end: propose an
+action, watch the real signed decision, inspect the real Decision Token,
+run it through the real Execution Gate, and see the matching real audit
+record — plus live replay/tamper/expiry/bad-signature rejections. Lives
+entirely under [`tools/control-room/`](tools/control-room/README.md),
+outside the trusted computing base and the canonical execution path.
+
+```bash
+python tools/control-room/start.py
+```
+
 ## Real Governed Agent Pilot
 
 A real, runnable AI agent (`src/mcc_agent/`) whose external actions are governed
