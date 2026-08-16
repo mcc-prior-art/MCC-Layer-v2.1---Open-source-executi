@@ -161,3 +161,96 @@ def test_http_export_returns_signed_log():
     body = r.json()
     assert body["signing"]["algorithm"] == "Ed25519"
     assert isinstance(body["entries"], list)
+
+
+# ---- PR #80: EvaluateRequest strict top-level schema ----
+#
+# Before PR #80, EvaluateRequest was a plain BaseModel with no
+# `extra="forbid"`: an unrecognized top-level field was silently dropped and
+# the request still returned 200 with a real verdict (documented as a known
+# gap in PR #79's GATEWAY_API_CONTRACT.md). These tests prove the runtime
+# behavior actually changed from lenient to strict, not just the docs.
+
+
+def test_http_evaluate_rejects_unknown_top_level_field():
+    r = client.post(
+        "/evaluate",
+        json={
+            "identity": "agent/payments-bot",
+            "action": "send_payment",
+            "context": {"amount": 50},
+            "not_a_real_field": "should be rejected",
+        },
+        headers=HEADERS,
+    )
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert any(
+        d["type"] == "extra_forbidden" and d["loc"] == ["body", "not_a_real_field"]
+        for d in detail
+    ), detail
+
+
+def test_http_evaluate_still_rejects_missing_required_field():
+    r = client.post(
+        "/evaluate",
+        json={"identity": "agent/x", "context": {}},
+        headers=HEADERS,
+    )
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert any(d["type"] == "missing" and d["loc"] == ["body", "action"] for d in detail), detail
+
+
+def test_http_evaluate_valid_request_with_every_known_field_still_works():
+    """A request using every documented EvaluateRequest field must still
+    succeed after the strictness change -- proves the fix rejects only
+    genuinely unknown fields, not the documented surface."""
+    r = client.post(
+        "/evaluate",
+        json={
+            "identity": "agent/payments-bot",
+            "action": "send_payment",
+            "context": {"amount": 50},
+            "transaction_id": "txn-pr80-1",
+            "idempotency_key": "op-pr80-1",
+            "actor_id": "agent/payments-bot",
+            "resource_id": "acct-ops-1",
+            "mode": "inline",
+        },
+        headers=HEADERS,
+    )
+    assert r.status_code == 200
+    assert r.json()["decision"] == "ALLOW"
+
+
+def test_http_evaluate_canonical_verdicts_unchanged_for_valid_requests():
+    """ALLOW/DENY/ESCALATE/CONSTRAIN behavior for valid requests must be
+    identical to pre-PR-80 behavior -- the fix only touches unknown-field
+    handling, never governance/decision logic."""
+    cases = [
+        ({"identity": "agent/payments-bot", "action": "send_payment", "context": {"amount": 50}}, "ALLOW"),
+        ({"identity": "agent/ops-bot", "action": "delete_database", "context": {}}, "DENY"),
+        ({"identity": "agent/nobody", "action": "send_payment", "context": {"amount": 1}}, "ESCALATE"),
+        ({"identity": "agent/payments-bot", "action": "send_payment", "context": {"amount": 99999}}, "CONSTRAIN"),
+    ]
+    for body, expected_decision in cases:
+        r = client.post("/evaluate", json=body, headers=HEADERS)
+        assert r.status_code == 200
+        assert r.json()["decision"] == expected_decision, body
+
+
+def test_http_evaluate_nested_context_field_remains_flexible_by_design():
+    """`context` stays a generic, unvalidated dict -- PR #80 hardens only the
+    top-level EvaluateRequest schema; nested payload shapes are a documented,
+    intentional remaining gap (see GATEWAY_API_CONTRACT.md known gaps)."""
+    r = client.post(
+        "/evaluate",
+        json={
+            "identity": "agent/payments-bot",
+            "action": "send_payment",
+            "context": {"amount": 50, "totally_unmodeled_nested_field": {"x": 1}},
+        },
+        headers=HEADERS,
+    )
+    assert r.status_code == 200
