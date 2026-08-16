@@ -1,0 +1,14 @@
+{
+  "identity": "agent/payments-bot",
+  "action": "send_payment",
+  "context": {
+    "amount": 99000.0,
+    "currency": "USD",
+    "source": "acct-ops-1",
+    "beneficiary_id": "beneficiary-42"
+  },
+  "transaction_id": "txn-example-constrain-1",
+  "idempotency_key": "op-example-constrain-1",
+  "actor_id": "agent/payments-bot",
+  "resource_id": "acct-ops-1"
+}

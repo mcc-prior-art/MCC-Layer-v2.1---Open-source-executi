@@ -1,0 +1,60 @@
+{
+  "decision": "CONSTRAIN",
+  "reason": "mandate 'payments.send' bounds applied: amount: 99000.0 -> 5000 (max)",
+  "audit_id": "12e4a7515bae55c77d4604b08ff5855be380d9d3c4450af477d1061294ef4025",
+  "signature": "IptuDKjh4swWwfrAE21a9hXFVHJdXaaxhvod7imdCDR14thpPdLah0UAbRkp7pMPwP5IFo+dS0stPvVs0UMkBQ==",
+  "decision_token": {
+    "iss": "mcc/core",
+    "sub": "agent/payments-bot",
+    "aud": "egress-gate-1",
+    "jti": "eddc97ab-37d3-41f8-8902-51bf2a873077",
+    "iat": 1786863676,
+    "nbf": 1786863676,
+    "exp": 1786863736,
+    "decision": "CONSTRAIN",
+    "action": "send_payment",
+    "action_hash": "sha256:0d4ebb1b4e29f2e49ba6490192c6dca37028728fdebcda503b9331ed385b198b",
+    "payload_hash": "sha256:c63db069b0b60d9ffff6d8f230774e4d575f524c891c1dbb4eeb45d885060578",
+    "constraints": {
+      "max_amount": 5000
+    },
+    "policy_id": "pilot-authority/v1",
+    "policy_hash": "sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+    "nonce": "3f87b35451914a3b97c766f49d77a478",
+    "audit_ref": "12e4a7515bae55c77d4604b08ff5855be380d9d3c4450af477d1061294ef4025",
+    "transaction_id": "txn-example-constrain-1",
+    "idempotency_key": "op-example-constrain-1",
+    "actor_id": "agent/payments-bot",
+    "resource_id": "acct-ops-1",
+    "auth_claims": {
+      "source": "acct-ops-1",
+      "beneficiary_id": "beneficiary-42",
+      "amount": 5000.0,
+      "currency": "USD"
+    },
+    "mandate_id": null,
+    "kid": "mcc-gateway-dev-key-1",
+    "sig": "IptuDKjh4swWwfrAE21a9hXFVHJdXaaxhvod7imdCDR14thpPdLah0UAbRkp7pMPwP5IFo+dS0stPvVs0UMkBQ=="
+  },
+  "constraints": {
+    "max_amount": 5000
+  },
+  "forward_context": {
+    "amount": 5000,
+    "currency": "USD",
+    "source": "acct-ops-1",
+    "beneficiary_id": "beneficiary-42"
+  },
+  "applied_constraints": [
+    "amount: 99000.0 -> 5000 (max)"
+  ],
+  "enforce": true,
+  "mode": "inline",
+  "authority_required": "payments.send",
+  "policy_ref": "pilot-authority/v1@sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+  "trace_id": "7e3d84092a17",
+  "transaction_id": "txn-example-constrain-1",
+  "idempotency_key": "op-example-constrain-1",
+  "actor_id": "agent/payments-bot",
+  "resource_id": "acct-ops-1"
+}

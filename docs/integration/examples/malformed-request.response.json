@@ -1,0 +1,16 @@
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": [
+        "body",
+        "action"
+      ],
+      "msg": "Field required",
+      "input": {
+        "identity": "agent/x",
+        "context": {}
+      }
+    }
+  ]
+}

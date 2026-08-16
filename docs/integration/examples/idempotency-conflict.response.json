@@ -1,0 +1,7 @@
+{
+  "status": "BLOCKED",
+  "reason": "operation already executed",
+  "decision": null,
+  "audit_ref": null,
+  "execution": null
+}
