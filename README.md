@@ -420,6 +420,15 @@ outside the trusted computing base and the canonical execution path.
 python tools/control-room/start.py
 ```
 
+**Gateway API Contract — integration readiness.** The external HTTP contract
+for submitting a proposed action and receiving a governance decision before
+execution: verdict semantics, fail-closed rules, idempotency/nonce/replay
+protection, audit correlation, and known gaps, backed by real request/response
+examples from the running gateway. See
+[docs/integration/GATEWAY_API_CONTRACT.md](docs/integration/GATEWAY_API_CONTRACT.md)
+and the machine-readable [openapi/mcc-gateway.yaml](openapi/mcc-gateway.yaml).
+This is an integration contract, not adapter certification.
+
 ## Real Governed Agent Pilot
 
 A real, runnable AI agent (`src/mcc_agent/`) whose external actions are governed
