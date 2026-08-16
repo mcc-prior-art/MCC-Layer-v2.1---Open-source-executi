@@ -38,6 +38,12 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+          # ruff is declared under the root pyproject.toml's own [dev] extra
+          # (installed there via `pip install -e ".[dev]"`, e.g. by
+          # mcc-sdk.yml's editable install of sdk/mcc-sdk[dev]); neither
+          # requirements.txt nor requirements-dev.txt provides it, so this
+          # job installs it directly, pinned to the same floor as pyproject.toml.
+          pip install "ruff>=0.4"
 
       - name: Prepare isolated audit directory
         run: mkdir -p /tmp/mcc-pilot-ci
