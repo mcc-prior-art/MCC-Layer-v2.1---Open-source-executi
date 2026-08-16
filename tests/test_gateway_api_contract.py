@@ -9,6 +9,13 @@ suite only proves the *documents* stay structurally intact: the OpenAPI file
 stays valid, the four canonical verdicts and required endpoints stay present,
 every documented example file still exists and is valid JSON, the contract
 doc still covers its required sections, and the README still links to both.
+
+PR #80 extended this file with static checks that the documents correctly
+reflect the strict-schema fix (``EvaluateRequest`` now rejects unknown
+top-level fields) without overclaiming nested-``context`` strictness the
+runtime does not enforce. The *runtime* behavior itself is proven against the
+real gateway in ``tests/test_gateway.py`` (see its "PR #80" section), not
+here -- this file stays a static document guard.
 """
 
 from __future__ import annotations
@@ -196,6 +203,32 @@ def test_malformed_request_example_is_a_validation_error():
     assert "detail" in data
 
 
+def test_malformed_request_example_remains_a_missing_field_error_not_unknown_field():
+    """PR #80: this example predates the strict-schema fix and still
+    represents a genuine *missing required field* rejection (action), not
+    the (now also rejected, but separately proven in tests/test_gateway.py)
+    unknown-top-level-field case -- so the file did not need regenerating."""
+    data = json.loads((EXAMPLES_DIR / "malformed-request.response.json").read_text(encoding="utf-8"))
+    detail = data["detail"]
+    assert any(
+        d.get("type") == "missing" and d.get("loc") == ["body", "action"] for d in detail
+    ), "malformed-request.response.json no longer reflects a missing-field 422 -- PR #79/#80 doc drift"
+
+
+def test_openapi_evaluate_request_is_strict_at_top_level(openapi_spec):
+    """PR #80: EvaluateRequest must no longer advertise
+    additionalProperties: true at the top level."""
+    schema = openapi_spec["components"]["schemas"]["EvaluateRequest"]
+    assert schema["additionalProperties"] is False
+
+
+def test_openapi_evaluate_request_context_remains_flexible(openapi_spec):
+    """The nested `context` object is an intentional, documented exception --
+    PR #80 must not claim stricter runtime behavior than the code enforces."""
+    context_schema = openapi_spec["components"]["schemas"]["EvaluateRequest"]["properties"]["context"]
+    assert context_schema["additionalProperties"] is True
+
+
 def test_contract_doc_exists():
     assert CONTRACT_DOC_PATH.is_file(), f"missing: {CONTRACT_DOC_PATH}"
 
@@ -231,6 +264,44 @@ def test_contract_doc_disclaims_adapter_certification():
             f"docs/integration/GATEWAY_API_CONTRACT.md is missing the required "
             f"certification-scope disclaimer: {phrase!r}"
         )
+
+
+def test_contract_doc_marks_top_level_leniency_gap_as_fixed_by_pr80():
+    text = CONTRACT_DOC_PATH.read_text(encoding="utf-8")
+    normalized = " ".join(text.split())
+    assert "fixed by PR #80" in normalized, (
+        "docs/integration/GATEWAY_API_CONTRACT.md must mark the PR #79 "
+        "/evaluate top-level leniency gap as fixed by PR #80"
+    )
+    # Must now positively state the top-level schema is strict, not lenient.
+    assert "`EvaluateRequest` is now a **strict** top-level schema" in text
+
+
+def test_contract_doc_does_not_overclaim_nested_context_strictness():
+    """Required documentation change: do not claim total schema strictness
+    unless the runtime actually enforces it. `context` remains a generic,
+    unvalidated dict by design and the doc must say so honestly."""
+    text = CONTRACT_DOC_PATH.read_text(encoding="utf-8")
+    assert "`context` remains a generic, unvalidated `Dict[str, Any]`" in text, (
+        "docs/integration/GATEWAY_API_CONTRACT.md must honestly document that context stays flexible"
+    )
+
+
+def test_contract_doc_still_does_not_claim_production_readiness_or_audit():
+    """The doc legitimately mentions a *possible* third-party auditor as a
+    consumer of GET /export (§16, §19) -- that is a role description, not a
+    claim of having been audited. This guards against the latter."""
+    text = CONTRACT_DOC_PATH.read_text(encoding="utf-8").lower()
+    for forbidden in (
+        "independently audited",
+        "third-party audited",
+        "has been audited",
+        "audit-certified",
+        "production-ready",
+        "production ready",
+        "certified for production",
+    ):
+        assert forbidden not in text, f"docs/integration/GATEWAY_API_CONTRACT.md must not claim: {forbidden!r}"
 
 
 def test_contract_doc_references_all_required_example_files():
