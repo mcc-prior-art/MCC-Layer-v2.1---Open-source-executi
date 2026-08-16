@@ -191,9 +191,16 @@ implementation exists to describe further than that.
 | `resource_id` | no | Generic operation-binding resource identity. |
 | `mode` | no | Per-request override of `inline`/`observe` enforcement mode. |
 
-`EvaluateRequest` is **not** a strict schema — unknown fields are silently
-ignored (see §18's strictness matrix; this is a documented, verified gap
-between `/evaluate` and the governed execute endpoints, not an oversight).
+`EvaluateRequest` is now a **strict** top-level schema
+(`model_config = ConfigDict(extra="forbid")`, `gateway/app.py`, fixed by
+PR #80) — an unrecognized top-level field is rejected with HTTP 422, not
+silently ignored. See §18's strictness matrix.
+
+`context` itself stays a generic, unvalidated `Dict[str, Any]` **by
+design** — action payload shapes are domain-specific (payments, infra,
+robotics profiles each define their own), so this endpoint does not
+enforce a single fixed nested schema for it. This is a documented,
+intentional remaining scope limit, not an oversight — see §18 and §21.
 
 The three governed execute endpoints and `POST /consensus/challenge` use
 **strict** schemas (`extra="forbid"`, `gateway/governance_api.py`'s
@@ -609,23 +616,29 @@ shared Redis (or Redis Sentinel, per `tests/` coverage) actually provides.
 ## 18. Error model
 
 **Strictness matrix** — which request schemas reject unknown fields
-(`extra="forbid"`) versus which are lenient (verified empirically, not
-assumed):
+(`extra="forbid"`) versus which stay open, verified empirically (not
+assumed) against the running gateway, updated by PR #80:
 
-| Endpoint | Schema source | Unknown field | Missing required field |
-|---|---|---|---|
-| `POST /evaluate` | `gateway/app.py::EvaluateRequest` (plain `BaseModel`) | **Silently ignored** | HTTP 422 |
-| `POST /mandates/execute` | `governance_api.py`'s `_Strict` (`extra="forbid"`) | HTTP 422 | HTTP 422 |
-| `POST /approvals/{id}/execute` | `_Strict` | HTTP 422 | HTTP 422 |
-| `POST /consensus/challenge` | `_Strict` | HTTP 422 | HTTP 422 |
-| `POST /consensus/execute` | `_Strict` | HTTP 422 | HTTP 422 |
+| Endpoint | Schema source | Unknown top-level field | Unknown nested field (inside `context`) | Missing required field |
+|---|---|---|---|---|
+| `POST /evaluate` | `gateway/app.py::EvaluateRequest` (`extra="forbid"`, fixed by PR #80) | HTTP 422 | **Allowed** — `context` stays a generic, unvalidated dict by design (§6, §21) | HTTP 422 |
+| `POST /mandates/execute` | `governance_api.py`'s `_Strict` (`extra="forbid"`) | HTTP 422 | n/a (payload also a generic dict) | HTTP 422 |
+| `POST /approvals/{id}/execute` | `_Strict` | HTTP 422 | n/a | HTTP 422 |
+| `POST /consensus/challenge` | `_Strict` | HTTP 422 | n/a | HTTP 422 |
+| `POST /consensus/execute` | `_Strict` | HTTP 422 | n/a | HTTP 422 |
 
-Real, genuine example of a `/evaluate` 422 (triggered by a missing required
-`action` field, since an unknown field alone would not trigger one — see
-the table above):
+Real, genuine example of a `/evaluate` 422 for a **missing required field**
+(`action`):
 [`examples/malformed-request.response.json`](examples/malformed-request.response.json)
 — `{"detail": [{"type": "missing", "loc": ["body", "action"], "msg": "Field required", ...}]}`,
 FastAPI/Pydantic's own validation error shape, unedited.
+
+An **unknown top-level field** (e.g. `not_a_real_field`) now produces the
+same status with Pydantic's standard `extra_forbidden` shape —
+`{"detail": [{"type": "extra_forbidden", "loc": ["body", "not_a_real_field"], "msg": "Extra inputs are not permitted", ...}]}`
+— exercised directly against the running gateway by
+`tests/test_gateway.py::test_http_evaluate_rejects_unknown_top_level_field`
+rather than duplicated here as a second static file.
 
 **HTTP status codes used across the surface:**
 
@@ -708,11 +721,19 @@ taxonomy is derived from.
 
 - **No unified `/execute` endpoint** (§5) — three action-specific endpoints
   cover its intended scope today; a caller must pick the right one.
-- **`/evaluate` request schema is not strict** (§6, §18) — unlike every
-  governed execute endpoint, unknown fields on `/evaluate` are silently
-  ignored rather than rejected. This is a genuine inconsistency in the
-  runtime, not a documentation simplification; it is called out here
-  rather than smoothed over.
+- ~~`/evaluate` request schema is not strict at the top level~~ — **fixed by
+  PR #80.** `EvaluateRequest` now rejects unknown top-level fields with
+  HTTP 422 (`extra="forbid"`), matching every governed execute endpoint.
+  See §6, §18.
+- **`context` remains a generic, unvalidated `Dict[str, Any]`** (§6, §18) —
+  this is an intentional, documented scope limit, not an oversight: action
+  payload shapes are domain-specific (payment/infra/robotics profiles each
+  define their own canonical payload), and enforcing one fixed nested
+  schema for `context` at the Gateway HTTP boundary would require
+  redesigning the profile layer, which is out of scope for a request-schema
+  hardening change. An unknown key inside `context` is accepted, not
+  rejected. The same applies to `mandate`/`context` on the governed execute
+  endpoints and to consensus `votes` entries, which are also generic dicts.
 - **No production API-key issuance/rotation process documented for the
   `X-API-Key`/`X-Operator-Key` HTTP boundary** (§19) — the mechanism exists
   (header-based, checked against configured keys), but a full lifecycle
@@ -736,10 +757,11 @@ taxonomy is derived from.
   — `GET /ready` is the intended safeguard, but only if an operator
   actually wires deployment-required-dependency checks correctly for their
   topology.
-- The `/evaluate` schema leniency (§21) means a caller with a typo'd field
-  name gets silent field-drop rather than an error — this is a real
-  ergonomic/safety risk for integrators building against this endpoint,
-  distinct from every other endpoint in this contract.
+- A caller with a typo'd key **inside** `context` still gets a silent
+  field-drop rather than an error, since `context` is intentionally
+  unvalidated (§21) — PR #80 closed this for top-level fields only. This is
+  a real, accepted ergonomic/safety trade-off for integrators, not
+  something this contract claims to have eliminated.
 - This document describes the Gateway's HTTP shape as of this PR; it is not
   itself enforced by a runtime schema-conformance check beyond the
   lightweight structural test in this repository's test suite (§ below) —

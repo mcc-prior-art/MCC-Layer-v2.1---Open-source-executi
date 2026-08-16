@@ -431,13 +431,15 @@ components:
             detail: INVALID_API_KEY
     MalformedRequest:
       description: >-
-        Schema validation failed (missing/invalid required field). The
-        `/mandates/execute`, `/approvals/{request_id}/execute`,
-        `/consensus/challenge`, and `/consensus/execute` request schemas are
-        additionally strict (`extra="forbid"`) — an unknown field is itself a
-        rejection there. `/evaluate`'s `EvaluateRequest` is not strict; see
-        that schema's description and
-        docs/integration/GATEWAY_API_CONTRACT.md §18.
+        Schema validation failed: a missing/invalid required field, or an
+        unrecognized top-level field. `/evaluate`, `/mandates/execute`,
+        `/approvals/{request_id}/execute`, `/consensus/challenge`, and
+        `/consensus/execute` all use strict top-level schemas
+        (`extra="forbid"`) as of PR #80 — an unknown top-level field is
+        itself a rejection on every one of them. Fields nested inside a
+        generic object (`context`, `mandate`, individual `votes` entries)
+        remain unvalidated by design; see
+        docs/integration/GATEWAY_API_CONTRACT.md §18 for the full matrix.
       content:
         application/json:
           schema:
@@ -475,16 +477,16 @@ components:
     EvaluateRequest:
       type: object
       required: [identity, action]
-      additionalProperties: true
+      additionalProperties: false
       description: >-
-        Unlike the governed `/…/execute` and `/consensus/challenge` request
-        schemas below, this one does **not** reject unknown fields — the real
-        model (`gateway/app.py::EvaluateRequest`) is a plain `BaseModel` with
-        no `extra="forbid"`, so an unrecognized field is silently ignored, not
-        rejected. A 422 from `/evaluate` means a *missing or invalid* required
-        field (e.g. `action`), never an unknown one. See
-        docs/integration/GATEWAY_API_CONTRACT.md §18 for the honest per-endpoint
-        strictness matrix.
+        Strict at the top level (`extra="forbid"`, fixed by PR #80): an
+        unrecognized top-level field is rejected with HTTP 422, matching the
+        governed `/…/execute` and `/consensus/challenge` request schemas
+        below. `context` itself stays a generic, unvalidated object (see its
+        own `additionalProperties: true`) — action payload shapes are
+        domain-specific and are not enforced by a single fixed nested schema
+        here. See docs/integration/GATEWAY_API_CONTRACT.md §18 for the honest
+        per-endpoint strictness matrix.
       properties:
         identity:
           type: string
