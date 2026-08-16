@@ -1,3 +1,5 @@
 -r requirements.txt
 pytest>=8.0.0
 hypothesis>=6.0.0  # PR #71 Workstream H: property-based/stateful testing (assurance/tests/ only; not in the mcc-core wheel)
+pyyaml>=6.0  # PR #79: parse openapi/mcc-gateway.yaml for the doc/schema test
+openapi-spec-validator>=0.7  # PR #79: validate openapi/mcc-gateway.yaml against the OpenAPI 3.0 schema

@@ -1,0 +1,858 @@
+openapi: 3.0.3
+info:
+  title: MCC-Core Gateway API
+  version: "0.1.0"
+  x-contract-identifier: mcc-integration-contract
+  x-contract-version: "1.0"
+  x-doctrine: >-
+    The model proposes. MCC decides. The gate enforces. The audit chain records.
+  x-executor-rule: >-
+    The executor must act only after a verified MCC decision.
+  description: |
+    The external HTTP contract for MCC-Core's Gateway: how an external AI agent,
+    backend service, or integration system submits a proposed action and receives
+    a governance decision **before** execution.
+
+    **This document is an integration-readiness contract, not a certification
+    program.** It makes no claim of adapter certification, AXLOGIQ-certified
+    status, a production signing ceremony, or issued technical certificates.
+    Adapter certification is deferred until after AXLOGIQ C-Corp registration.
+
+    This spec documents the real, running gateway (`gateway/app.py` +
+    `gateway/governance_api.py`) plus one clearly marked **target** endpoint
+    (`POST /execute`) that does not exist yet — see that path's description for
+    the exact gap and the three real endpoints that currently cover its scope.
+
+    See `docs/integration/GATEWAY_API_CONTRACT.md` for the full prose contract:
+    architecture, trust boundary, fail-closed rules, idempotency/nonce/replay
+    semantics, audit correlation, and known gaps.
+  contact:
+    name: MCC-Core (AXLOGIQ Inc.)
+    url: https://github.com/mcc-prior-art/mcc-layer
+
+servers:
+  - url: http://127.0.0.1:8001
+    description: Local / pilot deployment (deploy/pilot/docker-compose.yml)
+
+security:
+  - agentApiKey: []
+
+tags:
+  - name: decision
+    description: Side-effect-free governance decision (POST /evaluate).
+  - name: execution
+    description: Governed execution — the only paths that reach the upstream.
+  - name: health
+    description: Liveness and readiness probes.
+  - name: audit
+    description: Audit-chain integrity and export.
+
+paths:
+  /evaluate:
+    post:
+      tags: [decision]
+      summary: Submit a proposed action and receive a governance decision.
+      description: |
+        The single decision endpoint. Side-effect-free: it evaluates the
+        proposed action against the runtime's `AuthorityModel` and, for
+        ALLOW/CONSTRAIN, signs a Decision Token. It does **not** execute
+        anything — no side effect is performed by this call, and calling it
+        never contacts the upstream executor.
+
+        Implementation status: **implemented** (`gateway/app.py::evaluate`).
+      operationId: evaluate
+      security:
+        - agentApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluateRequest"
+            examples:
+              allow:
+                summary: A compliant action within mandate — ALLOW
+                externalValue: "../docs/integration/examples/allow.request.json"
+              deny:
+                summary: An action no mandate can authorize — DENY
+                externalValue: "../docs/integration/examples/deny.request.json"
+              escalate:
+                summary: An action above standing authority — ESCALATE
+                externalValue: "../docs/integration/examples/escalate.request.json"
+              constrain:
+                summary: An action over an authorized cap — CONSTRAIN
+                externalValue: "../docs/integration/examples/constrain.request.json"
+      responses:
+        "200":
+          description: A governance decision (ALLOW, DENY, ESCALATE, or CONSTRAIN).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluateResponse"
+              examples:
+                allow:
+                  summary: ALLOW decision + signed Decision Token
+                  externalValue: "../docs/integration/examples/allow.response.json"
+                deny:
+                  summary: DENY decision — no token issued
+                  externalValue: "../docs/integration/examples/deny.response.json"
+                escalate:
+                  summary: ESCALATE decision — no token issued
+                  externalValue: "../docs/integration/examples/escalate.response.json"
+                constrain:
+                  summary: CONSTRAIN decision — clamped forward_context + token
+                  externalValue: "../docs/integration/examples/constrain.response.json"
+        "401":
+          $ref: "#/components/responses/InvalidApiKey"
+        "422":
+          $ref: "#/components/responses/MalformedRequest"
+
+  /execute:
+    post:
+      tags: [execution]
+      summary: "TARGET (not implemented): unified governed execution endpoint."
+      x-implementation-status: not-implemented
+      description: |
+        **This endpoint does not exist in the running gateway today.** It is
+        documented here as the **target** shape of a single, unified governed
+        execution surface, and the gap is stated honestly rather than faked.
+
+        **Current gap:** the runtime instead exposes three action-specific
+        governed execution endpoints, each running the identical
+        `EnforcementCoordinator.enforce()` path (gate verify → nonce consume →
+        [consensus re-verify] → [challenge consume] → revocation re-check →
+        [approval consume] → idempotency reserve → velocity reserve →
+        audit-before-actuation → execute → audit result → idempotency finalize):
+
+        - `POST /mandates/execute` — a signed mandate authorizes the operation.
+        - `POST /approvals/{request_id}/execute` — a single-use approval mandate
+          (minted after an operator approves an ESCALATE request) authorizes it.
+        - `POST /consensus/execute` — N-of-M independent signed evaluator votes,
+          bound to a gateway-issued challenge, authorize it.
+
+        A caller integrating today MUST call the endpoint matching the
+        authorization material it holds, not this path. See
+        `docs/integration/GATEWAY_API_CONTRACT.md` §5 ("Difference between
+        `/evaluate` and `/execute`") for the full mapping and the honest
+        assessment of what unifying them would require.
+      operationId: execute_target_not_implemented
+      responses:
+        "501":
+          description: >-
+            Not implemented. Use /mandates/execute, /approvals/{request_id}/execute,
+            or /consensus/execute instead — see the description above.
+
+  /mandates/execute:
+    post:
+      tags: [execution]
+      summary: Execute a governed action authorized by a signed mandate.
+      description: |
+        Runs authority verification against the supplied signed mandate, then
+        the one coordinator path (gate → nonce → revocation re-check →
+        idempotency → velocity → audit-before-actuation → execute → audit
+        result). Any failure returns `status: BLOCKED` (or `EXECUTION_FAILED`
+        if the executor itself raised after authorization was verified) and the
+        upstream is never reached.
+
+        Implementation status: **implemented**
+        (`gateway/governance_api.py::execute_with_mandate`).
+      operationId: executeWithMandate
+      security:
+        - agentApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MandateExecuteRequest"
+      responses:
+        "200":
+          description: The governed execution outcome.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteResponse"
+        "401":
+          $ref: "#/components/responses/InvalidApiKey"
+        "422":
+          $ref: "#/components/responses/MalformedRequest"
+
+  /approvals/{request_id}/execute:
+    post:
+      tags: [execution]
+      summary: Execute a governed action after ESCALATE approval, single-use.
+      description: |
+        Consumes the single-use approval mandate minted by an operator's
+        `POST /approvals/{request_id}/approve`, then runs the same one
+        coordinator path as `/mandates/execute`. A second attempt with the same
+        approval is rejected — the approval is consumed exactly once, at
+        actuation, atomically.
+
+        Implementation status: **implemented**
+        (`gateway/governance_api.py::execute_with_approval`).
+      operationId: executeWithApproval
+      security:
+        - agentApiKey: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalExecuteRequest"
+      responses:
+        "200":
+          description: The governed execution outcome.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteResponse"
+        "401":
+          $ref: "#/components/responses/InvalidApiKey"
+        "422":
+          $ref: "#/components/responses/MalformedRequest"
+
+  /consensus/challenge:
+    post:
+      tags: [execution]
+      summary: Issue a single-use, gateway-owned nonce for consensus evidence.
+      description: |
+        The gateway mints the one-time nonce that independent evaluators must
+        bind their votes to. The challenge is single-use and TTL-bound; the
+        coordinator consumes it exactly once, at actuation, before
+        `POST /consensus/execute` can succeed.
+
+        Implementation status: **implemented**
+        (`gateway/governance_api.py::create_challenge`).
+      operationId: createConsensusChallenge
+      security:
+        - agentApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeCreateRequest"
+      responses:
+        "200":
+          description: The issued challenge (contains the gateway-owned nonce).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChallengeCreateResponse"
+        "401":
+          $ref: "#/components/responses/InvalidApiKey"
+        "409":
+          description: Challenge service not configured; fail-closed.
+        "422":
+          $ref: "#/components/responses/MalformedRequest"
+
+  /consensus/execute:
+    post:
+      tags: [execution]
+      summary: Execute a governed action authorized by N-of-M evaluator consensus.
+      description: |
+        Verifies N-of-M independent, Ed25519-signed evaluator votes — bound to
+        the exact action/actor/payload/resource/policy_hash/nonce — then runs
+        the one coordinator path. Replayed votes/nonce, a tampered payload,
+        an expired challenge, or a tampered/forged vote all fail closed before
+        any reservation or execution.
+
+        Implementation status: **implemented**
+        (`gateway/governance_api.py::execute_with_consensus`).
+      operationId: executeWithConsensus
+      security:
+        - agentApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsensusExecuteRequest"
+            examples:
+              replay-deny:
+                summary: Replayed evidence/nonce — resubmitted after a successful execute
+                externalValue: "../docs/integration/examples/replay-deny.request.json"
+      responses:
+        "200":
+          description: The governed execution outcome.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteResponse"
+              examples:
+                idempotency-conflict:
+                  summary: Duplicate idempotency_key submitted for an already-executed operation
+                  externalValue: "../docs/integration/examples/idempotency-conflict.response.json"
+        "401":
+          $ref: "#/components/responses/InvalidApiKey"
+        "422":
+          $ref: "#/components/responses/MalformedRequest"
+
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness probe (process is up).
+      description: |
+        Reports process liveness, the enforcement mode, the current policy
+        hash, and non-secret signing-key metadata (algorithm, key id, base64
+        public key). Never requires authentication.
+
+        Implementation status: **implemented** (`gateway/app.py::health`).
+      operationId: health
+      security: []
+      responses:
+        "200":
+          description: The gateway is up.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /ready:
+    get:
+      tags: [health]
+      summary: Readiness probe (dependencies required by this deployment).
+      description: |
+        Fail-closed readiness: returns `ready: false` with HTTP 503 unless the
+        signing key, trust configuration, and any backend this deployment
+        declared required (consensus verifier, challenge service, Redis) are
+        all actually reachable/loaded. A 200 with `ready: true` is the only
+        signal an orchestrator should route traffic on.
+
+        Implementation status: **implemented** (`gateway/app.py::ready`).
+      operationId: ready
+      security: []
+      responses:
+        "200":
+          description: Ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+        "503":
+          description: Not ready — at least one required dependency failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+
+  /verify:
+    get:
+      tags: [audit]
+      summary: Recompute the append-only audit hash chain and report integrity.
+      description: |
+        Reads the audit log, recomputes every entry's hash, and confirms the
+        chain links correctly. Returns the current signing key so a caller can
+        independently verify any Decision Token this gateway issued.
+
+        Implementation status: **implemented** (`gateway/app.py::verify`).
+      operationId: verifyAuditChain
+      security:
+        - agentApiKey: []
+      responses:
+        "200":
+          description: Chain integrity report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyChainResponse"
+        "401":
+          $ref: "#/components/responses/InvalidApiKey"
+
+  /export:
+    get:
+      tags: [audit]
+      summary: Export the append-only signed audit log for an external auditor.
+      description: |
+        Hands the full audit log to the caller, self-verifying: it carries the
+        chain-validity flag and the Ed25519 public key needed to verify every
+        issued Decision Token.
+
+        Implementation status: **implemented** (`gateway/app.py::export`).
+      operationId: exportAudit
+      security:
+        - agentApiKey: []
+      parameters:
+        - name: fmt
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [jsonl, json]
+            default: jsonl
+      responses:
+        "200":
+          description: The audit log, in the requested format.
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportAuditResponse"
+        "401":
+          $ref: "#/components/responses/InvalidApiKey"
+
+components:
+  securitySchemes:
+    agentApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: >-
+        Agent boundary. Required for /evaluate, the governed /…/execute
+        endpoints, /verify, /export, and status reads. Placeholder for this
+        integration-readiness contract — production key issuance/rotation is
+        out of scope for this document; see
+        docs/integration/GATEWAY_API_CONTRACT.md §19 for current expectations.
+    operatorApiKey:
+      type: apiKey
+      in: header
+      name: X-Operator-Key
+      description: >-
+        Operator boundary. Required for approve/deny/invalidate/revoke and
+        trust administration. An unset operator key disables ALL operator
+        actions (fail-closed 403) — never a silent bypass.
+
+  responses:
+    InvalidApiKey:
+      description: Missing or incorrect X-API-Key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            detail: INVALID_API_KEY
+    MalformedRequest:
+      description: >-
+        Schema validation failed (missing/invalid required field). The
+        `/mandates/execute`, `/approvals/{request_id}/execute`,
+        `/consensus/challenge`, and `/consensus/execute` request schemas are
+        additionally strict (`extra="forbid"`) — an unknown field is itself a
+        rejection there. `/evaluate`'s `EvaluateRequest` is not strict; see
+        that schema's description and
+        docs/integration/GATEWAY_API_CONTRACT.md §18.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+          examples:
+            malformed-request:
+              summary: Strict-schema validation failure (unknown/missing/invalid field)
+              externalValue: "../docs/integration/examples/malformed-request.response.json"
+
+  schemas:
+    Verdict:
+      type: string
+      enum: [ALLOW, DENY, ESCALATE, CONSTRAIN]
+      description: |
+        The four canonical verdicts. No others exist.
+        - `ALLOW` — the action is authorized as proposed.
+        - `DENY` — the action is refused; never executes.
+        - `ESCALATE` — a human must approve before it can execute.
+        - `CONSTRAIN` — the action is authorized only in a clamped/modified form;
+          the original, unconstrained payload never executes.
+
+    ActuationStatus:
+      type: string
+      enum: [EXECUTED, BLOCKED, EXECUTION_FAILED]
+      description: |
+        - `EXECUTED` — ran and finalized (idempotency key marked EXECUTED,
+          terminal).
+        - `BLOCKED` — refused before execution; fail-closed; upstream never
+          reached; idempotency key (if any) not consumed.
+        - `EXECUTION_FAILED` — the executor itself raised after authorization
+          was verified; the idempotency key is freed (`FAILED`) for a
+          deliberate retry; the outcome is indeterminate, never assumed
+          successful.
+
+    EvaluateRequest:
+      type: object
+      required: [identity, action]
+      additionalProperties: true
+      description: >-
+        Unlike the governed `/…/execute` and `/consensus/challenge` request
+        schemas below, this one does **not** reject unknown fields — the real
+        model (`gateway/app.py::EvaluateRequest`) is a plain `BaseModel` with
+        no `extra="forbid"`, so an unrecognized field is silently ignored, not
+        rejected. A 422 from `/evaluate` means a *missing or invalid* required
+        field (e.g. `action`), never an unknown one. See
+        docs/integration/GATEWAY_API_CONTRACT.md §18 for the honest per-endpoint
+        strictness matrix.
+      properties:
+        identity:
+          type: string
+          minLength: 1
+          description: Who is asking to act (the proposing actor).
+        action:
+          type: string
+          minLength: 1
+          description: What they want to do (matched against policy patterns).
+        context:
+          type: object
+          additionalProperties: true
+          description: >-
+            The action's parameters — the payload. Canonicalized and hashed
+            (`payload_hash`) into the Decision Token when a token is issued.
+        transaction_id:
+          type: string
+          nullable: true
+          description: Caller-supplied transaction identifier, bound into the token.
+        idempotency_key:
+          type: string
+          nullable: true
+          description: >-
+            Caller-supplied business-operation idempotency key. Distinct from
+            the token's one-time nonce — see
+            docs/integration/GATEWAY_API_CONTRACT.md §10.
+        actor_id:
+          type: string
+          nullable: true
+          description: >-
+            Generic operation-binding actor identity (defaults to `identity`
+            if omitted).
+        resource_id:
+          type: string
+          nullable: true
+          description: Generic operation-binding resource identity.
+        mode:
+          type: string
+          nullable: true
+          enum: [inline, observe]
+          description: >-
+            Per-request override of the deployment's default enforcement mode.
+            `inline` — the caller must enforce the verdict. `observe` — the
+            verdict is computed and audited but the response carries
+            `enforce: false`, signaling the caller must not block on it.
+
+    DecisionToken:
+      type: object
+      description: >-
+        The Ed25519-signed authorization artifact. Present only for ALLOW and
+        CONSTRAIN — DENY and ESCALATE never carry a token. Every field listed
+        here is covered by the `sig` signature; none can be altered
+        independently.
+      properties:
+        iss: { type: string, description: Token issuer. }
+        sub: { type: string, description: Subject (the proposing identity). }
+        aud: { type: string, description: Audience — binds the token to one gate. }
+        jti: { type: string, description: Unique token id. }
+        iat: { type: integer, description: Issued-at (unix seconds). }
+        nbf: { type: integer, description: Not-before (unix seconds). }
+        exp: { type: integer, description: Expiry (unix seconds). }
+        decision:
+          $ref: "#/components/schemas/Verdict"
+        action: { type: string }
+        action_hash:
+          type: string
+          description: sha256 of the action string; bound at the gate.
+        payload_hash:
+          type: string
+          description: sha256 of the canonical payload; bound at the gate.
+        constraints:
+          type: object
+          additionalProperties: true
+        policy_id: { type: string }
+        policy_hash:
+          type: string
+          description: >-
+            Hash of the exact policy configuration that produced this token;
+            bound at the gate against the deployment's live policy hash.
+        nonce:
+          type: string
+          description: One-time nonce; consumed exactly once at the gate.
+        audit_ref:
+          type: string
+          nullable: true
+          description: Hash of the audit entry recorded before this token was issued.
+        transaction_id: { type: string, nullable: true }
+        idempotency_key: { type: string, nullable: true }
+        actor_id: { type: string, nullable: true }
+        resource_id: { type: string, nullable: true }
+        auth_claims:
+          type: object
+          additionalProperties: true
+          description: >-
+            Opaque, action-profile-specific authorization facts (e.g. payment
+            source/beneficiary/amount/currency), signature-covered like every
+            other claim.
+        mandate_id:
+          type: string
+          nullable: true
+          description: The signed mandate whose authority justified this token, if any.
+        kid:
+          type: string
+          description: Signing key id (public; not a secret).
+        sig:
+          type: string
+          description: Detached Ed25519 signature (base64) over every field above.
+
+    EvaluateResponse:
+      type: object
+      required: [decision, reason, audit_id]
+      properties:
+        decision:
+          $ref: "#/components/schemas/Verdict"
+        reason:
+          type: string
+          description: >-
+            Human-readable justification from the AuthorityModel (e.g. "verified
+            mandate 'payments.send' held by 'agent/x'"). Not a stable machine
+            code — see `docs/integration/GATEWAY_API_CONTRACT.md` §18 for the
+            stable reason-code prefixes the runtime actually uses.
+        audit_id:
+          type: string
+          description: >-
+            The hash of the audit entry recorded for this decision, written
+            before any token was issued. The primary audit-correlation key for
+            this decision.
+        signature:
+          type: string
+          nullable: true
+          description: The Decision Token's detached signature, duplicated for convenience.
+        decision_token:
+          allOf:
+            - $ref: "#/components/schemas/DecisionToken"
+          nullable: true
+        constraints:
+          type: object
+          additionalProperties: true
+        forward_context:
+          type: object
+          additionalProperties: true
+          description: >-
+            The body the verdict authorizes: identical to `context` for ALLOW,
+            the server-clamped body for CONSTRAIN. This — never the original
+            `context` — is what a subsequent governed execute call must submit.
+        applied_constraints:
+          type: array
+          items: { type: string }
+          description: Human-readable list of clamps applied (empty unless CONSTRAIN).
+        enforce:
+          type: boolean
+          description: >-
+            False in `observe` mode: the decision was computed and audited but
+            the caller must not enforce it.
+        mode:
+          type: string
+          enum: [inline, observe]
+        authority_required:
+          type: string
+          nullable: true
+          description: The authority name the AuthorityModel required (e.g. "payments.send").
+        policy_ref:
+          type: string
+          description: "`{policy_id}@{policy_hash}` — the exact policy version this decision was made under."
+        trace_id:
+          type: string
+          description: Per-request trace identifier (correlation; not a security boundary).
+        transaction_id: { type: string, nullable: true }
+        idempotency_key: { type: string, nullable: true }
+        actor_id: { type: string, nullable: true }
+        resource_id: { type: string, nullable: true }
+
+    MandateExecuteRequest:
+      type: object
+      required: [mandate, actor, action]
+      additionalProperties: false
+      properties:
+        mandate:
+          type: object
+          additionalProperties: true
+          description: A signed mandate object (see docs/SIGNED_MANDATES.md).
+        actor: { type: string, minLength: 1 }
+        action: { type: string, minLength: 1 }
+        resource: { type: string, nullable: true }
+        context:
+          type: object
+          additionalProperties: true
+        transaction_id: { type: string, nullable: true }
+        idempotency_key: { type: string, nullable: true }
+
+    ApprovalExecuteRequest:
+      allOf:
+        - $ref: "#/components/schemas/MandateExecuteRequest"
+      description: >-
+        Identical shape to MandateExecuteRequest; `mandate` here is the
+        single-use approval mandate returned by
+        `POST /approvals/{request_id}/approve`.
+
+    ChallengeCreateRequest:
+      type: object
+      required: [actor, action]
+      additionalProperties: false
+      properties:
+        actor: { type: string, minLength: 1 }
+        action: { type: string, minLength: 1 }
+        resource: { type: string, nullable: true }
+        context:
+          type: object
+          additionalProperties: true
+        ttl_seconds:
+          type: integer
+          minimum: 1
+          nullable: true
+
+    ChallengeCreateResponse:
+      type: object
+      required: [challenge_id, nonce, action, actor, payload_hash, issued_at, expires_at]
+      properties:
+        challenge_id: { type: string }
+        nonce:
+          type: string
+          description: The gateway-owned, one-time nonce evaluator votes must bind to.
+        action: { type: string }
+        actor: { type: string }
+        resource: { type: string, nullable: true }
+        payload_hash: { type: string }
+        policy_hash: { type: string, nullable: true }
+        issued_at: { type: integer }
+        expires_at: { type: integer }
+
+    ConsensusExecuteRequest:
+      type: object
+      required: [votes, actor, action]
+      additionalProperties: false
+      properties:
+        votes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: N independent, Ed25519-signed evaluator votes.
+        actor: { type: string, minLength: 1 }
+        action: { type: string, minLength: 1 }
+        resource: { type: string, nullable: true }
+        context:
+          type: object
+          additionalProperties: true
+        transaction_id: { type: string, nullable: true }
+        idempotency_key: { type: string, nullable: true }
+        nonce:
+          type: string
+          nullable: true
+          description: >-
+            Client-supplied nonce. Rejected outright when the deployment
+            requires a gateway-issued challenge (`MCC_REQUIRE_CHALLENGE=1`).
+        challenge_id:
+          type: string
+          nullable: true
+          description: The `challenge_id` from `POST /consensus/challenge`.
+
+    ExecuteResponse:
+      type: object
+      required: [status, reason]
+      properties:
+        status:
+          $ref: "#/components/schemas/ActuationStatus"
+        reason:
+          type: string
+          description: >-
+            Human-readable reason. See §18 of the contract doc for the stable
+            gate-side reason-code prefixes (e.g. `TOKEN_EXPIRED`,
+            `NONCE_REJECTED`, `PAYLOAD_HASH_MISMATCH`).
+        decision:
+          allOf: [$ref: "#/components/schemas/Verdict"]
+          nullable: true
+        audit_ref:
+          type: string
+          nullable: true
+          description: >-
+            The audit entry hash recorded *before* actuation for this attempt
+            — the audit-correlation key for the execution stage.
+        execution:
+          nullable: true
+          description: The upstream executor's result, present only when EXECUTED.
+
+    HealthResponse:
+      type: object
+      required: [status, mode, fail_closed, token_audience, policy_hash, signing]
+      properties:
+        status: { type: string, enum: [ok] }
+        mode: { type: string, enum: [inline, observe] }
+        fail_closed: { type: boolean, enum: [true] }
+        token_audience: { type: string }
+        policy_hash: { type: string }
+        signing:
+          type: object
+          properties:
+            algorithm: { type: string, enum: [Ed25519] }
+            kid: { type: string }
+            public_key_b64: { type: string }
+            ephemeral_key: { type: boolean }
+        policy_ref: { type: string }
+
+    ReadyResponse:
+      type: object
+      required: [ready, checks]
+      properties:
+        ready: { type: boolean }
+        checks:
+          type: object
+          additionalProperties: true
+          description: >-
+            Fail-closed dependency checks for THIS deployment: signing_key,
+            ephemeral_signing_key, trust_issuers, and — only when the
+            deployment declared them required — consensus_verifier,
+            challenge_service, redis_required, redis.
+
+    VerifyChainResponse:
+      type: object
+      required: [valid, entries, signing_kid, public_key_b64]
+      properties:
+        valid: { type: boolean }
+        entries: { type: integer }
+        head_hash: { type: string, nullable: true }
+        signing_kid: { type: string }
+        public_key_b64: { type: string }
+
+    ExportAuditResponse:
+      type: object
+      required: [chain_valid, entries, signing, policy_ref]
+      properties:
+        chain_valid: { type: boolean }
+        entries:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        signing:
+          type: object
+          properties:
+            algorithm: { type: string, enum: [Ed25519] }
+            kid: { type: string }
+            public_key_b64: { type: string }
+        policy_ref: { type: string }
+
+    ErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+          description: >-
+            A stable, upper-snake-case code (e.g. INVALID_API_KEY,
+            INVALID_OPERATOR_KEY) or a short human-readable reason.
+
+    ValidationErrorResponse:
+      type: object
+      description: FastAPI/Pydantic strict-schema validation failure (HTTP 422).
+      required: [detail]
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              loc:
+                type: array
+                items: {}
+              msg: { type: string }
+              input: {}
