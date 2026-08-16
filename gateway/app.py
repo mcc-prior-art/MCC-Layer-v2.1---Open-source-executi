@@ -44,7 +44,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
 from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -102,6 +102,13 @@ class Decision(str, Enum):
 
 
 class EvaluateRequest(BaseModel):
+    # Strict at the top level: an unrecognized field is a rejection (422), not
+    # a silent no-op (PR #80). ``context`` stays a generic, unvalidated dict by
+    # design — action payload shapes are domain-specific (see docstrings on
+    # PaymentProfile/InfraProfile/RoboticsProfile) and are not a single fixed
+    # schema this endpoint could enforce without redesigning the profile layer.
+    model_config = ConfigDict(extra="forbid")
+
     identity: str = Field(..., min_length=1, description="Who is asking to act")
     action: str = Field(..., min_length=1, description="What they want to do")
     context: Dict[str, Any] = Field(
