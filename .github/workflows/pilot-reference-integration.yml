@@ -1,0 +1,81 @@
+name: Pilot Reference Integration
+
+# Validates the Production Pilot Readiness Kit (PR #82, pilot/reference_python/)
+# independently of the rest of the runtime: lint, the pilot acceptance test
+# suite, and pilot evidence-schema validation. Also confirms the pilot test
+# suite leaves the tracked working tree unchanged (it points the real
+# gateway.app's audit log at an isolated /tmp path -- the same pattern the
+# existing mcc-runtime-ci.yml "compliance" job already uses -- rather than
+# writing into the repository's own audit.jsonl). Never publishes anything
+# and never redesigns an existing workflow.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pilot-reference-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: "src:sdk/mcc-sdk/src:."
+      # Keep the real gateway.app instance the tests boot from writing into
+      # the repository's own tracked audit.jsonl.
+      MCC_GATEWAY_AUDIT_LOG_PATH: "/tmp/mcc-pilot-ci/gw-audit.jsonl"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+          # ruff is declared under the root pyproject.toml's own [dev] extra
+          # (installed there via `pip install -e ".[dev]"`, e.g. by
+          # mcc-sdk.yml's editable install of sdk/mcc-sdk[dev]); neither
+          # requirements.txt nor requirements-dev.txt provides it, so this
+          # job installs it directly, pinned to the same floor as pyproject.toml.
+          pip install "ruff>=0.4"
+
+      - name: Prepare isolated audit directory
+        run: mkdir -p /tmp/mcc-pilot-ci
+
+      - name: ruff check (lint)
+        run: python -m ruff check pilot/reference_python/ pilot/schema/ tests/pilot/
+
+      - name: Pilot acceptance tests
+        run: pytest tests/pilot/ -v
+
+      - name: Evidence-schema self-check (schema is a valid draft-07 JSON Schema)
+        run: |
+          python3 - <<'PY'
+          import json
+          import jsonschema
+
+          with open("pilot/schema/pilot_evidence.schema.json", encoding="utf-8") as f:
+              schema = json.load(f)
+          jsonschema.Draft7Validator.check_schema(schema)
+          print("EVIDENCE SCHEMA OK:", schema["$id"])
+          PY
+
+      - name: Confirm no tracked file was modified by the pilot test suite
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code; then
+            echo "STOP: the pilot test suite modified a tracked file"
+            git status
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            echo "STOP: unexpected tracked-file changes after the pilot test suite"
+            git status
+            exit 1
+          fi

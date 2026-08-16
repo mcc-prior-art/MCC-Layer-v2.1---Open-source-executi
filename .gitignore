@@ -15,6 +15,10 @@ htmlcov/
 # Pilot env holds real keys/endpoints; the .example template IS committed.
 .env.pilot
 !.env.pilot.example
+# PR #82: reference pilot integration env holds real keys/endpoints; the
+# .example template IS committed.
+.env.pilot-readiness
+!.env.pilot-readiness.example
 .venv/
 venv/
 
