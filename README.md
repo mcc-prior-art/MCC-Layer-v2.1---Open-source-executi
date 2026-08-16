@@ -429,6 +429,31 @@ examples from the running gateway. See
 and the machine-readable [openapi/mcc-gateway.yaml](openapi/mcc-gateway.yaml).
 This is an integration contract, not adapter certification.
 
+## Production Pilot
+
+The operational package for connecting an external engineering team to a
+real MCC-Core Gateway using the official Python SDK
+([`sdk/mcc-sdk`](sdk/mcc-sdk/), package `mcc_sdk`): a step-by-step runbook,
+a minimal reference integration with a local simulated actuator only, and
+a reproducible, schema-validated pilot evidence bundle.
+
+- **[docs/PILOT_RUNBOOK.md](docs/PILOT_RUNBOOK.md)** — clean-clone and
+  commit-pinning, Gateway startup, observe-mode then enforced-mode
+  procedures, rollback, and evidence export.
+- **[docs/PILOT_ACCEPTANCE_CHECKLIST.md](docs/PILOT_ACCEPTANCE_CHECKLIST.md)**
+  — pre-pilot checks, partner/AXLOGIQ responsibilities, exit/entry
+  criteria, and what cannot be claimed without the partner's own
+  confirmation.
+- **[pilot/reference_python/](pilot/reference_python/)** — the reference
+  integration: candidate action → official SDK → `POST /evaluate` →
+  decision validation → execution gate → local simulated actuator only.
+- **[pilot/schema/pilot_evidence.schema.json](pilot/schema/pilot_evidence.schema.json)**
+  — the evidence bundle schema every pilot run's output validates against.
+
+This prepares MCC-Core for a real external pilot. It does not claim that a
+real pilot, third-party validation, or production traffic has already
+occurred — see the checklist above.
+
 ## Real Governed Agent Pilot
 
 A real, runnable AI agent (`src/mcc_agent/`) whose external actions are governed
