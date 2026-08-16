@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcc-sdk"
+version = "0.1.0"
+description = "Official Python SDK for MCC-Core — a thin, typed, framework-neutral client over the public POST /evaluate Gateway API boundary."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary — AXLOGIQ Inc." }
+authors = [{ name = "AXLOGIQ Inc." }]
+keywords = ["mcc-core", "governance", "ai-agents", "sdk", "gateway-api"]
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "mypy>=1.8",
+    "ruff>=0.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/mcc-prior-art/mcc-layer"
+Documentation = "https://github.com/mcc-prior-art/mcc-layer/blob/main/sdk/mcc-sdk/README.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mcc_sdk = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+files = ["src/mcc_sdk"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src"]
