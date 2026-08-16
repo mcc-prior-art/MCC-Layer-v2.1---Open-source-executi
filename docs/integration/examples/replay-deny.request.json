@@ -1,0 +1,60 @@
+{
+  "votes": [
+    {
+      "vote_id": "vote-4d19d8bbbd2b44ee9b77a5a90c89d52d",
+      "evaluator_id": "control-room-evaluator-1",
+      "verdict": "ALLOW",
+      "action_hash": "sha256:55d36d876b7ec6762c23c2e98af584a4253a95f3eecd0d585d10546ef2feb7eb",
+      "payload_hash": "sha256:9d65b6dc02dfcdd6f9c8490bbb6adc65b6bd52eb49b863c388fae440a54013a5",
+      "actor": "agent/example-integrator",
+      "reason": "",
+      "iat": 1786863676,
+      "nbf": 0,
+      "exp": 4000000000,
+      "policy_hash": "sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+      "nonce": "o6VzBVcqlLWGVGZ7gEaS4ojFTaA6MaVTRokMBKA-1so",
+      "kid": "control-room-evaluator-1",
+      "sig": "6uXT+w54Txg5ZjIFOKRqpyUw7L9kICB26qHyUByAxDQ+q1kwMB6bcj4Tj1YXSahDkA2NyV+efBGIUXT5ORgYDA=="
+    },
+    {
+      "vote_id": "vote-1bdbf4422220473186725f31c6808c35",
+      "evaluator_id": "control-room-evaluator-2",
+      "verdict": "ALLOW",
+      "action_hash": "sha256:55d36d876b7ec6762c23c2e98af584a4253a95f3eecd0d585d10546ef2feb7eb",
+      "payload_hash": "sha256:9d65b6dc02dfcdd6f9c8490bbb6adc65b6bd52eb49b863c388fae440a54013a5",
+      "actor": "agent/example-integrator",
+      "reason": "",
+      "iat": 1786863676,
+      "nbf": 0,
+      "exp": 4000000000,
+      "policy_hash": "sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+      "nonce": "o6VzBVcqlLWGVGZ7gEaS4ojFTaA6MaVTRokMBKA-1so",
+      "kid": "control-room-evaluator-2",
+      "sig": "0cQvkfopeQPClD8sI2u26Yj2t2Wd/ZR92VSNKFeIy3006Ax1mJuF1R6qtiO9ckuFKHztfqSuNsexSOZLXa2PAQ=="
+    },
+    {
+      "vote_id": "vote-a708ccabb57d41588ba4b4b21c721119",
+      "evaluator_id": "control-room-evaluator-3",
+      "verdict": "ALLOW",
+      "action_hash": "sha256:55d36d876b7ec6762c23c2e98af584a4253a95f3eecd0d585d10546ef2feb7eb",
+      "payload_hash": "sha256:9d65b6dc02dfcdd6f9c8490bbb6adc65b6bd52eb49b863c388fae440a54013a5",
+      "actor": "agent/example-integrator",
+      "reason": "",
+      "iat": 1786863676,
+      "nbf": 0,
+      "exp": 4000000000,
+      "policy_hash": "sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+      "nonce": "o6VzBVcqlLWGVGZ7gEaS4ojFTaA6MaVTRokMBKA-1so",
+      "kid": "control-room-evaluator-3",
+      "sig": "3eKFz4UHvSi3F+ZfE3Nqp40w3aoj+OGEm5GG40ruT/TohYE91oY4swEOc5JoclNly14urUxoBkPesJUczk+FCA=="
+    }
+  ],
+  "actor": "agent/example-integrator",
+  "action": "demo_notify_customer",
+  "context": {
+    "message": "Your order has shipped."
+  },
+  "idempotency_key": "op-example-replay-1",
+  "nonce": "o6VzBVcqlLWGVGZ7gEaS4ojFTaA6MaVTRokMBKA-1so",
+  "challenge_id": "chal-7fa92d3dcdb742f19cdb6ad6182f75c7"
+}

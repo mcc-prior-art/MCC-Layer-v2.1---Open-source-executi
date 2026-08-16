@@ -1,0 +1,14 @@
+{
+  "identity": "agent/nobody",
+  "action": "send_payment",
+  "context": {
+    "amount": 250,
+    "currency": "USD",
+    "source": "acct-ops-1",
+    "beneficiary_id": "beneficiary-42"
+  },
+  "transaction_id": "txn-example-escalate-1",
+  "idempotency_key": "op-example-escalate-1",
+  "actor_id": "agent/nobody",
+  "resource_id": "acct-ops-1"
+}

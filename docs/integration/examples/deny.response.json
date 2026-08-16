@@ -1,0 +1,19 @@
+{
+  "decision": "DENY",
+  "reason": "action 'delete_database' admits no mandate (requires=none)",
+  "audit_id": "e054563ed35b500ec314f69146a9179973eb4db57a983a986c85596cce3fe07b",
+  "signature": null,
+  "decision_token": null,
+  "constraints": {},
+  "forward_context": {},
+  "applied_constraints": [],
+  "enforce": true,
+  "mode": "inline",
+  "authority_required": null,
+  "policy_ref": "pilot-authority/v1@sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+  "trace_id": "aee6c0b0a921",
+  "transaction_id": "txn-example-deny-1",
+  "idempotency_key": "op-example-deny-1",
+  "actor_id": "agent/ops-bot",
+  "resource_id": "cluster-prod-1"
+}

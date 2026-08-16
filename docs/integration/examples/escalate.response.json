@@ -1,0 +1,19 @@
+{
+  "decision": "ESCALATE",
+  "reason": "identity 'agent/nobody' holds no verified mandate for authority 'payments.send'",
+  "audit_id": "f88723201e05d9e05a396bdbdacbf15ca5fc0ac4712464a06ab283985af56f28",
+  "signature": null,
+  "decision_token": null,
+  "constraints": {},
+  "forward_context": {},
+  "applied_constraints": [],
+  "enforce": true,
+  "mode": "inline",
+  "authority_required": "payments.send",
+  "policy_ref": "pilot-authority/v1@sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+  "trace_id": "ec03b8acafd6",
+  "transaction_id": "txn-example-escalate-1",
+  "idempotency_key": "op-example-escalate-1",
+  "actor_id": "agent/nobody",
+  "resource_id": "acct-ops-1"
+}

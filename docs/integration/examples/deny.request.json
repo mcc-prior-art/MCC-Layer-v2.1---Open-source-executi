@@ -1,0 +1,9 @@
+{
+  "identity": "agent/ops-bot",
+  "action": "delete_database",
+  "context": {},
+  "transaction_id": "txn-example-deny-1",
+  "idempotency_key": "op-example-deny-1",
+  "actor_id": "agent/ops-bot",
+  "resource_id": "cluster-prod-1"
+}

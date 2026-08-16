@@ -1,0 +1,58 @@
+{
+  "decision": "ALLOW",
+  "reason": "verified mandate 'payments.send' held by 'agent/payments-bot'",
+  "audit_id": "8cfb8cf5a4d4cec377c94f6480ab4aa7c43e66394a0addf81cf16c3a6bef0e62",
+  "signature": "4tQUHw15/mwUKvBvMo4cz9Tzebsm73VdN7nt1tcLrO1iOmF/mXMfl6M7ab558OU95zg7XCBkB4OLAaIeBm/xDQ==",
+  "decision_token": {
+    "iss": "mcc/core",
+    "sub": "agent/payments-bot",
+    "aud": "egress-gate-1",
+    "jti": "a6e81f69-2f61-4596-9dd2-4c872b3eab71",
+    "iat": 1786863676,
+    "nbf": 1786863676,
+    "exp": 1786863736,
+    "decision": "ALLOW",
+    "action": "send_payment",
+    "action_hash": "sha256:0d4ebb1b4e29f2e49ba6490192c6dca37028728fdebcda503b9331ed385b198b",
+    "payload_hash": "sha256:b85fbdbffa6fdd1f10ff23134b846df57ba8468f5f77fd9ed937de881dc917f5",
+    "constraints": {
+      "max_amount": 5000
+    },
+    "policy_id": "pilot-authority/v1",
+    "policy_hash": "sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+    "nonce": "fec48a6a6f114a9b80cb073af5621cff",
+    "audit_ref": "8cfb8cf5a4d4cec377c94f6480ab4aa7c43e66394a0addf81cf16c3a6bef0e62",
+    "transaction_id": "txn-example-allow-1",
+    "idempotency_key": "op-example-allow-1",
+    "actor_id": "agent/payments-bot",
+    "resource_id": "acct-ops-1",
+    "auth_claims": {
+      "source": "acct-ops-1",
+      "beneficiary_id": "beneficiary-42",
+      "amount": 1000.0,
+      "currency": "USD"
+    },
+    "mandate_id": null,
+    "kid": "mcc-gateway-dev-key-1",
+    "sig": "4tQUHw15/mwUKvBvMo4cz9Tzebsm73VdN7nt1tcLrO1iOmF/mXMfl6M7ab558OU95zg7XCBkB4OLAaIeBm/xDQ=="
+  },
+  "constraints": {
+    "max_amount": 5000
+  },
+  "forward_context": {
+    "amount": 1000.0,
+    "currency": "USD",
+    "source": "acct-ops-1",
+    "beneficiary_id": "beneficiary-42"
+  },
+  "applied_constraints": [],
+  "enforce": true,
+  "mode": "inline",
+  "authority_required": "payments.send",
+  "policy_ref": "pilot-authority/v1@sha256:8a7043d58103799fd2b58228ab657452e5bfbac2b3ba669d3099b2588657a83a",
+  "trace_id": "106f2ff3e6cd",
+  "transaction_id": "txn-example-allow-1",
+  "idempotency_key": "op-example-allow-1",
+  "actor_id": "agent/payments-bot",
+  "resource_id": "acct-ops-1"
+}
