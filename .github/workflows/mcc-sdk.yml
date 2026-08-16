@@ -1,0 +1,135 @@
+name: Python SDK (mcc-sdk)
+
+# Validates the official Python SDK (PR #81, package `mcc-sdk` / import name
+# `mcc_sdk`, under sdk/mcc-sdk/) independently of the rest of the runtime:
+# lint, format, strict typing, the full unit + real-gateway integration +
+# OpenAPI contract-drift test suite, and a genuine sdist+wheel build with a
+# clean-install-from-outside-the-checkout import smoke test. Never publishes
+# anything. Mirrors the existing packaging.yml pattern for the sibling
+# mcc_client SDK without touching it.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install the SDK (editable) + dev tools
+        run: pip install -e "./sdk/mcc-sdk[dev]"
+
+      - name: ruff check
+        run: |
+          cd sdk/mcc-sdk
+          python -m ruff check src/
+
+      - name: ruff format --check
+        run: |
+          cd sdk/mcc-sdk
+          python -m ruff format --check src/
+
+      - name: mypy (strict)
+        run: |
+          cd sdk/mcc-sdk
+          python -m mypy
+
+  tests:
+    # Unit tests (offline, MockTransport), real-gateway integration tests
+    # (boots gateway.app via examples/_demo_server.py's DemoServer, the
+    # repository's established hermetic-server pattern), and contract-drift
+    # tests against openapi/mcc-gateway.yaml -- all under tests/mcc_sdk/.
+    # No editable install needed: tests/mcc_sdk/conftest.py inserts
+    # sdk/mcc-sdk/src onto sys.path directly, the same convention
+    # tests/test_mcc_client_sdk.py already uses for the sibling SDK.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: mcc_sdk unit + integration + contract-drift tests
+        run: pytest tests/mcc_sdk/ -v
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned build + validation tooling
+        run: pip install "build~=1.2" "twine>=5.1"
+
+      - name: Build sdist + wheel in an isolated environment
+        run: |
+          set -euo pipefail
+          cd sdk/mcc-sdk
+          rm -rf dist
+          python -m build --outdir dist
+
+      - name: Exactly one sdist and one wheel
+        run: |
+          set -euo pipefail
+          cd sdk/mcc-sdk
+          test "$(ls dist/*.whl | wc -l)" = "1"
+          test "$(ls dist/*.tar.gz | wc -l)" = "1"
+
+      - name: twine check --strict
+        run: |
+          cd sdk/mcc-sdk
+          twine check --strict dist/*
+
+      - name: Genuine clean install of the built wheel (outside the checkout)
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/mcc-sdk-venv
+          /tmp/mcc-sdk-venv/bin/pip install "$(ls sdk/mcc-sdk/dist/*.whl)"
+          cd /tmp
+          /tmp/mcc-sdk-venv/bin/python - <<'PY'
+          import pathlib
+          import mcc_sdk
+          from mcc_sdk import MCCClient, AsyncMCCClient, EvaluateRequest, EvaluateResponse, Verdict
+
+          mf = pathlib.Path(mcc_sdk.__file__).resolve()
+          assert "/tmp/mcc-sdk-venv/" in str(mf), f"mcc_sdk not imported from the venv: {mf}"
+
+          # The documented minimal example must import and construct cleanly
+          # from the installed artifact (no network call in this smoke test).
+          req = EvaluateRequest(identity="agent/x", action="send_payment", context={"amount": 1})
+          assert req.model_dump(mode="json", exclude_none=True) == {
+              "identity": "agent/x", "action": "send_payment", "context": {"amount": 1},
+          }
+          print("CLEAN-INSTALL OK", mcc_sdk.__version__, mf)
+          PY
+
+      - name: Upload validated distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcc-sdk-dist
+          path: sdk/mcc-sdk/dist/*
+          if-no-files-found: error
