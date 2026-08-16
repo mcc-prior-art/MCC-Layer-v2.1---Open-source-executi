@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mcc-prior-art/mcc-layer/pilot/schema/pilot_evidence.schema.json",
+  "title": "MCC-Core Pilot Evidence Bundle (v1)",
+  "description": "The deterministic evidence bundle produced by one run of pilot/reference_python against a real MCC-Core Gateway. This schema describes the SHAPE of a pilot evidence record only -- it does not itself certify, validate, or attest that any pilot occurred; see docs/PILOT_ACCEPTANCE_CHECKLIST.md for what an externally attributable pilot result additionally requires.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mcc_commit_sha",
+    "sdk_version",
+    "pilot_id",
+    "integration_id",
+    "run_correlation_id",
+    "start_time_utc",
+    "end_time_utc",
+    "config_fingerprint",
+    "total_evaluated",
+    "allow_count",
+    "deny_count",
+    "escalate_count",
+    "constrain_count",
+    "malformed_count",
+    "timeout_count",
+    "unavailable_count",
+    "attempted_bypass_count",
+    "executed_count",
+    "correlation_refs",
+    "final_mode",
+    "status",
+    "status_reason"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1"},
+    "mcc_commit_sha": {"type": "string", "minLength": 1},
+    "sdk_version": {"type": "string", "minLength": 1},
+    "pilot_id": {"type": "string", "minLength": 1},
+    "integration_id": {"type": "string", "minLength": 1},
+    "run_correlation_id": {"type": "string", "minLength": 1},
+    "start_time_utc": {"type": "string", "format": "date-time"},
+    "end_time_utc": {"type": "string", "format": "date-time"},
+    "config_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "total_evaluated": {"type": "integer", "minimum": 0},
+    "allow_count": {"type": "integer", "minimum": 0},
+    "deny_count": {"type": "integer", "minimum": 0},
+    "escalate_count": {"type": "integer", "minimum": 0},
+    "constrain_count": {"type": "integer", "minimum": 0},
+    "malformed_count": {"type": "integer", "minimum": 0},
+    "timeout_count": {"type": "integer", "minimum": 0},
+    "unavailable_count": {"type": "integer", "minimum": 0},
+    "attempted_bypass_count": {"type": "integer", "minimum": 0},
+    "executed_count": {"type": "integer", "minimum": 0},
+    "correlation_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["action", "decision", "audit_id", "trace_id"],
+        "properties": {
+          "action": {"type": "string"},
+          "decision": {"type": "string", "enum": ["ALLOW", "DENY", "ESCALATE", "CONSTRAIN"]},
+          "audit_id": {"type": "string"},
+          "trace_id": {"type": "string"}
+        }
+      }
+    },
+    "final_mode": {"type": "string", "enum": ["observe", "enforced"]},
+    "status": {"type": "string", "enum": ["PASS", "FAIL"]},
+    "status_reason": {"type": "string", "minLength": 1}
+  }
+}
