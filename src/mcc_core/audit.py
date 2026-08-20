@@ -12,7 +12,10 @@ appending, and fsyncing. No in-memory ``prev_hash`` is ever authoritative
 across processes -- ``self.prev_hash`` is retained only as a best-effort
 local cache (used for diagnostics and the constructor's initial value);
 every real append re-reads the true chain head from disk while holding
-the lock.
+the lock. A write/flush/fsync failure partway through an append rolls
+back any bytes already handed to the OS before re-raising, so a caller
+that sees a failed append never has to reconcile against a phantom
+record left visible on disk.
 """
 
 from __future__ import annotations
@@ -89,6 +92,17 @@ class AuditLog:
                         last_line = line
         except FileNotFoundError:
             return None
+        except OSError:
+            # Any other storage-level failure reading the file (permission
+            # denied, path is a directory, I/O error, ...). At construction
+            # time (tolerate_parse_errors=True) this is a best-effort cache
+            # read only -- degrade gracefully rather than crash the whole
+            # process on startup; the AUTHORITATIVE path (append(), called
+            # with tolerate_parse_errors=False) re-raises so the caller's
+            # existing fail-closed handling applies.
+            if tolerate_parse_errors:
+                return None
+            raise
 
         if not last_line:
             return None
@@ -161,6 +175,13 @@ class AuditLog:
         untouched and propagates as an exception -- no record is
         fabricated as committed, and no stale/partial state becomes the
         next write's basis.
+
+        If the write/flush/fsync sequence fails partway (e.g. the volume
+        fills up -- ENOSPC -- exactly at fsync()), any bytes already handed
+        to the OS by write()/flush() are rolled back (truncated) before the
+        original exception is re-raised, so a caller that sees this failure
+        never has to reconcile against a phantom, non-durable record left
+        visible on disk.
         """
         with self._locked():
             last = self._read_last_entry(tolerate_parse_errors=False)
@@ -174,9 +195,18 @@ class AuditLog:
             }
             entry = {**body, "hash": self._entry_hash(authoritative_prev_hash, body)}
             with open(self.path, "a", encoding="utf-8") as fh:
-                fh.write(json.dumps(entry, sort_keys=True) + "\n")
-                fh.flush()
-                os.fsync(fh.fileno())
+                start_pos = fh.tell()
+                try:
+                    fh.write(json.dumps(entry, sort_keys=True) + "\n")
+                    fh.flush()
+                    os.fsync(fh.fileno())
+                except Exception:
+                    try:
+                        fh.truncate(start_pos)
+                        fh.flush()
+                    except Exception:
+                        pass  # best-effort rollback; the original failure still propagates
+                    raise
             # Only reached after a fully durable append -- safe to advance
             # the local cache now.
             self.prev_hash = entry["hash"]
