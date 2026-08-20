@@ -2,6 +2,11 @@
 __pycache__/
 *.py[cod]
 
+# Audit-chain inter-process lock sidecar files (src/mcc_core/audit.py::AuditLog),
+# created next to whatever audit log path is in use (e.g. audit.jsonl.lock).
+# Runtime lock state only -- never meaningful to commit.
+*.jsonl.lock
+
 # Test / tooling caches
 .pytest_cache/
 .mypy_cache/
