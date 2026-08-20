@@ -74,6 +74,16 @@ class GatewaySettings(BaseSettings):
     token_audience: str = "egress-gate-1"
     token_ttl_seconds: int = 60
 
+    # Audit Checkpoint signing key -- a SEPARATE Ed25519 identity from
+    # signing_key_path/signing_key_id above (Decision Tokens). Required
+    # property: Decision Token signing authority != Audit Checkpoint
+    # signing authority. See src/mcc_checkpoint/checkpoint_signing.py.
+    # Checkpoint GENERATION itself runs out-of-process (see
+    # scripts/run_checkpoint_generator.py, MCC_CHECKPOINT_* env vars) --
+    # this key is used here only for /ready's verify_anchors check.
+    checkpoint_signing_key_path: str = ""
+    checkpoint_signing_key_id: str = "mcc-checkpoint-anchor-key-1"
+
     audit_log_path: str = "audit.jsonl"
     policy_id: str = "pilot-authority/v1"
 
@@ -180,6 +190,26 @@ class Gateway:
         else:
             self.signing_key = SigningKey.generate(settings.signing_key_id)
             self.ephemeral_key = True
+
+        # Audit Checkpoint signing key: deliberately a SEPARATE key from
+        # self.signing_key above. load_checkpoint_signing_key raises if
+        # checkpoint_signing_key_path is misconfigured to the same file as
+        # signing_key_path, so this authority split cannot be silently
+        # collapsed back into one key by configuration error.
+        from mcc_checkpoint import load_checkpoint_signing_key
+
+        self.checkpoint_signing_key = load_checkpoint_signing_key(
+            key_path=settings.checkpoint_signing_key_path,
+            key_id=settings.checkpoint_signing_key_id,
+            forbidden_key_path=settings.signing_key_path or None,
+        )
+        self.checkpoint_ephemeral_key = not settings.checkpoint_signing_key_path
+        # Latched fail-closed state: once a checkpoint-anchor mismatch is
+        # observed, readiness never silently recovers on its own within
+        # this process's lifetime (see _checkpoint_anchors_ok / /ready) --
+        # "never silently continue" per the anchor-mismatch semantics this
+        # is required to preserve.
+        self.checkpoint_anchor_mismatch_latched = False
 
         self.audit = AuditLog(settings.audit_log_path)
         self.engine = DecisionEngine(
@@ -482,6 +512,47 @@ async def _redis_ok(env) -> bool:
             pass
 
 
+def _checkpoint_anchors_ok(env) -> bool:
+    """Additive, opt-in readiness check (Scenario G mitigation: external
+    checkpoint anchoring). Never touches Decision Token / gate
+    ALLOW-DENY-ESCALATE-CONSTRAIN semantics — this only recomputes live
+    audit-chain segments against externally anchored checkpoints and
+    reports pass/fail, exactly like the existing Redis/consensus/challenge
+    checks above. Verifies against ``gateway.checkpoint_signing_key`` — the
+    dedicated Audit Checkpoint key, NEVER ``gateway.signing_key`` (Decision
+    Tokens) — preserving signing-key separation all the way through to
+    verification, not just issuance.
+
+    Fail-closed AND latched: any exception (misconfiguration, unreachable
+    anchor store, or a real ``AuditAnchorMismatchError``) is not-ready,
+    never a warning. Once a genuine ``AuditAnchorMismatchError`` is
+    observed, ``gateway.checkpoint_anchor_mismatch_latched`` is set and
+    this always returns ``False`` from then on for this process's
+    lifetime — a later check that would otherwise look clean (e.g. an
+    anchor store that recovers, or a transient read) never silently
+    un-latches readiness. No verified audit integrity, no execution
+    readiness: this never re-arms itself.
+    """
+    if gateway.checkpoint_anchor_mismatch_latched:
+        return False
+    try:
+        from mcc_checkpoint import AuditAnchorMismatchError, anchor_store_from_env, verify_anchors
+
+        store = anchor_store_from_env(env)
+        try:
+            result = verify_anchors(
+                audit_path=settings.audit_log_path,
+                anchor_store=store,
+                trusted_public_key=gateway.checkpoint_signing_key.public_key(),
+            )
+        except AuditAnchorMismatchError:
+            gateway.checkpoint_anchor_mismatch_latched = True
+            raise
+        return bool(result.ok)
+    except Exception:  # noqa: BLE001 — any failure is not-ready, fail-closed
+        return False
+
+
 @app.get("/ready")
 async def ready(response: Response) -> Dict[str, Any]:
     import os
@@ -502,13 +573,20 @@ async def ready(response: Response) -> Dict[str, Any]:
     if challenge_required:
         checks["challenge_service"] = governance.challenge_service is not None
 
+    checkpoint_anchor_verification_required = env.get(
+        "MCC_REQUIRE_CHECKPOINT_ANCHOR_VERIFICATION", "").strip().lower() in (
+        "1", "true", "yes", "on")
+    if checkpoint_anchor_verification_required:
+        checks["checkpoint_anchors"] = _checkpoint_anchors_ok(env)
+
     redis_required = _redis_required(env)
     checks["redis_required"] = redis_required
     if redis_required:
         checks["redis"] = await _redis_ok(env)
 
     required_flags = [v for k, v in checks.items()
-                      if k in ("signing_key", "consensus_verifier", "challenge_service", "redis")]
+                      if k in ("signing_key", "consensus_verifier", "challenge_service",
+                               "checkpoint_anchors", "redis")]
     ready_now = all(required_flags)
     if not ready_now:
         response.status_code = 503
