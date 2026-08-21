@@ -4,6 +4,21 @@
 
 ## Verified Execution Authority
 
+---
+
+## MCC-Core Final Post-Merge Pre-Pilot Validation — PR #85
+
+![MCC-Core Final Post-Merge Validation after PR #85](MCC_Core_PR85_Final_Post_Merge_Validation.png)
+
+Final post-merge, pre-pilot validation record for the exact capability baseline
+established by [PR #85 — External Checkpoint Anchoring](https://github.com/mcc-prior-art/mcc-layer/pull/85)
+(merge commit [`b079944`](https://github.com/mcc-prior-art/mcc-layer/commit/b079944f65e6ea7646d25d2d87530c40aad56ffb)).
+
+**Boundary:** this is a self-administered reproducible assurance record, not a
+third-party audit. External checkpoint anchoring's Layer B (real GitHub
+external-anchor acceptance evidence) remains pending configuration — see
+[docs/AUDIT_CHECKPOINT_ANCHORING.md](../AUDIT_CHECKPOINT_ANCHORING.md).
+
 Public reference architecture for **AXLOGIQ Inc.** and **MCC-I — Infrastructure & Cloud Execution Governance**.
 
 AXLOGIQ builds execution governance infrastructure that determines whether autonomous systems are authorized to act.
