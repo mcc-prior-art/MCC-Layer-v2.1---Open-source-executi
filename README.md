@@ -3,10 +3,11 @@
 **Public technical record established:** May 2026  
 **Author:** Alexandr Ponomariov / AXLOGIQ Inc.  
 **Repository:** https://github.com/mcc-prior-art/mcc-layer  
-**Version:** `v1.5.3` | **Date:** `2026-06-12`  
-**Commit:** `see GitHub history`  
-**Doctrine record:** `2026-06-02`  
-**Latest exhibit record:** `Runtime Upgrade Merge — PR #4`
+**Version:** `v1.12.0`  
+**Current capability baseline:** through [PR #85 — External Checkpoint Anchoring](https://github.com/mcc-prior-art/mcc-layer/pull/85)  
+**Baseline commit:** [`b079944`](https://github.com/mcc-prior-art/mcc-layer/commit/b079944f65e6ea7646d25d2d87530c40aad56ffb)  
+**Baseline date:** `2026-08-20`  
+**Doctrine record:** `2026-06-02`
 
 ## Reproducible Assurance Baseline
 
@@ -45,7 +46,21 @@ make verify-assurance
 </p>
 
 <p align="center">
-  <img src="docs/exhibits/AXLOGIQ_Governance_v2.png" alt="AXLOGIQ Execution Governance Infrastructure" width="100%">
+  <img src="docs/exhibits/MCC_Core_PR85_Final_Post_Merge_Validation.png"
+       alt="MCC-Core Final Post-Merge Pre-Pilot Validation after PR #85"
+       width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/mcc-prior-art/mcc-layer/pull/83"><strong>PR #83 — Multi-Process Audit-Chain Concurrency Fix</strong></a>
+  ·
+  <a href="https://github.com/mcc-prior-art/mcc-layer/pull/84"><strong>PR #84 — Crash & Recovery / Fail-Closed Hardening</strong></a>
+  ·
+  <a href="https://github.com/mcc-prior-art/mcc-layer/pull/85"><strong>PR #85 — External Checkpoint Anchoring</strong></a>
+  ·
+  <a href="docs/AUDIT_CHECKPOINT_ANCHORING.md"><strong>Audit Checkpoint Anchoring</strong></a>
+  ·
+  <a href="docs/REPRODUCING_ASSURANCE.md"><strong>Reproducing Assurance</strong></a>
 </p>
 
 <p align="center">
@@ -125,9 +140,9 @@ Its reference runtime was implemented with an AI coding agent, tested against do
 
 **The constraint layer was built with the constrained.**
 
-**Evidence:** [PR #4 — Runtime Upgrade Merge](https://github.com/mcc-prior-art/mcc-layer/pull/4)
+**Historical evidence:** [PR #4 — Runtime Upgrade Merge](https://github.com/mcc-prior-art/mcc-layer/pull/4)
 
-Runtime upgrade record: PR #4 merged as commit `32d4d3a`, extending the reference runtime with a bounded 10,000-entry cache invariant under public CI verification.
+Runtime upgrade record: PR #4 merged as commit `32d4d3a`, extending the reference runtime with a bounded 10,000-entry cache invariant under public CI verification. This is an early historical milestone; the repository's current capability baseline is tracked in the metadata block above and reflects PR #85.
 
 ---
 
@@ -1520,6 +1535,19 @@ decision, gate and audit: it creates no authority and authorizes no execution.
 See [`docs/GOVERNANCE_EVIDENCE_BUNDLE.md`](docs/GOVERNANCE_EVIDENCE_BUNDLE.md) for
 the format, ALLOW/DENY evidence, tamper detection, trust assumptions, and
 operational limitations.
+
+---
+
+## External Checkpoint Anchoring
+
+The append-only audit chain now has an external, tamper-evident checkpoint
+anchor ([PR #85](https://github.com/mcc-prior-art/mcc-layer/pull/85)).
+External checkpoint anchoring makes a self-consistent rewrite of the primary
+audit-chain storage detectable, as long as the checkpoint signing authority
+and the external anchor store remain outside attacker control. Real GitHub
+external-anchor acceptance evidence remains pending configuration. See
+[`docs/AUDIT_CHECKPOINT_ANCHORING.md`](docs/AUDIT_CHECKPOINT_ANCHORING.md) for
+the full architecture, trust assumptions, and current limitations.
 
 ---
 
