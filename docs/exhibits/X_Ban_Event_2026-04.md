@@ -12,7 +12,7 @@
 
 ## Summary
 
-The account `@axlogiq_ai`, which was used to publish MCC / MCC-Core materials on execution governance for autonomous AI systems, was permanently suspended by X platform systems in April 2026.
+The account `@axlogiq_ai`, which was used to publish MCC / MCC-Core materials on execution governance for autonomous AI systems, was locked by X platform systems in April 2026.
 
 Grok / xAI publicly engaged with the MCC execution-governance concept on 25.04.2026, approximately two days after the account action described below.
 
@@ -28,7 +28,7 @@ This exhibit is preserved as a documented platform-governance case relevant to M
 |---|---|
 | 20.04.2026 | First MCC prior-art materials publicly disclosed through `@axlogiq_ai`. |
 | 21.04.2026 | MCC v0.5 + GPT-4.1 feature expansion posted and archived. |
-| 23.04.2026 | `@axlogiq_ai` was permanently suspended by X platform systems. |
+| 23.04.2026 | `@axlogiq_ai` was locked by X platform systems. |
 | 25.04.2026 | Grok / xAI publicly responded to the MCC execution-governance concept; acknowledgment proof archived in repository. |
 | 29.04.2026 | X Support appeal response stated that automated systems determined a violation had occurred and that the decision would not be overturned. |
 
@@ -73,7 +73,7 @@ The X platform incident is relevant to MCC-Core because it illustrates the risk 
 | MCC-Core Governance Requirement | Observed Platform Behavior |
 |---|---|
 | Decision rationale should be explicit and reviewable | The response cites automated systems but does not provide a specific rule-mapping rationale. |
-| High-impact DENY outcomes should support escalation | The account-level consequence was permanent suspension. |
+| High-impact DENY outcomes should support escalation | The account-level consequence was an account lock. |
 | Appeals should produce reviewable decision records | The appeal response did not provide a detailed audit trail or policy-specific explanation. |
 | Post-factum review is weaker than pre-execution governance | The account was actioned first; the appeal occurred after the consequence. |
 | Policy transparency should exist at the decision point | The response did not identify a specific rule subsection or evidence item. |
