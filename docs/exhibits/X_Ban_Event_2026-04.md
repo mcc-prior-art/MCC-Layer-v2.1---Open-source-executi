@@ -14,7 +14,7 @@
 
 The account `@axlogiq_ai`, which was used to publish MCC / MCC-Core materials on execution governance for autonomous AI systems, was permanently suspended by X platform systems in April 2026.
 
-The suspension occurred shortly after a public Grok / xAI response engaged with the MCC execution-governance concept.
+Grok / xAI publicly engaged with the MCC execution-governance concept on 25.04.2026, approximately two days after the account action described below.
 
 The X appeal response stated that X's automated systems determined that a rule violation had occurred and that the original decision would not be overturned.
 
@@ -28,17 +28,17 @@ This exhibit is preserved as a documented platform-governance case relevant to M
 |---|---|
 | 20.04.2026 | First MCC prior-art materials publicly disclosed through `@axlogiq_ai`. |
 | 21.04.2026 | MCC v0.5 + GPT-4.1 feature expansion posted and archived. |
-| 21.04.2026 | Grok / xAI publicly responded to the MCC execution-governance concept. |
 | 23.04.2026 | `@axlogiq_ai` was permanently suspended by X platform systems. |
+| 25.04.2026 | Grok / xAI publicly responded to the MCC execution-governance concept; acknowledgment proof archived in repository. |
 | 29.04.2026 | X Support appeal response stated that automated systems determined a violation had occurred and that the decision would not be overturned. |
 
-**Interval between Grok / xAI public response and suspension:** approximately 2 days.
+**Interval between the account action and the Grok / xAI public response:** approximately 2 days.
 
 ---
 
 ## Primary Evidence
 
-### Grok / xAI Public Response — April 2026
+### Grok / xAI Public Response — 25.04.2026
 
 Grok / xAI publicly responded to the MCC execution-governance concept.
 
