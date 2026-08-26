@@ -1603,6 +1603,9 @@ boundary, through the same seven governance scenarios and one authorization path
 adapters follow). See
 [`docs/interoperability/MULTI_ADAPTER_PROOF.md`](docs/interoperability/MULTI_ADAPTER_PROOF.md).
 
+How MCC-Core relates to other external, deterministic pre-execution enforcement
+patterns: [Google Zero-Trust Agents — MCC-Core Architecture Mapping](docs/GOOGLE_ZERO_TRUST_MCC_CORE.md).
+
 ---
 
 ## Accurate Positioning
