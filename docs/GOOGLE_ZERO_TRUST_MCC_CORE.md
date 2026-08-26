@@ -11,13 +11,10 @@ Kit](https://developers.googleblog.com/build-zero-trust-ai-agents-with-googles-a
 Every claim below about Google's pattern is scoped to that published article and
 reference implementation — it is not a claim about Google's broader security,
 IAM, payment, ADK, or enterprise infrastructure. **A sourcing note on Rule 3's
-exact wording is recorded at the end of this document** — this environment's
-network egress policy blocked a direct fetch of the primary blog post, so
-Rule 3's description here is reconstructed from Google's own public reference
-repository plus multiple independent secondary summaries of the same article,
-not from a verified verbatim quote of the blog text itself. Readers relying on
-this document for a technical decision should confirm the exact wording against
-the primary URL above.
+exact wording is recorded at the end of this document.** Rule 3 is characterized
+here from Google's public reference implementation and is not quoted verbatim
+from the blog post. Readers should verify the exact wording against the primary
+source before quoting it.
 
 ---
 
@@ -353,24 +350,14 @@ This document does not, and is not accompanied by:
 
 ## Sourcing Note
 
-This environment's network egress policy blocked a direct fetch of
-`developers.googleblog.com` at the time this document was written. The
-description of Google's three-layer pattern (cryptographic write signing,
-isolated/sandboxed execution, and the Semantic Gateway's Rule 1 / Rule 2 /
-Rule 3) is reconstructed from:
-
-1. Google's own public reference implementation repository,
-   [`GoogleCloudPlatform/generative-ai — agents/adk/zero-trust-agents`](https://github.com/GoogleCloudPlatform/generative-ai/tree/main/agents/adk/zero-trust-agents)
-   (fetched directly), and
-2. multiple independent secondary summaries of the same blog post (search
-   results reporting on Google's article), used only to corroborate details
-   already visible in (1).
+Rule 3 is characterized here from Google's public reference implementation,
+[`GoogleCloudPlatform/generative-ai — agents/adk/zero-trust-agents`](https://github.com/GoogleCloudPlatform/generative-ai/tree/main/agents/adk/zero-trust-agents),
+and is not quoted verbatim from the blog post. Readers should verify the exact
+wording against the primary source before quoting it.
 
 Rule 3's characterization in Section 2 — hard transaction-bounds enforcement
 on a proposed order/refund-affecting SQL update, evaluated before the
-database write proceeds — is corroborated by both sources but is **not**
-presented here as a verbatim quotation of the blog post's exact prose, since
-that prose could not be directly fetched in this environment. A reader citing
-this document in an external, bank/fintech, or pilot context should confirm
-the exact wording against the primary URL at the top of this document before
-quoting Rule 3 verbatim.
+database write proceeds — reflects that reference implementation. A reader
+citing this document in an external, bank/fintech, or pilot context should
+confirm the exact wording against the primary URL at the top of this document
+before quoting Rule 3 verbatim.
