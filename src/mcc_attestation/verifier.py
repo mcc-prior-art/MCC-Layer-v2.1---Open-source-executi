@@ -10,16 +10,19 @@ Verification order (fixed, deterministic):
 
     1. input/type validation
     2. schema version
-    3. required fields / structural validation
+    3. required fields / structural validation (includes the temporal
+       invariant issued_at <= not_before < expires_at, and digest-format /
+       canonical-structure checks on claims/provenance -- see schema.py's
+       ``EvidenceAttestation.__post_init__``)
     4. attester identity (structural — part of step 3)
     5. key lookup/trust
     6. signature verification
     7. evidence_type authorization
-    8. issued_at / not_before / expires_at
+    8. current-time validity window: not_before <= now < expires_at
     9. action_hash binding
     10. optional payload_hash binding
     11. expected scope
-    12. expected policy binding
+    12. optional policy binding
     13. success
 
 Any failing step returns a fail-closed structured result immediately; later
@@ -27,6 +30,13 @@ steps are not evaluated once one has failed (they would be moot — the
 overall result is already INVALID). Any unexpected exception anywhere in
 this function is caught and resolves to INVALID; no exception path can
 produce a VERIFIED result.
+
+``payload_binding_valid`` and ``policy_binding_valid`` on the returned
+result are ``Optional[bool]``: ``None`` means the caller supplied no
+expected value for that binding (NOT CHECKED / NOT APPLICABLE — never to be
+read as "proven"), ``True`` means it was checked and matched, ``False``
+means it was checked and did not match (in which case the overall result is
+already INVALID). See ``schema.AttestationVerificationResult``'s docstring.
 
 Replay (nonce consumption) is intentionally NOT performed here — the
 attestation's ``nonce`` field is carried and structurally validated (as part
@@ -174,15 +184,18 @@ def verify_attestation(
         common_flags["action_binding_valid"] = True
 
         # --- 10. optional payload_hash binding -----------------------------------
+        # payload_binding_valid is Optional[bool]: None means NOT CHECKED / NOT
+        # APPLICABLE (no expected value supplied) -- never interpreted as proven.
         if expected_payload_hash is not None:
             if attestation.payload_hash != expected_payload_hash:
                 add("payload_binding", CheckStatus.FAIL,
                     f"payload_hash {attestation.payload_hash!r} != expected {expected_payload_hash!r}")
-                return invalid(attestation.attestation_id, attestation.attester_id, **common_flags)
+                return invalid(attestation.attestation_id, attestation.attester_id,
+                                payload_binding_valid=False, **common_flags)
             add("payload_binding", CheckStatus.PASS, "payload_hash matches the expected bound payload")
+            common_flags["payload_binding_valid"] = True
         else:
-            add("payload_binding", CheckStatus.PASS, "no expected payload_hash supplied; binding not checked")
-        common_flags["payload_binding_valid"] = True
+            add("payload_binding", CheckStatus.NA, "no expected payload_hash supplied; binding not checked")
 
         # --- 11. expected scope --------------------------------------------------
         if attestation.scope != expected_scope:
@@ -193,6 +206,9 @@ def verify_attestation(
         common_flags["scope_valid"] = True
 
         # --- 12. expected policy binding ------------------------------------------
+        # policy_binding_valid is Optional[bool]: None means NOT CHECKED / NOT
+        # APPLICABLE (neither expected value supplied) -- never interpreted as proven.
+        policy_requested = expected_policy_hash is not None or expected_policy_version is not None
         policy_problems = []
         if expected_policy_hash is not None and attestation.policy_hash != expected_policy_hash:
             policy_problems.append(f"policy_hash {attestation.policy_hash!r} != expected {expected_policy_hash!r}")
@@ -202,11 +218,13 @@ def verify_attestation(
             )
         if policy_problems:
             add("policy_binding", CheckStatus.FAIL, "; ".join(policy_problems))
-            return invalid(attestation.attestation_id, attestation.attester_id, **common_flags)
-        add("policy_binding", CheckStatus.PASS,
-            "policy binding matches expectations" if (expected_policy_hash or expected_policy_version)
-            else "no expected policy binding supplied; binding not checked")
-        common_flags["policy_binding_valid"] = True
+            return invalid(attestation.attestation_id, attestation.attester_id,
+                            policy_binding_valid=False, **common_flags)
+        if policy_requested:
+            add("policy_binding", CheckStatus.PASS, "policy binding matches expectations")
+            common_flags["policy_binding_valid"] = True
+        else:
+            add("policy_binding", CheckStatus.NA, "no expected policy binding supplied; binding not checked")
 
         # --- 13. success -----------------------------------------------------------
         return AttestationVerificationResult(

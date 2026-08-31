@@ -14,6 +14,7 @@ resolution, and the 13-step deterministic verification order documented in
 from __future__ import annotations
 
 import copy
+import dataclasses
 
 import pytest
 
@@ -110,7 +111,33 @@ def test_01_valid_trusted_attestation_is_verified(attester, trust_store):
     assert not result.failures
     assert result.attestation_id == att.attestation_id
     assert result.attester_id == att.attester_id
-    # every structured dimension is True on the happy path
+    # every MANDATORY structured dimension is True on the happy path
+    for field in (
+        "schema_supported", "structure_valid", "signer_verified", "signer_trusted",
+        "evidence_type_allowed", "time_valid", "action_binding_valid", "scope_valid",
+    ):
+        assert getattr(result, field) is True, field
+    # payload/policy bindings are OPTIONAL: not exercised here (no expected
+    # value supplied) -> None (NOT CHECKED / NOT APPLICABLE), never True.
+    assert result.payload_binding_valid is None
+    assert result.policy_binding_valid is None
+
+
+def test_01b_valid_attestation_with_all_optional_bindings_exercised_is_verified(attester_key):
+    attester = LocalAttester("attester.payment-risk.v1", attester_key)
+    ph = "sha256:" + "a" * 64
+    pol_hash = "sha256:" + "c" * 64
+    att = _attest(attester, payload_hash=ph, policy_hash=pol_hash, policy_version="2026-09-01")
+    result = _verify(
+        att.to_dict(), AttesterTrustStore([
+            AttesterTrustAnchor("attester.payment-risk.v1", attester_key.kid,
+                                 attester_key.public_key(), frozenset({"risk_assessment"})),
+        ]),
+        expected_payload_hash=ph, expected_policy_hash=pol_hash, expected_policy_version="2026-09-01",
+    )
+    assert result.overall_status is AttestationStatus.VERIFIED
+    # every dimension, including the optional bindings, is now True: they
+    # were actually exercised and matched, not merely "not applicable."
     for field in (
         "schema_supported", "structure_valid", "signer_verified", "signer_trusted",
         "evidence_type_allowed", "time_valid", "action_binding_valid",
@@ -322,6 +349,8 @@ def test_14_wrong_expected_payload_hash_is_invalid(attester, trust_store):
     result = _verify(att.to_dict(), trust_store, expected_payload_hash="sha256:" + "b" * 64)
     assert result.overall_status is AttestationStatus.INVALID
     assert result.check("payload_binding").status.value == "FAIL"
+    # checked and failed -- False, not None (None would wrongly read as "not checked")
+    assert result.payload_binding_valid is False
 
 
 def test_14b_correct_expected_payload_hash_is_verified(attester, trust_store):
@@ -329,6 +358,16 @@ def test_14b_correct_expected_payload_hash_is_verified(attester, trust_store):
     att = _attest(attester, payload_hash=ph)
     result = _verify(att.to_dict(), trust_store, expected_payload_hash=ph)
     assert result.overall_status is AttestationStatus.VERIFIED
+    assert result.payload_binding_valid is True
+
+
+def test_14c_omitted_payload_hash_is_not_checked_never_proved(attester, trust_store):
+    att = _attest(attester, payload_hash="sha256:" + "a" * 64)
+    result = _verify(att.to_dict(), trust_store)  # no expected_payload_hash supplied
+    assert result.overall_status is AttestationStatus.VERIFIED
+    # NOT CHECKED / NOT APPLICABLE -- must never be interpreted as "proved".
+    assert result.payload_binding_valid is None
+    assert result.check("payload_binding").status.value == "NA"
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +392,7 @@ def test_16a_wrong_expected_policy_version_is_invalid(attester, trust_store):
     result = _verify(att.to_dict(), trust_store, expected_policy_version="2026-01-01")
     assert result.overall_status is AttestationStatus.INVALID
     assert result.check("policy_binding").status.value == "FAIL"
+    assert result.policy_binding_valid is False
 
 
 def test_16b_wrong_expected_policy_hash_is_invalid(attester, trust_store):
@@ -360,6 +400,7 @@ def test_16b_wrong_expected_policy_hash_is_invalid(attester, trust_store):
     result = _verify(att.to_dict(), trust_store, expected_policy_hash="sha256:" + "d" * 64)
     assert result.overall_status is AttestationStatus.INVALID
     assert result.check("policy_binding").status.value == "FAIL"
+    assert result.policy_binding_valid is False
 
 
 def test_16c_correct_expected_policy_binding_is_verified(attester, trust_store):
@@ -369,6 +410,15 @@ def test_16c_correct_expected_policy_binding_is_verified(attester, trust_store):
         expected_policy_version="2026-09-01", expected_policy_hash="sha256:" + "c" * 64,
     )
     assert result.overall_status is AttestationStatus.VERIFIED
+    assert result.policy_binding_valid is True
+
+
+def test_16d_omitted_policy_binding_is_not_checked_never_proved(attester, trust_store):
+    att = _attest(attester, policy_version="2026-09-01", policy_hash="sha256:" + "c" * 64)
+    result = _verify(att.to_dict(), trust_store)  # neither expected_policy_* supplied
+    assert result.overall_status is AttestationStatus.VERIFIED
+    assert result.policy_binding_valid is None
+    assert result.check("policy_binding").status.value == "NA"
 
 
 # ---------------------------------------------------------------------------
@@ -696,4 +746,294 @@ def test_deep_copy_of_valid_attestation_still_verifies(attester, trust_store):
     att = _attest(attester)
     raw = copy.deepcopy(att.to_dict())
     result = _verify(raw, trust_store)
+    assert result.overall_status is AttestationStatus.VERIFIED
+
+
+# ---------------------------------------------------------------------------
+# Architecture review correction pass (1): immutability
+# ---------------------------------------------------------------------------
+
+
+def test_immutability_top_level_field_assignment_raises(attester):
+    att = _attest(attester)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        att.attestation_id = "hacked"  # type: ignore[misc]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        att.action_hash = "sha256:" + "0" * 64  # type: ignore[misc]
+
+
+def test_immutability_claims_mapping_item_assignment_raises(attester):
+    att = _attest(attester)
+    with pytest.raises(TypeError):
+        att.claims["risk_class"] = "hacked"  # type: ignore[index]
+
+
+def test_immutability_provenance_mapping_item_assignment_raises(attester):
+    att = _attest(attester)
+    with pytest.raises(TypeError):
+        att.provenance["model"] = "hacked"  # type: ignore[index]
+
+
+def test_immutability_nested_claims_structure_is_frozen(attester):
+    att = _attest(attester, claims={"outer": {"inner": [1, 2, 3]}})
+    with pytest.raises(TypeError):
+        att.claims["outer"]["inner2"] = "hacked"  # type: ignore[index]
+    # nested lists are frozen into tuples, which have no append/mutate API
+    assert isinstance(att.claims["outer"]["inner"], tuple)
+    assert not hasattr(att.claims["outer"]["inner"], "append")
+
+
+def test_immutability_mutating_callers_original_dict_after_construction_has_no_effect(attester_key):
+    attester = LocalAttester("attester.payment-risk.v1", attester_key)
+    original_claims = {"risk_class": "low", "nested": {"a": [1, 2]}}
+    original_provenance = {"model": "m"}
+    att = attester.attest(
+        evidence_type="risk_assessment", claims=original_claims, action_hash=_action_hash(),
+        scope=SCOPE, provenance=original_provenance,
+        issued_at=ISSUED_AT, not_before=NOT_BEFORE, expires_at=EXPIRES_AT, nonce="n",
+    )
+    frozen_snapshot = dict(att.to_dict())
+
+    # mutate the caller's own objects AFTER the attestation was built and signed
+    original_claims["risk_class"] = "high"
+    original_claims["nested"]["a"].append(999)
+    original_claims["injected"] = "surprise"
+    original_provenance["model"] = "tampered"
+
+    assert att.to_dict() == frozen_snapshot, (
+        "mutating the caller's original claims/provenance dict after construction must not "
+        "silently change the attestation's content"
+    )
+
+
+def test_immutability_mutation_cannot_be_used_to_forge_a_verified_attestation(attester, trust_store):
+    """Signature verification is not relied on as a substitute for
+    immutability: this test proves the *object itself* cannot be mutated
+    post-signing to begin with, independent of whether a mutated *copy*
+    would separately fail signature verification (already covered by tests
+    4/5/6 above, which tamper with the serialized dict, not the live
+    object)."""
+    att = _attest(attester)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        att.claims = {"risk_class": "high"}  # type: ignore[misc]
+    # the (unmutated) object still verifies normally
+    result = _verify(att.to_dict(), trust_store)
+    assert result.overall_status is AttestationStatus.VERIFIED
+
+
+def test_immutability_replace_produces_a_new_object_original_untouched(attester_key):
+    # sign_attestation uses dataclasses.replace() internally (frozen-dataclass
+    # compatible) -- confirm the original unsigned object is left untouched.
+    attester = LocalAttester("attester.payment-risk.v1", attester_key)
+    unsigned = EvidenceAttestation(
+        schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="att-replace-1",
+        attester_id="attester.payment-risk.v1", evidence_type="risk_assessment",
+        claims={"risk_class": "low"}, action_hash=_action_hash(), scope=SCOPE,
+        provenance={}, issued_at=ISSUED_AT, not_before=NOT_BEFORE, expires_at=EXPIRES_AT, nonce="n",
+    )
+    assert unsigned.is_signed is False
+    signed = sign_attestation(unsigned, attester_key)
+    assert signed.is_signed is True
+    assert unsigned.is_signed is False  # original untouched
+    assert unsigned.kid is None and unsigned.sig is None
+
+
+# ---------------------------------------------------------------------------
+# Architecture review correction pass (2): issued_at temporal invariant
+# ---------------------------------------------------------------------------
+
+
+def test_temporal_issued_at_after_not_before_is_malformed():
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation.from_dict({
+            "schema_version": ATTESTATION_SCHEMA_VERSION,
+            "attestation_id": "att-issued-after-nb",
+            "attester_id": "attester.payment-risk.v1",
+            "evidence_type": "risk_assessment",
+            "claims": {}, "action_hash": _action_hash(), "scope": SCOPE, "provenance": {},
+            "issued_at": 2_000, "not_before": 1_000, "expires_at": 3_000,
+            "nonce": "n", "kid": "k", "sig": "s",
+        })
+
+
+def test_temporal_issued_at_at_or_after_expires_at_is_malformed():
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation.from_dict({
+            "schema_version": ATTESTATION_SCHEMA_VERSION,
+            "attestation_id": "att-issued-after-exp",
+            "attester_id": "attester.payment-risk.v1",
+            "evidence_type": "risk_assessment",
+            "claims": {}, "action_hash": _action_hash(), "scope": SCOPE, "provenance": {},
+            # not_before < expires_at holds on its own, but issued_at >=
+            # expires_at (and therefore also > not_before) must still be
+            # rejected by the issued_at <= not_before leg of the invariant.
+            "issued_at": 3_000, "not_before": 1_000, "expires_at": 3_000,
+            "nonce": "n", "kid": "k", "sig": "s",
+        })
+
+
+def test_temporal_issued_at_equal_to_not_before_is_allowed(attester, trust_store):
+    att = _attest(attester, issued_at=NOT_BEFORE, not_before=NOT_BEFORE)
+    result = _verify(att.to_dict(), trust_store)
+    assert result.overall_status is AttestationStatus.VERIFIED
+
+
+def test_temporal_issued_at_before_not_before_is_allowed(attester, trust_store):
+    att = _attest(attester, issued_at=ISSUED_AT - 500, not_before=ISSUED_AT)
+    result = _verify(att.to_dict(), trust_store)
+    assert result.overall_status is AttestationStatus.VERIFIED
+
+
+def test_temporal_direct_construction_enforces_same_invariant_as_from_dict():
+    # __post_init__ is the single source of truth: direct construction (the
+    # path LocalAttester.attest() uses) is validated identically to from_dict.
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="attester.payment-risk.v1", evidence_type="risk_assessment",
+            claims={}, action_hash=_action_hash(), scope=SCOPE, provenance={},
+            issued_at=5_000, not_before=1_000, expires_at=2_000, nonce="n",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Architecture review correction pass (4): digest format + canonical
+# serializability hardening
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("bad_action_hash", [
+    "not-a-digest",
+    "sha256:short",
+    "sha1:" + "a" * 40,
+    "sha256:" + "A" * 64,  # uppercase hex not accepted
+    "sha256:" + "g" * 64,  # non-hex characters
+    "sha256:" + "a" * 63,  # one char short
+    "sha256:" + "a" * 65,  # one char long
+    "",
+])
+def test_hardening_malformed_action_hash_format_is_rejected(bad_action_hash):
+    if bad_action_hash == "":
+        # empty string is caught by the non-empty-string check, not the
+        # digest-format check -- still must raise the same error type.
+        with pytest.raises(MalformedAttestationError):
+            EvidenceAttestation.from_dict({
+                "schema_version": ATTESTATION_SCHEMA_VERSION, "attestation_id": "x",
+                "attester_id": "a", "evidence_type": "e", "claims": {},
+                "action_hash": bad_action_hash, "scope": SCOPE, "provenance": {},
+                "issued_at": ISSUED_AT, "not_before": NOT_BEFORE, "expires_at": EXPIRES_AT,
+                "nonce": "n", "kid": "k", "sig": "s",
+            })
+        return
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims={}, action_hash=bad_action_hash,
+            scope=SCOPE, provenance={}, issued_at=ISSUED_AT, not_before=NOT_BEFORE,
+            expires_at=EXPIRES_AT, nonce="n",
+        )
+
+
+def test_hardening_malformed_payload_hash_format_is_rejected():
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims={}, action_hash=_action_hash(),
+            payload_hash="deadbeef", scope=SCOPE, provenance={}, issued_at=ISSUED_AT,
+            not_before=NOT_BEFORE, expires_at=EXPIRES_AT, nonce="n",
+        )
+
+
+def test_hardening_malformed_policy_hash_format_is_rejected():
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims={}, action_hash=_action_hash(),
+            policy_hash="sha256:not-hex-at-all-just-text-padding-to-len-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            scope=SCOPE, provenance={}, issued_at=ISSUED_AT,
+            not_before=NOT_BEFORE, expires_at=EXPIRES_AT, nonce="n",
+        )
+
+
+def test_hardening_well_formed_digest_fields_are_accepted(attester, trust_store):
+    att = _attest(
+        attester,
+        payload_hash="sha256:" + "0123456789abcdef" * 4,
+        policy_hash="sha256:" + "f" * 64,
+    )
+    result = _verify(
+        att.to_dict(), trust_store,
+        expected_payload_hash="sha256:" + "0123456789abcdef" * 4,
+        expected_policy_hash="sha256:" + "f" * 64,
+    )
+    assert result.overall_status is AttestationStatus.VERIFIED
+
+
+def test_hardening_policy_version_is_not_digest_format_constrained(attester, trust_store):
+    # policy_version is a free-form label, not a hash -- must NOT be forced
+    # through the sha256:<hex> validator.
+    att = _attest(attester, policy_version="release-2026.09-rc1")
+    result = _verify(att.to_dict(), trust_store, expected_policy_version="release-2026.09-rc1")
+    assert result.overall_status is AttestationStatus.VERIFIED
+
+
+@pytest.mark.parametrize("bad_claims", [
+    {"a_set": {1, 2, 3}},
+    {"nested": {"inner_set": {1, 2}}},
+    {"tuple_with_set": [1, {1, 2}]},
+])
+def test_hardening_non_canonical_claims_are_rejected(bad_claims):
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims=bad_claims, action_hash=_action_hash(),
+            scope=SCOPE, provenance={}, issued_at=ISSUED_AT, not_before=NOT_BEFORE,
+            expires_at=EXPIRES_AT, nonce="n",
+        )
+
+
+def test_hardening_non_canonical_provenance_is_rejected():
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims={}, action_hash=_action_hash(),
+            scope=SCOPE, provenance={"bad": object()}, issued_at=ISSUED_AT, not_before=NOT_BEFORE,
+            expires_at=EXPIRES_AT, nonce="n",
+        )
+
+
+def test_hardening_non_finite_float_in_claims_is_rejected():
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims={"score": float("nan")},
+            action_hash=_action_hash(), scope=SCOPE, provenance={}, issued_at=ISSUED_AT,
+            not_before=NOT_BEFORE, expires_at=EXPIRES_AT, nonce="n",
+        )
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims={"score": float("inf")},
+            action_hash=_action_hash(), scope=SCOPE, provenance={}, issued_at=ISSUED_AT,
+            not_before=NOT_BEFORE, expires_at=EXPIRES_AT, nonce="n",
+        )
+
+
+def test_hardening_non_string_claims_key_is_rejected():
+    # JSON object keys must be strings; a Python dict can technically hold a
+    # non-string key (e.g. via a pre-parsed structure), which must be caught.
+    with pytest.raises(MalformedAttestationError):
+        EvidenceAttestation(
+            schema_version=ATTESTATION_SCHEMA_VERSION, attestation_id="x",
+            attester_id="a", evidence_type="e", claims={1: "value"},
+            action_hash=_action_hash(), scope=SCOPE, provenance={}, issued_at=ISSUED_AT,
+            not_before=NOT_BEFORE, expires_at=EXPIRES_AT, nonce="n",
+        )
+
+
+def test_hardening_deeply_nested_valid_claims_are_accepted(attester, trust_store):
+    att = _attest(attester, claims={
+        "a": {"b": {"c": [1, 2.5, "three", True, None, {"d": [4, 5]}]}},
+    })
+    result = _verify(att.to_dict(), trust_store)
     assert result.overall_status is AttestationStatus.VERIFIED

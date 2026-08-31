@@ -94,14 +94,14 @@ A closed, versioned field set (see `src/mcc_attestation/schema.py`):
 | `attestation_id` | yes | string | Unique identifier for this attestation |
 | `attester_id` | yes | string | Declared identity of the issuing Attester |
 | `evidence_type` | yes | string | Free-form label for the kind of assertion (e.g. `"risk_assessment"`) — no hard-coded vocabulary |
-| `claims` | yes | object | Structured, deterministic (JSON-serializable) assessment data — semantics interpreted by policy/Control, never by this package |
-| `action_hash` | yes | string | Binds this attestation to a specific proposed action |
-| `payload_hash` | no | string | Optional binding to a specific payload |
+| `claims` | yes | object | Structured, deterministic (canonically serializable) assessment data — semantics interpreted by policy/Control, never by this package |
+| `action_hash` | yes | string | Binds this attestation to a specific proposed action — MUST match `sha256:<64 lowercase hex characters>` |
+| `payload_hash` | no | string | Optional binding to a specific payload — MUST match `sha256:<64 lowercase hex characters>` when present |
 | `scope` | yes | string | The scope this attestation applies to (e.g. `"payment:vendor_invoice"`) |
-| `policy_hash` | no | string | Optional deterministic policy binding |
-| `policy_version` | no | string | Optional deterministic policy binding |
+| `policy_hash` | no | string | Optional deterministic policy binding (content-digest form) — MUST match `sha256:<64 lowercase hex characters>` when present |
+| `policy_version` | no | string | Optional deterministic policy binding (free-form version label — not a digest, no format constraint) |
 | `provenance` | yes | object | Free-form structured provenance (e.g. `{"model": "...", "input_ref": "..."}`) |
-| `issued_at` | yes | integer | Unix seconds |
+| `issued_at` | yes | integer | Unix seconds — MUST NOT be after `not_before` |
 | `not_before` | yes | integer | Unix seconds — validity window start |
 | `expires_at` | yes | integer | Unix seconds — validity window end (must be strictly after `not_before`) |
 | `nonce` | yes | string | Carried for future replay protection (see §8) |
@@ -114,7 +114,54 @@ digest, a human-readable version label, or both.
 
 No payment, fraud, phishing, or risk-class vocabulary is hard-coded into the
 schema or the verifier. `claims` is opaque structured data as far as this
-package is concerned.
+package is concerned — but it must be *canonically serializable*: recursively
+composed only of `None`, `bool`, `str`, finite `int`/`float`, and
+`dict`/`list` with string-only object keys (see §5a). A `set`, a custom
+object, a non-string dict key, or a non-finite float (`NaN`/`Infinity`) is
+rejected at construction, not silently coerced or dropped.
+
+### 5a. Temporal invariant
+
+```
+issued_at <= not_before < expires_at
+```
+
+Both legs are enforced structurally (in `EvidenceAttestation.__post_init__`,
+so identically whether an attestation is built via `from_dict` or
+constructed directly, e.g. by `LocalAttester`) — an attestation violating
+either ordering is malformed and is rejected before signature verification
+is ever attempted, exactly like any other structural defect.
+
+### 5b. Digest field format
+
+`action_hash`, and `payload_hash`/`policy_hash` when present, MUST match
+`sha256:<64 lowercase hex characters>` — the exact format
+`mcc_core.signing.sha256_hex` produces. This is enforced structurally, at
+the same point as the temporal invariant above. `policy_version` is a
+free-form label, not a digest, and carries no format constraint.
+
+### 5c. Immutability
+
+`EvidenceAttestation` is a **frozen dataclass**. `claims` and `provenance`
+are additionally **deep-frozen** at construction — recursively converted
+into `types.MappingProxyType` (for objects) and `tuple` (for arrays),
+independent of whatever mutable `dict`/`list` the caller originally passed
+in. Two consequences, both structurally guaranteed (not merely documented,
+and not achieved by relying on signature verification as a substitute):
+
+- Assigning to any field on a constructed `EvidenceAttestation`
+  (`att.attestation_id = "..."`) raises `dataclasses.FrozenInstanceError`.
+- Mutating `att.claims[...]`/`att.provenance[...]` directly raises
+  `TypeError` (a `MappingProxyType` has no item-assignment); mutating the
+  caller's *original* dict *after* construction has zero effect on the
+  attestation's content, because `_freeze` builds new container objects
+  rather than wrapping the caller's originals.
+
+`unsigned_dict()`/`to_dict()` still return plain, JSON-serializable
+`dict`/`list` values (thawed on the way out) so canonical signing and
+verification are unaffected — the frozen representation is purely a
+structural-integrity guarantee on the live Python object, not a change to
+the wire format.
 
 ## 6. Canonicalization and signing
 
@@ -193,10 +240,10 @@ signer_trusted
 evidence_type_allowed
 time_valid
 action_binding_valid
-payload_binding_valid
+payload_binding_valid     # Optional[bool] -- see below
 scope_valid
-policy_binding_valid
-checks       # ordered list of {name, status, detail}
+policy_binding_valid      # Optional[bool] -- see below
+checks       # ordered list of {name, status, detail}; status ∈ PASS|FAIL|NA
 warnings
 failures
 attestation_id
@@ -208,27 +255,50 @@ structurally valid under the supplied trust and expected bindings.** It does
 **not** mean "the risk assessment is objectively correct," and it does
 **not** itself authorize execution.
 
+**`payload_binding_valid` and `policy_binding_valid` are `Optional[bool]`**,
+distinctly from every other field above, because those two bindings are
+themselves optional (the caller may or may not supply an expected value to
+check against):
+
+| Value | Meaning |
+|---|---|
+| `None` | **NOT CHECKED / NOT APPLICABLE.** The caller supplied no expected value, or verification did not reach this step. A caller MUST NOT read `None` as "proven." |
+| `True` | The caller supplied an expected value and the attestation matched it. |
+| `False` | The caller supplied an expected value and it did **not** match (the overall result is already `INVALID` in this case). |
+
+The corresponding `checks` entry uses `CheckStatus.NA` (not `PASS`) whenever
+the binding was not exercised — a result MUST distinguish an actually
+verified binding from one that was simply never asked about. Before this
+correction, both cases collapsed to `True`/`PASS`, which a future Control
+integration could have misread as proof. This is now a structural
+distinction (`Optional[bool]` + `NA`), not a documentation-only promise.
+
 ### Verification order (fixed, deterministic)
 
 1. input/type validation
 2. schema version
-3. required fields / structural validation
+3. required fields / structural validation — includes the temporal
+   invariant (§5a), digest-format checks (§5b), and canonical-structure
+   checks on `claims`/`provenance` (§5)
 4. attester identity (part of structural validation — one of the required
    string fields)
 5. key lookup/trust — `(attester_id, kid) → AttesterTrustAnchor`
 6. signature verification (Ed25519, via `mcc_core.signing.verify_token`)
 7. `evidence_type` authorization against the resolved anchor
-8. `issued_at` / `not_before` / `expires_at` validity window
+8. current-time validity window: `not_before <= now < expires_at`
 9. `action_hash` binding against the caller's expected action
 10. optional `payload_hash` binding, if the caller supplied an expected value
+    (`NA` otherwise — see above)
 11. expected `scope` binding
-12. optional expected `policy_hash` / `policy_version` binding
+12. optional expected `policy_hash` / `policy_version` binding (`NA`
+    otherwise)
 13. success → `VERIFIED`
 
 Any failing step returns a fail-closed result immediately (later steps would
 be moot — the overall result is already `INVALID`). Structured boolean
-fields not yet reached when a failure occurs remain `False`, so a caller can
-see exactly how far verification got.
+fields not yet reached when a failure occurs remain `False` (or `None` for
+the two optional bindings), so a caller can see exactly how far verification
+got.
 
 ### Fail-closed guarantee
 
