@@ -37,6 +37,7 @@ from mcc_core import (
     hash_payload,
 )
 
+from .pre_execution_control import PreExecutionControl
 from .trust import TrustSet
 
 # An upstream executor performs the real side effect for governed execution.
@@ -76,6 +77,7 @@ class GovernanceService:
         policy_hash: Optional[str] = None,
         consensus_verifier: Optional[Any] = None,
         challenge_service: Optional[Any] = None,
+        pre_execution_control: Optional[PreExecutionControl] = None,
     ) -> None:
         self.engine = engine
         self.coordinator = coordinator
@@ -90,6 +92,31 @@ class GovernanceService:
         self.profiles = profiles or ProfileRegistry.default_pilot()
         self.upstream = upstream
         self.policy_hash = policy_hash
+        # PR-2: optional pre-execution attestation Control boundary (None =
+        # disabled -> unchanged pre-PR-2 behavior for every action, since no
+        # AttestationRequirement can ever be resolved without it configured).
+        self.pre_execution_control = pre_execution_control
+
+    async def _attestation_gate(
+        self, *, action: str, forward_context: Dict[str, Any], resource: Optional[str],
+        attestation: Optional[Dict[str, Any]],
+    ):
+        """Shared PR-2 gate: returns ``None`` when issuance may proceed, or an
+        ``ExecOutcome`` (BLOCKED) to return immediately without ever calling
+        ``DecisionEngine.issue_token``. A no-op (returns ``None``) when no
+        Control boundary is configured, or when the action has no configured
+        AttestationRequirement -- both preserve exact pre-PR-2 behavior."""
+        if self.pre_execution_control is None:
+            return None
+        result = await self.pre_execution_control.evaluate(
+            action=action, forward_context=forward_context, resource=resource,
+            raw_attestation=attestation, policy_hash=self.policy_hash,
+        )
+        if result.ok:
+            return None
+        return ExecOutcome(
+            "BLOCKED", f"{result.reason_code.value}: {result.reason}", decision="DENY",
+        )
 
     # ---- helpers ----
 
@@ -143,6 +170,7 @@ class GovernanceService:
         context: Dict[str, Any], transaction_id: Optional[str] = None,
         idempotency_key: Optional[str] = None, headers: Optional[Dict[str, str]] = None,
         extra_auth_claims: Optional[Dict[str, Any]] = None,
+        attestation: Optional[Dict[str, Any]] = None,
     ) -> ExecOutcome:
         now = self._now()
         authority, resolution = self._authority_for(mandate, now)
@@ -165,7 +193,21 @@ class GovernanceService:
         if decision.verdict not in (Verdict.ALLOW, Verdict.CONSTRAIN):
             return ExecOutcome("BLOCKED", decision.reason, decision=decision.verdict.value)
 
+        # The EXACT final payload that would be executable -- after any
+        # mandate CONSTRAIN rewrite. This, not the pre-constraint proposal, is
+        # what an attestation must bind to (PR-2 exact-payload rule).
         forward_context = decision.forward_context or canonical
+
+        # PR-2: no executable authority without required, valid attestation --
+        # evaluated against the exact forward_context, BEFORE any token is
+        # issued. A no-op when unconfigured or the action has no requirement.
+        blocked = await self._attestation_gate(
+            action=action, forward_context=forward_context, resource=resource,
+            attestation=attestation,
+        )
+        if blocked is not None:
+            return blocked
+
         auth_claims = dict(profile.auth_claims(forward_context))
         if extra_auth_claims:
             auth_claims.update(extra_auth_claims)
@@ -221,16 +263,19 @@ class GovernanceService:
     async def execute_with_approval(
         self, *, mandate: Any, actor: str, action: str, resource: Optional[str],
         context: Dict[str, Any], transaction_id: Optional[str] = None,
-        idempotency_key: Optional[str] = None,
+        idempotency_key: Optional[str] = None, attestation: Optional[Dict[str, Any]] = None,
     ) -> ExecOutcome:
         """Re-evaluate against the approval mandate and execute through the one
         coordinator path. The token carries the approval_id, so the coordinator
-        consumes the approval single-use at actuation."""
+        consumes the approval single-use at actuation. Delegates to
+        ``execute_with_mandate``, so the PR-2 attestation gate applies here too
+        -- there is exactly one place that calls ``issue_token`` for either."""
         approval_id = mandate.get("approval_id") if isinstance(mandate, dict) else None
         return await self.execute_with_mandate(
             mandate=mandate, actor=actor, action=action, resource=resource,
             context=context, transaction_id=transaction_id, idempotency_key=idempotency_key,
             extra_auth_claims={"approval_id": approval_id} if approval_id else None,
+            attestation=attestation,
         )
 
     # ---- consensus challenge (gateway-issued one-time nonce) ----
@@ -281,7 +326,7 @@ class GovernanceService:
         self, *, votes, actor: str, action: str, resource: Optional[str],
         context: Dict[str, Any], transaction_id: Optional[str] = None,
         idempotency_key: Optional[str] = None, nonce: Optional[str] = None,
-        challenge_id: Optional[str] = None,
+        challenge_id: Optional[str] = None, attestation: Optional[Dict[str, Any]] = None,
     ) -> ExecOutcome:
         """Require N-of-M independent signed evaluators to agree — bound to the
         exact action/actor/payload/resource/policy/nonce — then issue the token
@@ -317,6 +362,17 @@ class GovernanceService:
             return ExecOutcome("BLOCKED", f"PROFILE_ERROR: {exc}", decision="DENY")
         if not result.ok:
             return ExecOutcome("BLOCKED", result.reason, decision=result.verdict.value)
+
+        # Consensus carries no mandate CONSTRAIN rewrite step, so the exact
+        # final payload is simply the canonicalized one -- still resolved via
+        # the action profile, never the raw caller-supplied context.
+        blocked = await self._attestation_gate(
+            action=action, forward_context=canonical, resource=resource,
+            attestation=attestation,
+        )
+        if blocked is not None:
+            return blocked
+
         auth_claims = dict(profile.auth_claims(canonical))
         auth_claims["consensus"] = result.summary()
         auth_claims.update(auth_claims_extra)

@@ -53,6 +53,15 @@ class MandateExecuteRequest(_Strict):
     context: Dict[str, Any] = Field(default_factory=dict)
     transaction_id: Optional[str] = None
     idempotency_key: Optional[str] = None
+    # PR-2: optional raw EvidenceAttestation (mcc_attestation schema
+    # mcc-attestation/1). Optional at the transport level for backward
+    # compatibility; whether it is REQUIRED is a trusted Control-policy
+    # decision (AttestationRequirement), never a caller choice -- an action
+    # with no configured requirement ignores this field exactly as before,
+    # and an action that DOES require attestation still fails closed (no
+    # token) when this is omitted. Never a pre-computed "verified" flag: the
+    # server always re-verifies the raw document itself.
+    attestation: Optional[Dict[str, Any]] = None
 
 
 class ExecuteResponse(_Strict):
@@ -114,6 +123,8 @@ class ApprovalExecuteRequest(_Strict):
     context: Dict[str, Any] = Field(default_factory=dict)
     transaction_id: Optional[str] = None
     idempotency_key: Optional[str] = None
+    # PR-2: see MandateExecuteRequest.attestation.
+    attestation: Optional[Dict[str, Any]] = None
 
 
 class ConsensusVerifyRequest(_Strict):
@@ -144,6 +155,8 @@ class ConsensusExecuteRequest(_Strict):
     idempotency_key: Optional[str] = None
     nonce: Optional[str] = None
     challenge_id: Optional[str] = None
+    # PR-2: see MandateExecuteRequest.attestation.
+    attestation: Optional[Dict[str, Any]] = None
 
 
 class ChallengeCreateRequest(_Strict):
@@ -203,7 +216,7 @@ def mount_mandate_routes(app: FastAPI, service: GovernanceService, *, api_key: s
         out = await service.execute_with_mandate(
             mandate=req.mandate, actor=req.actor, action=req.action, resource=req.resource,
             context=req.context, transaction_id=req.transaction_id,
-            idempotency_key=req.idempotency_key,
+            idempotency_key=req.idempotency_key, attestation=req.attestation,
         )
         return ExecuteResponse(status=out.status, reason=out.reason, decision=out.decision,
                                audit_ref=out.audit_ref, execution=out.execution)
@@ -283,7 +296,7 @@ def mount_approval_routes(app: FastAPI, service: GovernanceService, *, api_key: 
         out = await service.execute_with_approval(
             mandate=req.mandate, actor=req.actor, action=req.action, resource=req.resource,
             context=req.context, transaction_id=req.transaction_id,
-            idempotency_key=req.idempotency_key,
+            idempotency_key=req.idempotency_key, attestation=req.attestation,
         )
         return ExecuteResponse(status=out.status, reason=out.reason, decision=out.decision,
                                audit_ref=out.audit_ref, execution=out.execution)
@@ -318,7 +331,7 @@ def mount_consensus_routes(app: FastAPI, service: GovernanceService, *, api_key:
             votes=req.votes, actor=req.actor, action=req.action, resource=req.resource,
             context=req.context, transaction_id=req.transaction_id,
             idempotency_key=req.idempotency_key, nonce=req.nonce,
-            challenge_id=req.challenge_id)
+            challenge_id=req.challenge_id, attestation=req.attestation)
         return ExecuteResponse(status=out.status, reason=out.reason, decision=out.decision,
                                audit_ref=out.audit_ref, execution=out.execution)
 
@@ -379,9 +392,18 @@ def build_governance_service(
     # by construction (not via external config).
     trust_set.add_runtime_issuer("mcc/approvals", approver_key.kid, approver_key.public_key())
 
+    # Shared nonce registry: reused for both decision-token replay protection
+    # (the gate) and PR-2 attestation replay protection (PreExecutionControl,
+    # below). Sharing the instance is safe -- and exactly what the task asks
+    # for ("reuse the existing mcc_core.nonce replay primitive") -- because
+    # the two nonce spaces are domain-separated at the *key* level: token
+    # nonces are bare, attestation nonces are always prefixed
+    # ``attestation:<attester_id>:<nonce>`` by PreExecutionControl, so the two
+    # domains can never collide even sharing one Redis-backed registry.
+    shared_nonce_registry = nonce_registry_from_env(env)
     gate = ExecutionGate(
         trusted_keys={signing_key.kid: signing_key.public_key()},
-        audience=token_audience, nonce_registry=nonce_registry_from_env(env),
+        audience=token_audience, nonce_registry=shared_nonce_registry,
         policy_hash=policy_hash,
     )
     revocation = revocation_registry_from_env(env)
@@ -418,6 +440,11 @@ def build_governance_service(
     challenge_service = ChallengeService(challenge_registry_from_env(env))
     require_challenge = _env_flag(env, "MCC_REQUIRE_CHALLENGE")
 
+    # PR-2: optional Pre-Execution Attestation Control. Disabled (None) unless
+    # MCC_ATTESTATION_REQUIREMENTS_CONFIG is set -- every action's behavior is
+    # then identical to before PR-2. Reuses shared_nonce_registry (see above).
+    pre_execution_control = _build_pre_execution_control(env, shared_nonce_registry)
+
     coordinator = EnforcementCoordinator(
         gate=gate, idempotency=idempotency_registry_from_env(env),
         velocity=velocity_registry_from_env(env), audit=audit,
@@ -443,11 +470,58 @@ def build_governance_service(
         revocation_registry=revocation, approvals=approvals,
         profiles=ProfileRegistry.default_pilot(), upstream=upstream, policy_hash=policy_hash,
         consensus_verifier=consensus_verifier, challenge_service=challenge_service,
+        pre_execution_control=pre_execution_control,
     )
 
 
 def _env_flag(env, name: str) -> bool:
     return env.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _build_pre_execution_control(env, nonce_registry):
+    """Build the optional PR-2 Pre-Execution Attestation Control boundary.
+
+    Disabled (returns ``None``) unless ``MCC_ATTESTATION_REQUIREMENTS_CONFIG``
+    is set -- every action's behavior is then exactly what it was before
+    PR-2. When requirements ARE configured, a trust config
+    (``MCC_ATTESTATION_TRUST_CONFIG``) is REQUIRED: refuses fail-open startup
+    (mirrors ``MCC_REQUIRE_CONSENSUS``'s existing convention) rather than
+    silently running with attestation requirements no attester could ever
+    satisfy.
+    """
+    import base64
+    import json
+    from pathlib import Path
+
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    from mcc_attestation import AttesterTrustAnchor, AttesterTrustStore
+
+    from .pre_execution_control import AttestationRequirementRegistry, PreExecutionControl
+
+    requirements_path = env.get("MCC_ATTESTATION_REQUIREMENTS_CONFIG", "").strip()
+    if not requirements_path:
+        return None
+
+    requirements_cfg = json.loads(Path(requirements_path).read_text(encoding="utf-8"))
+    registry = AttestationRequirementRegistry.from_config(requirements_cfg)
+
+    trust_path = env.get("MCC_ATTESTATION_TRUST_CONFIG", "").strip()
+    if not trust_path:
+        raise RuntimeError(
+            "MCC_ATTESTATION_REQUIREMENTS_CONFIG is set but MCC_ATTESTATION_TRUST_CONFIG is not; "
+            "refusing fail-open startup with attestation requirements no attester could ever satisfy"
+        )
+    trust_cfg = json.loads(Path(trust_path).read_text(encoding="utf-8"))
+    anchors = []
+    for item in trust_cfg:
+        public_key = Ed25519PublicKey.from_public_bytes(base64.b64decode(item["public_key_b64"]))
+        anchors.append(AttesterTrustAnchor(
+            attester_id=item["attester_id"], kid=item["kid"], public_key=public_key,
+            allowed_evidence_types=frozenset(item["evidence_types"]),
+        ))
+    trust_store = AttesterTrustStore(anchors)
+
+    return PreExecutionControl(requirements=registry, trust_store=trust_store, nonce_registry=nonce_registry)
 
 
 def _build_consensus_verifier(env):
