@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import os
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, List, Mapping, Optional, Tuple
 
@@ -46,50 +47,103 @@ def _finite_nonneg(value: Any) -> bool:
     return math.isfinite(value) and value >= 0
 
 
-# Atomic velocity reservation. The whole check-increment-(refund) decision runs
-# as ONE Redis Lua script, so concurrent callers cannot observe the same old
-# counter and both bypass a ceiling, no partial multi-field state is visible,
-# and a breach refund happens inside the same atomic step (no refund-window
-# race). TTL is set only on first touch of each key (never extended).
-#   KEYS: 1=count 2=sum 3=dests
-#   ARGV: 1=has_count 2=max_count 3=has_amount 4=amount 5=max_amount
-#         6=has_dest 7=destination 8=max_new_dest 9=window_seconds
+# Atomic sliding-window velocity reservation. The whole prune-check-commit
+# decision runs as ONE Redis Lua script, so concurrent callers cannot observe
+# the same stale aggregate and both bypass a ceiling, and no partial state is
+# ever visible between the prune and the commit.
+#
+# The scope is a single ZSET of individual reservation events (score = the
+# event's ``now``, member = a unique id carrying its amount/destination),
+# not three fixed-window counters. Each call prunes events older than
+# ``now - window_seconds`` before evaluating the ceiling, so the ceiling holds
+# over *any* trailing ``window_seconds`` span -- not just one aligned to a
+# ``now // window_seconds`` clock boundary. A fixed/tumbling window resets at
+# such a boundary regardless of how recently prior reservations were made,
+# which would let two individually-valid reservations placed a few seconds
+# either side of the boundary each see an (incorrectly) empty aggregate and
+# together exceed the ceiling by up to 2x -- this sliding log has no such
+# boundary. Only a successful reservation adds a new member; a breach adds
+# nothing, so no compensating refund is needed on the deny path.
+#   KEYS: 1 = the scope's event ZSET
+#   ARGV: 1=now 2=window_seconds
+#         3=has_count 4=max_count
+#         5=has_amount 6=amount 7=max_amount
+#         8=has_dest_limit 9=destination(hashed) 10=max_new_destinations
+#         11=unique reservation id
 _RESERVE_LUA = """
-local window = tonumber(ARGV[9])
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+
+-- Prune events outside the trailing window (exclusive lower bound: an event
+-- exactly ``window`` seconds old has already aged out).
+redis.call('ZREMRANGEBYSCORE', key, '-inf', '(' .. (now - window))
+
+local members = redis.call('ZRANGE', key, 0, -1)
+local count = #members
+local total_amount = 0.0
+local dests = {}
+local ndest = 0
+for _, m in ipairs(members) do
+  local amt_str, dest_str = string.match(m, '^[^:]*:([^:]*):(.*)$')
+  if amt_str ~= nil and amt_str ~= '' then
+    total_amount = total_amount + tonumber(amt_str)
+  end
+  if dest_str ~= nil and dest_str ~= '' and dests[dest_str] == nil then
+    dests[dest_str] = true
+    ndest = ndest + 1
+  end
+end
+
 local breaches = {}
-local did_count, did_amount, added_dest = false, false, false
-if ARGV[1] == '1' then
-  local c = redis.call('INCR', KEYS[1])
-  if c == 1 then redis.call('EXPIRE', KEYS[1], window) end
-  did_count = true
-  if tonumber(ARGV[2]) >= 0 and c > tonumber(ARGV[2]) then
-    breaches[#breaches+1] = 'count ' .. c .. ' > max ' .. ARGV[2]
+local prospective_count = count + 1
+if ARGV[3] == '1' and tonumber(ARGV[4]) >= 0 and prospective_count > tonumber(ARGV[4]) then
+  breaches[#breaches+1] = 'count ' .. prospective_count .. ' > max ' .. ARGV[4]
+end
+
+local use_amount = ARGV[5] == '1'
+local prospective_amount = total_amount
+if use_amount then
+  prospective_amount = total_amount + tonumber(ARGV[6])
+  if tonumber(ARGV[7]) >= 0 and prospective_amount > tonumber(ARGV[7]) then
+    breaches[#breaches+1] = 'amount ' .. prospective_amount .. ' > max ' .. ARGV[7]
   end
 end
-if ARGV[3] == '1' and #breaches == 0 then
-  local s = redis.call('INCRBYFLOAT', KEYS[2], ARGV[4])
-  if redis.call('TTL', KEYS[2]) < 0 then redis.call('EXPIRE', KEYS[2], window) end
-  did_amount = true
-  if tonumber(ARGV[5]) >= 0 and tonumber(s) > tonumber(ARGV[5]) then
-    breaches[#breaches+1] = 'amount ' .. s .. ' > max ' .. ARGV[5]
-  end
+
+local dest_val = ARGV[9]
+local new_dest = dest_val ~= '' and dests[dest_val] == nil
+local prospective_dests = ndest + (new_dest and 1 or 0)
+if ARGV[8] == '1' and new_dest and tonumber(ARGV[10]) >= 0 and prospective_dests > tonumber(ARGV[10]) then
+  breaches[#breaches+1] = 'new destinations ' .. prospective_dests .. ' > max ' .. ARGV[10]
 end
-if ARGV[6] == '1' and #breaches == 0 then
-  local added = redis.call('SADD', KEYS[3], ARGV[7])
-  if redis.call('TTL', KEYS[3]) < 0 then redis.call('EXPIRE', KEYS[3], window) end
-  added_dest = (added == 1)
-  local card = redis.call('SCARD', KEYS[3])
-  if tonumber(ARGV[8]) >= 0 and card > tonumber(ARGV[8]) then
-    breaches[#breaches+1] = 'new destinations ' .. card .. ' > max ' .. ARGV[8]
-  end
-end
+
 if #breaches > 0 then
-  if did_count then redis.call('DECR', KEYS[1]) end
-  if did_amount then redis.call('INCRBYFLOAT', KEYS[2], '-' .. ARGV[4]) end
-  if added_dest then redis.call('SREM', KEYS[3], ARGV[7]) end
   return {0, table.concat(breaches, '; ')}
 end
+
+local amount_repr = use_amount and ARGV[6] or ''
+local member = ARGV[11] .. ':' .. amount_repr .. ':' .. dest_val
+redis.call('ZADD', key, now, member)
+redis.call('EXPIRE', key, window)
 return {1, 'ok'}
+"""
+
+# Removes exactly one event at this ``now`` -- the one the matching ``reserve``
+# call (same scope, same ``now``) just added. Atomically finds-then-removes so
+# a concurrent reservation landing between a naive find and a naive remove
+# cannot be mistakenly evicted. Idempotent / tolerant: no match is not an
+# error (over-release is a no-op, mirroring the in-memory backend).
+#   KEYS: 1 = the scope's event ZSET
+#   ARGV: 1 = now
+_RELEASE_LUA = """
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local matches = redis.call('ZRANGEBYSCORE', key, now, now)
+if #matches > 0 then
+  redis.call('ZREM', key, matches[1])
+  return 1
+end
+return 0
 """
 
 
@@ -108,7 +162,16 @@ class VelocityLimit:
     def scope_key(self, descriptor: VelocityDescriptor, now: float) -> str:
         from . import redis_keys
 
-        bucket = int(now // self.window_seconds)
+        # Time-independent: the sliding window (below) prunes by age, not by a
+        # fixed calendar-aligned bucket, so the scope itself does not vary with
+        # ``now``. (Prior to the sliding-window rewrite this key embedded a
+        # ``now // window_seconds`` bucket; a fixed, calendar-aligned bucket
+        # boundary let two individually-valid reservations either side of a
+        # bucket edge each see an empty/reset aggregate, permitting up to 2x
+        # the configured ceiling through a window in the worst case. The scope
+        # is now stable and the window slides against the actual age of each
+        # reservation instead.)
+        #
         # Hash each (attacker-controlled) dimension value so raw actor / resource
         # / beneficiary identifiers are never embedded in a Redis key, and ``:``
         # injection cannot forge a collision. Distinct values still map to
@@ -117,7 +180,7 @@ class VelocityLimit:
             f"{d}={redis_keys.hash_component(descriptor.dimensions.get(d))}"
             for d in self.aggregate_by
         )
-        return f"{self.name}|{dims}|w{bucket}"
+        return f"{self.name}|{dims}"
 
     @classmethod
     def from_config(cls, item: dict) -> "VelocityLimit":
@@ -148,18 +211,41 @@ class VelocityOutcome:
 class InMemoryVelocityRegistry:
     """Single-process velocity (dev / tests). Atomic: each ``reserve`` runs its
     whole check-and-commit without awaiting, so concurrent reservations are
-    serialized and cannot independently pass the same remaining limit."""
+    serialized and cannot independently pass the same remaining limit.
+
+    Sliding window (exact, log-based): each successful reservation is recorded
+    as a timestamped event; every call prunes events older than
+    ``now - window_seconds`` before checking the ceiling. This is deliberately
+    NOT a fixed/tumbling window keyed by ``now // window_seconds`` — a fixed
+    window resets its aggregate at a calendar-aligned boundary regardless of
+    how recently prior reservations were made, which would let two
+    individually-valid reservations placed a few seconds either side of a
+    boundary each see an (incorrectly) empty aggregate and together exceed the
+    ceiling by up to 2x. The sliding log has no such boundary: the ceiling
+    holds over *any* trailing ``window_seconds`` span, not just one aligned to
+    the clock.
+    """
 
     def __init__(self) -> None:
-        # scope_key -> {"count", "sum", "dests": set, "exp"}
+        # scope_key -> list of {"ts": float, "amount": Optional[float], "destination": Optional[str]},
+        # ordered oldest-first, holding only reservations still inside *some*
+        # window as of the last prune (a scope's own configured window_seconds
+        # -- distinct scopes never share a list, so no cross-limit skew).
         self._state: dict = {}
 
-    def _bucket(self, scope: str, window: int, now: float) -> dict:
-        entry = self._state.get(scope)
-        if entry is None or entry["exp"] <= now:
-            entry = {"count": 0, "sum": 0.0, "dests": set(), "exp": now + window}
-            self._state[scope] = entry
-        return entry
+    @staticmethod
+    def _prune(events: List[dict], window: int, now: float) -> List[dict]:
+        # Window is [now - window, now] -- inclusive at the trailing edge, so
+        # an event exactly ``window_seconds`` old still counts (the more
+        # conservative reading for a governance ceiling: expire strictly-older
+        # events only). This must match RedisVelocityRegistry's
+        # ZREMRANGEBYSCORE('-inf', '(' .. cutoff) exactly, which removes only
+        # scores strictly less than cutoff -- a score equal to cutoff survives
+        # there too. The two backends must observe identical governance
+        # behavior for identical inputs; this boundary is exercised directly
+        # by tests/test_velocity.py::test_event_exactly_at_window_edge_still_counts.
+        cutoff = now - window
+        return [e for e in events if e["ts"] >= cutoff]
 
     async def reserve(
         self, limit: VelocityLimit, descriptor: VelocityDescriptor, *, now: Optional[float] = None
@@ -173,30 +259,31 @@ class InMemoryVelocityRegistry:
                 reserved=False,
             )
         scope = limit.scope_key(descriptor, now)
-        entry = self._bucket(scope, limit.window_seconds, now)
+        events = self._prune(self._state.get(scope, []), limit.window_seconds, now)
+        # Commit the prune regardless of this reservation's outcome -- pruning
+        # is monotonic cleanup, not part of the reservation being decided.
+        self._state[scope] = events
 
         breaches: List[str] = []
-        new_dest = (
-            descriptor.destination is not None
-            and descriptor.destination not in entry["dests"]
-        )
-        if limit.max_count is not None and entry["count"] + 1 > limit.max_count:
-            breaches.append(f"count {entry['count'] + 1} > max {limit.max_count}")
-        if (
-            limit.max_amount is not None
-            and descriptor.amount is not None
-            and entry["sum"] + descriptor.amount > limit.max_amount
-        ):
-            breaches.append(
-                f"amount {entry['sum'] + descriptor.amount} > max {limit.max_amount}"
-            )
+        prospective_count = len(events) + 1
+        if limit.max_count is not None and prospective_count > limit.max_count:
+            breaches.append(f"count {prospective_count} > max {limit.max_count}")
+
+        prior_sum = sum(e["amount"] for e in events if e["amount"] is not None)
+        prospective_sum = prior_sum + descriptor.amount if use_amount else prior_sum
+        if use_amount and prospective_sum > limit.max_amount:
+            breaches.append(f"amount {prospective_sum} > max {limit.max_amount}")
+
+        dests = {e["destination"] for e in events if e["destination"] is not None}
+        new_dest = descriptor.destination is not None and descriptor.destination not in dests
+        prospective_dests = len(dests) + (1 if new_dest else 0)
         if (
             limit.max_new_destinations is not None
             and new_dest
-            and len(entry["dests"]) + 1 > limit.max_new_destinations
+            and prospective_dests > limit.max_new_destinations
         ):
             breaches.append(
-                f"new destinations {len(entry['dests']) + 1} > max {limit.max_new_destinations}"
+                f"new destinations {prospective_dests} > max {limit.max_new_destinations}"
             )
 
         if breaches:
@@ -207,36 +294,52 @@ class InMemoryVelocityRegistry:
                 breaches=breaches,
             )
 
-        # Commit the reservation.
-        entry["count"] += 1
-        if descriptor.amount is not None:
-            entry["sum"] += descriptor.amount
-        if new_dest:
-            entry["dests"].add(descriptor.destination)
+        # Commit the reservation as a new event in the sliding log.
+        events.append({
+            "ts": now,
+            "amount": descriptor.amount if use_amount else None,
+            "destination": descriptor.destination,
+        })
         return VelocityOutcome(Verdict.ALLOW, f"within velocity limit '{limit.name}'", True)
 
     async def release(
         self, limit: VelocityLimit, descriptor: VelocityDescriptor, *, now: Optional[float] = None
     ) -> bool:
+        """Undo the single reservation event committed by the matching
+        ``reserve`` call for this exact ``(limit, descriptor, now)`` -- used
+        to roll back an earlier-reserved dimension when a later dimension in
+        the same operation breaches (coordinator step (d)). Removes the most
+        recently added event with ``ts == now`` (searching from the end):
+        within one ``EnforcementCoordinator.enforce()`` call, ``release`` is
+        invoked, without any intervening ``await``, immediately after the
+        ``reserve`` calls it is undoing and with the identical ``now`` --
+        tolerant no-op if nothing matches (over-release is not an error)."""
         now = time.monotonic() if now is None else now
-        entry = self._state.get(limit.scope_key(descriptor, now))
-        if entry is None:
+        events = self._state.get(limit.scope_key(descriptor, now))
+        if not events:
             return True
-        entry["count"] = max(0, entry["count"] - 1)
-        if descriptor.amount is not None:
-            entry["sum"] = max(0.0, entry["sum"] - descriptor.amount)
+        for i in range(len(events) - 1, -1, -1):
+            if events[i]["ts"] == now:
+                events.pop(i)
+                break
         return True
 
 
 class RedisVelocityRegistry:
     """Durable, multi-instance velocity backed by Redis.
 
-    Each dimension is reserved with an atomic Redis primitive — ``INCR`` for the
-    count, ``INCRBYFLOAT`` for the cumulative amount, ``SADD``/``SCARD`` for
-    distinct destinations — and any reservation that crosses a ceiling is
-    refunded before denying. Because every increment is atomic and serialized by
-    Redis, the total reserved never exceeds the ceiling: splitting across
-    separately-signed transactions cannot bypass the aggregate.
+    Sliding window (exact, log-based), mirroring ``InMemoryVelocityRegistry``:
+    each scope is a single ZSET of individual reservation events (score = the
+    event's timestamp), pruned to the trailing ``window_seconds`` span and
+    re-evaluated on every call, all inside one atomic Lua script (``EVAL``).
+    Because the whole prune-check-commit sequence is one atomic script
+    execution serialized by Redis, the total reserved within any trailing
+    window never exceeds the ceiling: splitting across separately-signed
+    transactions, or across separate MCC-Core instances sharing this Redis,
+    cannot bypass the aggregate. Unlike a fixed/tumbling window keyed by
+    ``now // window_seconds``, there is no calendar-aligned boundary at which
+    the aggregate resets regardless of how recently prior reservations were
+    made.
 
     Fail-closed: any Redis error/timeout denies.
     """
@@ -274,8 +377,8 @@ class RedisVelocityRegistry:
         now = time.time() if now is None else now
 
         # Validate the amount BEFORE any Redis op: a malformed, NaN, infinite,
-        # negative, or non-numeric amount must never reach an INCRBYFLOAT (which
-        # could otherwise decrement the aggregate and bypass the ceiling).
+        # negative, or non-numeric amount must never reach the aggregate (which
+        # could otherwise poison the sum and bypass the ceiling).
         use_amount = limit.max_amount is not None and descriptor.amount is not None
         if use_amount and not _finite_nonneg(descriptor.amount):
             return VelocityOutcome(
@@ -286,11 +389,18 @@ class RedisVelocityRegistry:
 
         from . import redis_keys
 
-        scope = self._namespace + limit.scope_key(descriptor, now)
-        count_key, sum_key, dest_key = scope + ":count", scope + ":sum", scope + ":dests"
-        # Hash the destination set member too (no raw beneficiary in Redis).
+        key = self._namespace + limit.scope_key(descriptor, now) + ":events"
+        # Hash the destination member too (no raw beneficiary in Redis).
         dest = redis_keys.hash_component(descriptor.destination) if descriptor.destination is not None else ""
+        # A genuinely unique id per reservation ATTEMPT (not derived from the
+        # value/time), so two reservations that happen to share the exact same
+        # (now, amount, destination) -- e.g. two identical split payments in
+        # the same instant -- occupy distinct ZSET members instead of colliding
+        # into one (which would silently under-count the aggregate).
+        reservation_id = uuid.uuid4().hex
         argv = [
+            repr(float(now)),
+            str(int(limit.window_seconds)),
             "1" if limit.max_count is not None else "0",
             str(limit.max_count if limit.max_count is not None else -1),
             "1" if use_amount else "0",
@@ -299,10 +409,10 @@ class RedisVelocityRegistry:
             "1" if (limit.max_new_destinations is not None and descriptor.destination is not None) else "0",
             dest,
             str(limit.max_new_destinations if limit.max_new_destinations is not None else -1),
-            str(int(limit.window_seconds)),
+            reservation_id,
         ]
         try:
-            res = await self._c(self._redis.eval(_RESERVE_LUA, 3, count_key, sum_key, dest_key, *argv))
+            res = await self._c(self._redis.eval(_RESERVE_LUA, 1, key, *argv))
         except Exception:
             return VelocityOutcome(
                 Verdict.DENY,
@@ -335,13 +445,13 @@ class RedisVelocityRegistry:
     async def release(
         self, limit: VelocityLimit, descriptor: VelocityDescriptor, *, now: Optional[float] = None
     ) -> bool:
+        """Undo one reservation event at this exact ``now`` -- used to roll
+        back an earlier-reserved dimension when a later dimension in the same
+        operation breaches. Tolerant: no matching event is not an error."""
         now = time.time() if now is None else now
-        scope = self._namespace + limit.scope_key(descriptor, now)
+        key = self._namespace + limit.scope_key(descriptor, now) + ":events"
         try:
-            if limit.max_count is not None:
-                await self._c(self._redis.decr(scope + ":count"))
-            if limit.max_amount is not None and descriptor.amount is not None:
-                await self._c(self._redis.incrbyfloat(scope + ":sum", -descriptor.amount))
+            await self._c(self._redis.eval(_RELEASE_LUA, 1, key, repr(float(now))))
             return True
         except Exception:
             return False

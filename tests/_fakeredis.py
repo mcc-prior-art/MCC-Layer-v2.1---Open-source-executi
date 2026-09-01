@@ -19,6 +19,9 @@ class FakeRedis:
         self.kv: Dict[str, Any] = store if store is not None else {}
         self.sets: Dict[str, set] = {}
         self.ttls: Dict[str, int] = {}
+        # key -> {member: score}, standing in for a Redis ZSET (velocity's
+        # sliding-window reservation log).
+        self.zsets: Dict[str, Dict[str, float]] = {}
         self.clock = clock or (lambda: 0.0)
 
     # --- expiry helpers ---
@@ -113,44 +116,69 @@ class FakeRedis:
     async def sismember(self, key, member):
         return member in self.sets.get(key, set())
 
-    # --- scripting (velocity reserve) ---
+    # --- scripting (velocity sliding-window reserve / release) ---
     async def eval(self, script, numkeys, *args):
+        """Faithful Python equivalent of ``velocity._RESERVE_LUA`` /
+        ``velocity._RELEASE_LUA`` (atomic by virtue of running without
+        awaiting), backed by ``self.zsets`` standing in for a Redis ZSET."""
+        from mcc_core.velocity import _RELEASE_LUA
+
         keys = list(args[:numkeys])
         a = list(args[numkeys:])
-        count_key, sum_key, dest_key = keys
-        window = int(a[8])
+        (key,) = keys
+        z = self.zsets.setdefault(key, {})
+
+        if script == _RELEASE_LUA:
+            now = float(a[0])
+            for member, score in z.items():
+                if score == now:
+                    del z[member]
+                    return 1
+            return 0
+
+        now = float(a[0])
+        window = int(a[1])
+        cutoff = now - window
+        # Matches ZREMRANGEBYSCORE(key, '-inf', '(' .. cutoff): removes only
+        # scores STRICTLY less than cutoff; a score exactly == cutoff survives
+        # (an event exactly window_seconds old still counts).
+        for member in [m for m, s in z.items() if s < cutoff]:
+            del z[member]
+
+        count = len(z)
+        total_amount = 0.0
+        dests: Dict[str, bool] = {}
+        for member in z:
+            _id, amt_str, dest_str = member.split(":", 2)
+            if amt_str:
+                total_amount += float(amt_str)
+            if dest_str:
+                dests[dest_str] = True
+
         breaches = []
-        did_count = did_amount = added_dest = False
-        if a[0] == "1":
-            c = await self.incr(count_key)
-            if c == 1:
-                await self.expire(count_key, window)
-            did_count = True
-            if float(a[1]) >= 0 and c > float(a[1]):
-                breaches.append(f"count {c} > max {a[1]}")
-        if a[2] == "1" and not breaches:
-            s = await self.incrbyfloat(sum_key, float(a[3]))
-            if self.ttls.get(sum_key, -1) < 0:
-                await self.expire(sum_key, window)
-            did_amount = True
-            if float(a[4]) >= 0 and float(s) > float(a[4]):
-                breaches.append(f"amount {s} > max {a[4]}")
-        if a[5] == "1" and not breaches:
-            added = await self.sadd(dest_key, a[6])
-            if self.ttls.get(dest_key, -1) < 0:
-                await self.expire(dest_key, window)
-            added_dest = added == 1
-            card = await self.scard(dest_key)
-            if float(a[7]) >= 0 and card > float(a[7]):
-                breaches.append(f"new destinations {card} > max {a[7]}")
+        prospective_count = count + 1
+        if a[2] == "1" and float(a[3]) >= 0 and prospective_count > float(a[3]):
+            breaches.append(f"count {prospective_count} > max {a[3]}")
+
+        use_amount = a[4] == "1"
+        prospective_amount = total_amount
+        if use_amount:
+            prospective_amount = total_amount + float(a[5])
+            if float(a[6]) >= 0 and prospective_amount > float(a[6]):
+                breaches.append(f"amount {prospective_amount} > max {a[6]}")
+
+        dest_val = a[8]
+        new_dest = bool(dest_val) and dest_val not in dests
+        prospective_dests = len(dests) + (1 if new_dest else 0)
+        if a[7] == "1" and new_dest and float(a[9]) >= 0 and prospective_dests > float(a[9]):
+            breaches.append(f"new destinations {prospective_dests} > max {a[9]}")
+
         if breaches:
-            if did_count:
-                await self.decr(count_key)
-            if did_amount:
-                await self.incrbyfloat(sum_key, -float(a[3]))
-            if added_dest:
-                await self.srem(dest_key, a[6])
             return [0, "; ".join(breaches)]
+
+        amount_repr = a[5] if use_amount else ""
+        member = f"{a[10]}:{amount_repr}:{dest_val}"
+        z[member] = now
         return [1, "ok"]
 
 
