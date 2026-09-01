@@ -21,6 +21,15 @@ and `specs/MCC-AT-003.md` / `docs/ATTESTATION_CONTROL_INTEGRATION.md` §7.
 `gateway/pre_execution_control.py`'s result type and `src/mcc_core/core.py`
 / `src/mcc_core/gate.py`, not this package.
 
+**PR-4 update:** The Attester network service §9 elsewhere lists as
+explicitly out of scope for PR-1 has since landed as a reference
+implementation, isolating the Attester's private key into its own process:
+see §15 and `specs/MCC-AT-004.md`. `src/mcc_attestation/` remains unchanged
+by PR-4 too — PR-4 adds a new, separate package
+(`src/mcc_attester_service/`) that CALLS this package's existing
+`LocalAttester`/`verify_attestation` unmodified, from its own isolated
+process, rather than replacing anything in it.
+
 ## 1. Target architecture
 
 ```
@@ -349,16 +358,19 @@ package still does not create or depend on a nonce registry of its own.
 - Does not change `ALLOW` / `DENY` / `ESCALATE` / `CONSTRAIN` behavior.
 - Does not consume replay state.
 
-All of the above were, as of PR-1, deferred to PR-2 / PR-3. As of PR-2 (§12),
-the bullets on nonce/replay consumption and on gating decision-token
-issuance have been addressed — by a new Control-side component, not by any
-change to this package. As of PR-3 (§13), the "does not bind attestations
-into decision tokens" and "does not add execution-ticket semantics" bullets
-are also addressed — by extending `DecisionEngine.issue_token()` and
-`ExecutionGate`, still not by any change to this package. The remaining
-bullets (an Attester network service, an ML/risk-class policy, and any
-further change to `mcc_core.authority`) remain true after PR-3 and stay
-deferred to future work.
+All of the above were, as of PR-1, deferred to PR-2 / PR-3 / PR-4. As of
+PR-2 (§12), the bullets on nonce/replay consumption and on gating
+decision-token issuance have been addressed — by a new Control-side
+component, not by any change to this package. As of PR-3 (§13), the "does
+not bind attestations into decision tokens" and "does not add
+execution-ticket semantics" bullets are also addressed — by extending
+`DecisionEngine.issue_token()` and `ExecutionGate`, still not by any change
+to this package. As of PR-4 (§15), the "Attester network service" bullet is
+also addressed — by a new, separate package
+(`src/mcc_attester_service/`), still not by any change to this package. The
+remaining bullets (an ML/risk-class policy and any further change to
+`mcc_core.authority`) remain true after PR-4 and stay deferred to future
+work.
 
 ## 10. Accurate claim language
 
@@ -490,3 +502,67 @@ consumption proof), and backward compatibility — is in
 Conformance evidence: `tests/test_evidence_bound_execution_ticket.py`,
 `tests/test_governance_service_attestation.py`,
 `tests/test_evidence_bound_execution_ticket_architecture_guards.py`.
+
+## 15. PR-4: Independent Attester Service Boundary (summary; see `specs/MCC-AT-004.md`)
+
+PR-1 through PR-3 built a complete, verifiable, cryptographically bound
+evidence chain, but left one question open: WHO runs `LocalAttester`, and
+where does its private key live? Before PR-4, nothing prevented the very
+model/agent proposing an action from also holding the Attester's private
+key and signing its own "independent" assessment — which would make
+MCC-AT-001's attribution guarantee (§2 above) structurally empty, whatever
+it says about signatures not making assessments true.
+
+PR-4 closes this with a new, separate package,
+`src/mcc_attester_service/`, that makes the Attester a genuinely
+independent process:
+
+```
+INTELLIGENCE / AGENT
+        |  proposal / assessment input (action, resource, payload only --
+        |  no trusted-output field is caller-suppliable, see below)
+        v
+INDEPENDENT ATTESTER SERVICE          <-- NEW, PR-4, its own OS process
+        |   AssessmentProvider supplies evidence_type/claims/provenance ONLY
+        |   the SERVICE derives action_hash/payload_hash/scope itself
+        |     (mcc_core.signing -- the SAME primitives Control/Core use)
+        |   the SERVICE generates attestation_id/nonce/validity itself
+        |   signs via mcc_attestation.attester.LocalAttester -- UNCHANGED,
+        |     no second signing implementation
+        v
+raw signed EvidenceAttestation (crosses the process boundary as JSON)
+        |
+        v
+PreExecutionControl.evaluate()   (§12, PR-2 -- UNCHANGED decision logic)
+        v
+DecisionEngine.issue_token() -> ExecutionGate   (§13, PR-3 -- UNCHANGED)
+```
+
+The private signing key exists ONLY inside the Attester service process.
+`gateway/*`, `src/mcc_core/*`, `ExecutionGate`, and
+`EnforcementCoordinator` never import `mcc_attester_service` and never load
+that key — the gateway continues to need only the Attester's PUBLIC key,
+through the exact same `MCC_ATTESTATION_TRUST_CONFIG` trust-store mechanism
+PR-2 already built (unchanged by PR-4). The request schema a caller can
+send to the Attester service carries only `action`/`resource`/`payload` —
+every trusted-output field (`sig`, `kid`, `claims`, `nonce`, timestamps,
+the hashes, `evidence_digest`, any "verified" flag) is structurally
+rejected if a caller attempts to supply it.
+
+`PreExecutionControl` cannot tell, and is never made to care, whether the
+raw attestation it receives came from an in-process `LocalAttester` call or
+from the Independent Attester Service over HTTP — it verifies either
+identically (MCC-AT-002, unchanged), and the service's own HTTP success is
+never treated as "already verified."
+
+Full normative detail — the threat model, the service/request/response
+contract, private-key isolation, the AssessmentProvider boundary, the
+caller-authentication mechanism and exactly what it does and does not
+prove, binding/nonce/validity ownership, and fail-closed behavior — is in
+`specs/MCC-AT-004.md`. Reference implementation:
+`src/mcc_attester_service/`. Conformance evidence:
+`tests/test_attester_service.py`, `tests/test_attester_service_e2e.py`,
+`tests/test_attester_service_architecture_guards.py`, and
+`tests/test_attester_service_process_isolation.py` (the required
+cross-process proof — a genuine separate OS process, not two Python
+objects sharing an interpreter).

@@ -15,6 +15,16 @@ the decision token itself, and adds the corresponding enforcement check to
 `PreExecutionControl`'s own decision logic changes — see §7 below for what
 PR-3 specifically closes.
 
+PR-4 (`specs/MCC-AT-004.md`) addresses a different, earlier-in-time gap:
+WHO produces the raw `attestation` document this document's §6 (HTTP /
+service wiring) describes a caller supplying. A new, separate package,
+`src/mcc_attester_service/`, makes the Attester a genuinely independent
+process holding its own private signing key — nothing here changes as a
+result: `PreExecutionControl.evaluate()` still calls
+`mcc_attestation.verify_attestation()` itself, on whatever raw document it
+receives, exactly as described below, whether that document originated
+in-process or from the Independent Attester Service over HTTP.
+
 ## 1. What PR-2 adds
 
 PR-1 built an independent, standalone Attester boundary: a versioned,
@@ -249,5 +259,8 @@ documented in `specs/MCC-AT-003.md` §11 (Known Limitations).
   path; no bypass-shaped schema field.
 
 See `specs/MCC-AT-002.md` for the full normative specification of what is
-described in this document, and `specs/MCC-AT-003.md` for the
-Evidence-Bound Execution Ticket that extends it (§7 above).
+described in this document, `specs/MCC-AT-003.md` for the Evidence-Bound
+Execution Ticket that extends it (§7 above), and `specs/MCC-AT-004.md` for
+the Independent Attester Service Boundary that produces the raw
+`attestation` document this integration verifies (see the note near the
+top of this file).
