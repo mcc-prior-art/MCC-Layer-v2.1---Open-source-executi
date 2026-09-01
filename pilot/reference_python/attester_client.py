@@ -17,7 +17,7 @@ re-checked there), never this client's.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -43,8 +43,8 @@ class AttesterClient:
     timeout_seconds: float = 10.0
 
     def attest(
-        self, *, action: str, resource: Optional[str], payload: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        self, *, action: str, resource: str | None, payload: dict[str, Any],
+    ) -> dict[str, Any]:
         """Request a genuine, signed EvidenceAttestation for exactly this
         ``(action, resource, payload)`` description. Returns the Attester's
         raw JSON response (an ``mcc-attestation/1`` document; see
@@ -70,17 +70,17 @@ class AttesterClient:
             )
         try:
             return resp.json()
-        except Exception as exc:  # noqa: BLE001 -- surfaced as a typed client error
+        except Exception as exc:
             raise AttesterClientError(f"non-JSON response from attester (HTTP {resp.status_code})") from exc
 
-    def health(self) -> Dict[str, Any]:
+    def health(self) -> dict[str, Any]:
         try:
             resp = httpx.get(f"{self.base_url.rstrip('/')}/health", timeout=self.timeout_seconds)
         except httpx.HTTPError as exc:
             raise AttesterClientError(f"attester GET /health failed: {exc}") from exc
         try:
             return resp.json()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise AttesterClientError(f"non-JSON /health response (HTTP {resp.status_code})") from exc
 
 

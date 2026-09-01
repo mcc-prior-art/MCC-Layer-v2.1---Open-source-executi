@@ -18,10 +18,10 @@ from pilot.reference_python.attestation_evidence import (
     validate_attestation_evidence,
 )
 
-VALID_KWARGS = dict(
-    gateway_url="http://127.0.0.1:8001", attester_url="http://127.0.0.1:8100",
-    attester_auth_secret="s3cr3t", gateway_api_key="demo-key",
-)
+VALID_KWARGS = {
+    "gateway_url": "http://127.0.0.1:8001", "attester_url": "http://127.0.0.1:8100",
+    "attester_auth_secret": "s3cr3t", "gateway_api_key": "demo-key",
+}
 
 
 def test_config_rejects_non_http_gateway_url():

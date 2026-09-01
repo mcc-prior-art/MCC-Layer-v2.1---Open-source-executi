@@ -24,7 +24,7 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .attestation_config import AttestationChainConfig
 
@@ -44,7 +44,7 @@ _NEVER_RECORD_KEYS = frozenset({
 })
 
 
-def _git_commit_sha(*, override: Optional[str] = None) -> str:
+def _git_commit_sha(*, override: str | None = None) -> str:
     if override:
         return override
     try:
@@ -57,7 +57,7 @@ def _git_commit_sha(*, override: Optional[str] = None) -> str:
         return "unknown"
 
 
-def build_attestation_summary(attestation: Dict[str, Any]) -> Dict[str, Any]:
+def build_attestation_summary(attestation: dict[str, Any]) -> dict[str, Any]:
     """Extract ONLY the non-secret identifying fields of a raw
     EvidenceAttestation for evidence purposes -- never the full document
     (which carries ``claims``/``provenance``, and the Ed25519 ``sig``).
@@ -97,17 +97,17 @@ class AttestationChainEvidence:
     config: AttestationChainConfig
     mode: str  # "observe" | "enforced"
     action: str
-    resource: Optional[str]
-    attestation_summary: Dict[str, Any]
-    gateway_decision: Optional[str] = None
-    gateway_status: Optional[str] = None
-    gateway_reason: Optional[str] = None
-    audit_ref: Optional[str] = None
+    resource: str | None
+    attestation_summary: dict[str, Any]
+    gateway_decision: str | None = None
+    gateway_status: str | None = None
+    gateway_reason: str | None = None
+    audit_ref: str | None = None
     execution_receipt_present: bool = False
     actuated: bool = False
     attester_service_calls: int = 1
     gateway_calls: int = 0
-    commit_sha_override: Optional[str] = None
+    commit_sha_override: str | None = None
     run_correlation_id: str = field(
         default_factory=lambda: f"pilot-attestation-run-{datetime.now(timezone.utc).timestamp():.0f}"
     )
@@ -127,7 +127,7 @@ class AttestationChainEvidence:
         canonical = json.dumps(d, sort_keys=True, separators=(",", ":"))
         return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
-    def finalize(self) -> Dict[str, Any]:
+    def finalize(self) -> dict[str, Any]:
         """Build the evidence dict (does not write to disk). Defensively
         strips any never-record key that might have leaked into
         ``attestation_summary`` (belt-and-braces on top of
@@ -147,20 +147,20 @@ class AttestationChainEvidence:
             reason = "enforced mode completed with no recorded gateway execution outcome"
 
         known_limitations = [
-            "decision_token_fingerprint is not included: the current "
+            ("decision_token_fingerprint is not included: the current "
             "POST /mandates/execute response contract (gateway/governance_api.py"
             "::ExecuteResponse) does not echo any reference to the signed Decision "
             "Token back to the caller, by design (the token is an internal "
             "artifact the Execution Gate consumes; it is not re-exposed after "
             "actuation). This PR does not add one, to avoid modifying a core "
-            "gateway response contract for pilot convenience.",
-            "policy_hash is not included: it is not independently obtainable "
+            "gateway response contract for pilot convenience."),
+            ("policy_hash is not included: it is not independently obtainable "
             "from the POST /mandates/execute response in the current API "
-            "contract (only POST /evaluate's legacy response exposes policy_ref).",
-            "evidence_digest_client_computed is computed by this pilot from the "
+            "contract (only POST /evaluate's legacy response exposes policy_ref)."),
+            ("evidence_digest_client_computed is computed by this pilot from the "
             "exact attestation document it obtained, using the same shared "
             "mcc_core.signing.hash_document primitive PreExecutionControl uses "
-            "server-side -- it is not read back from the server's own computation.",
+            "server-side -- it is not read back from the server's own computation."),
         ]
 
         return {
@@ -189,7 +189,7 @@ class AttestationChainEvidence:
             "known_limitations": known_limitations,
         }
 
-    def finalize_and_export(self, evidence_dir: str, *, filename: Optional[str] = None) -> Path:
+    def finalize_and_export(self, evidence_dir: str, *, filename: str | None = None) -> Path:
         evidence = self.finalize()
         out_dir = Path(evidence_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -203,7 +203,7 @@ class AttestationChainEvidence:
         return out_path
 
 
-def validate_attestation_evidence(evidence: Dict[str, Any]) -> None:
+def validate_attestation_evidence(evidence: dict[str, Any]) -> None:
     """Validate an evidence dict against
     ``pilot/schema/pilot_attestation_evidence.schema.json``. Raises
     ``jsonschema.ValidationError``/``SchemaError`` on failure."""

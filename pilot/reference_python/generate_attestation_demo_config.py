@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate LOCAL, self-contained demo keys and configs for the
 attestation-aware full-chain reference pilot (PR-6).
 
@@ -45,11 +44,11 @@ ROOT = HERE.parents[1]
 SECRETS = HERE / ".secrets-attestation-demo"
 sys.path.insert(0, str(ROOT / "src"))
 
-from cryptography.hazmat.primitives import serialization  # noqa: E402
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey  # noqa: E402
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from mcc_core import SigningKey  # noqa: E402
-from mcc_core.mandate import issue_mandate  # noqa: E402
+from mcc_core import SigningKey
+from mcc_core.mandate import issue_mandate
 
 DEMO_ACTION = "send_notification"
 DEMO_RESOURCE = "notifications"
@@ -133,7 +132,7 @@ def main() -> int:
     print(f"  MCC_ATTESTER_KEY_ID={attester_key.kid}")
     print(f"  MCC_ATTESTER_SERVICE_AUTH_SECRET={DEMO_ATTESTER_AUTH_SECRET}")
     print(f"  MCC_ATTESTER_SCOPE_TEMPLATE={DEMO_SCOPE_TEMPLATE}")
-    print(f"  MCC_ATTESTER_VALIDITY_SECONDS=900")
+    print("  MCC_ATTESTER_VALIDITY_SECONDS=900")
     print(f"  MCC_ATTESTER_TEST_ASSESSMENT_TABLE={SECRETS / 'demo_assessment_table.json'}")
     print()
     print("Gateway env (in addition to its own normal startup config):")

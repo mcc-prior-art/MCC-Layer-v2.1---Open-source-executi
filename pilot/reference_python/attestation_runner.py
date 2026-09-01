@@ -47,7 +47,7 @@ from .attestation_integration import AttestationChainPilot
 from .attester_client import AttesterClientError
 
 
-def _parse_args(argv: "list[str] | None") -> argparse.Namespace:
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Attestation-aware full-chain reference pilot demo runner (PR-6). "
         "Connects to already-running Attester and Gateway processes; does not itself "
@@ -86,7 +86,7 @@ def _build_config(args: argparse.Namespace) -> AttestationChainConfig:
 
     from dataclasses import replace
 
-    overrides: "dict[str, Any]" = {}
+    overrides: dict[str, Any] = {}
     if args.gateway_url is not None:
         overrides["gateway_url"] = args.gateway_url
     if args.attester_url is not None:
@@ -106,7 +106,7 @@ def _build_config(args: argparse.Namespace) -> AttestationChainConfig:
     return replace(base, **overrides) if overrides else base
 
 
-def run(argv: "list[str] | None" = None) -> int:
+def run(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     try:
         config = _build_config(args)

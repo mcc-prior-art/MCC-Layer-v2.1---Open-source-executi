@@ -43,7 +43,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
+
+from typing_extensions import Self
 
 from pilot.client import ExecutionOutcome, MCCGatewayClient
 
@@ -59,10 +61,10 @@ class AttestationChainOutcome:
     ever made) or when the Gateway blocked the action."""
 
     mode: str
-    attestation: Dict[str, Any]
-    execution: Optional[ExecutionOutcome]
-    evidence: Dict[str, Any]
-    evidence_path: Optional[Path] = None
+    attestation: dict[str, Any]
+    execution: ExecutionOutcome | None
+    evidence: dict[str, Any]
+    evidence_path: Path | None = None
 
     @property
     def actuated(self) -> bool:
@@ -79,8 +81,8 @@ class AttestationChainPilot:
         self,
         config: AttestationChainConfig,
         *,
-        gateway_client: Optional[MCCGatewayClient] = None,
-        attester_client: Optional[AttesterClient] = None,
+        gateway_client: MCCGatewayClient | None = None,
+        attester_client: AttesterClient | None = None,
         evidence_dir: str = "./artifacts/pilot-evidence",
     ) -> None:
         self.config = config
@@ -101,12 +103,12 @@ class AttestationChainPilot:
         self,
         *,
         actor: str,
-        context: Optional[Dict[str, Any]] = None,
-        resource: Optional[str] = None,
-        action: Optional[str] = None,
-        mandate: Optional[Dict[str, Any]] = None,
-        transaction_id: Optional[str] = None,
-        idempotency_key: Optional[str] = None,
+        context: dict[str, Any] | None = None,
+        resource: str | None = None,
+        action: str | None = None,
+        mandate: dict[str, Any] | None = None,
+        transaction_id: str | None = None,
+        idempotency_key: str | None = None,
         export_evidence: bool = False,
     ) -> AttestationChainOutcome:
         """Submit one candidate action through the full chain.
@@ -180,7 +182,7 @@ class AttestationChainPilot:
         if self._owns_gateway_client:
             self.gateway_client.close()
 
-    def __enter__(self) -> "AttestationChainPilot":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc_info: object) -> None:

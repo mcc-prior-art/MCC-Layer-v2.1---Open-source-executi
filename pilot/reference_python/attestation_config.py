@@ -47,7 +47,7 @@ class AttestationChainConfig:
         for field_name, value in (
             ("gateway_url", self.gateway_url), ("attester_url", self.attester_url),
         ):
-            if not value or not (value.startswith("http://") or value.startswith("https://")):
+            if not value or not (value.startswith(("http://", "https://"))):
                 raise AttestationChainConfigError(
                     f"{field_name} must start with http:// or https://: {value!r}"
                 )
@@ -67,7 +67,7 @@ class AttestationChainConfig:
             raise AttestationChainConfigError("resource is required")
 
     @classmethod
-    def from_env(cls, env: "dict[str, str] | None" = None) -> "AttestationChainConfig":
+    def from_env(cls, env: dict[str, str] | None = None) -> AttestationChainConfig:
         """Build a config from ``MCC_PILOT_ATTESTATION_*``/``MCC_PILOT_*``
         environment variables. Pass ``env`` explicitly in tests instead of
         mutating ``os.environ``. Raises :class:`AttestationChainConfigError`
@@ -86,7 +86,7 @@ class AttestationChainConfig:
                 f"missing required environment variable(s) for the attestation-aware "
                 f"full-chain pilot: {', '.join(missing)}"
             )
-        kwargs: "dict[str, object]" = {
+        kwargs: dict[str, object] = {
             "gateway_url": e["MCC_PILOT_GATEWAY_URL"],
             "attester_url": e["MCC_PILOT_ATTESTATION_ATTESTER_URL"],
             "attester_auth_secret": e["MCC_PILOT_ATTESTATION_ATTESTER_AUTH_SECRET"],

@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -42,14 +42,14 @@ from assurance.sut.attestation_harness import (
 from pilot.client import MCCGatewayClient
 from pilot.reference_python.attestation_config import AttestationChainConfig
 from pilot.reference_python.attestation_integration import AttestationChainPilot
-from pilot.reference_python.attester_client import AttesterClient, AttesterClientError
+from pilot.reference_python.attester_client import AttesterClientError
 
 ACTOR = "agent/pr6-pilot-test-partner"
 RESOURCE = "notifications"
 OTHER_RESOURCE = "other-resource"
 
 
-def _context(**overrides: Any) -> Dict[str, Any]:
+def _context(**overrides: Any) -> dict[str, Any]:
     import uuid
 
     base = {"recipient": "demo@example.invalid", "message": "pr6-probe",
@@ -65,7 +65,7 @@ def asut():
 
 
 @pytest.fixture()
-def mandate(asut: AttestationSystemUnderTest) -> Dict[str, Any]:
+def mandate(asut: AttestationSystemUnderTest) -> dict[str, Any]:
     return asut.issue_mandate(subject=ACTOR, action_scope=[ATTESTED_ACTION],
                                resource_scope=[RESOURCE, OTHER_RESOURCE])
 
@@ -355,7 +355,10 @@ def test_11_attester_unavailable_fails_closed(asut, mandate):
 def test_12_gateway_unreachable_fails_closed_client_side(asut):
     from pilot.client import MCCGatewayError
 
-    with MCCGatewayClient("http://127.0.0.1:1", api_key=asut.api_key, timeout=2.0) as client:
+    # Nested (not parenthesized-combined) `with` deliberately: this repo's
+    # ruff target-version is py39, which does not support parenthesized
+    # multi-context-manager `with` statements (3.10+ syntax).
+    with MCCGatewayClient("http://127.0.0.1:1", api_key=asut.api_key, timeout=2.0) as client:  # noqa: SIM117
         with pytest.raises(MCCGatewayError):
             client.execute_with_mandate(
                 mandate={"kid": "x"}, actor=ACTOR, action=ATTESTED_ACTION, resource=RESOURCE,
