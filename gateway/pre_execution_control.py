@@ -56,6 +56,7 @@ because the two nonce spaces never collide at the key level.
 
 from __future__ import annotations
 
+import copy
 import fnmatch
 import time
 from dataclasses import dataclass, field
@@ -70,7 +71,7 @@ from mcc_attestation import (
     EvidenceAttestation,
     verify_attestation,
 )
-from mcc_core.signing import hash_action, hash_payload
+from mcc_core.signing import hash_action, hash_document, hash_payload
 
 
 class AttestationControlReason(str, Enum):
@@ -192,12 +193,23 @@ class ControlAttestationResult:
     """The result of Control's attestation-gate decision for one proposed
     issuance. Never a bare boolean: ``reason_code`` is a closed, testable
     enum, and ``verification`` carries the underlying PR-1 structured result
-    (when verification was actually attempted) for audit."""
+    (when verification was actually attempted) for audit.
+
+    ``evidence_digest`` (PR-3) is the trusted digest of the EXACT complete
+    signed ``EvidenceAttestation`` document Control itself verified --
+    present if and ONLY IF ``reason_code == VERIFIED`` (a required
+    attestation that passed every check, including replay consumption).
+    It is ``None`` for ``NOT_REQUIRED`` (nothing was verified; there is
+    nothing to bind) and for every failed reason_code -- a failed or
+    unrequired attestation decision can never carry a digest an issuance
+    path could mistake for trusted evidence. This is enforced structurally
+    below, not by caller discipline."""
 
     ok: bool
     reason_code: AttestationControlReason
     reason: str
     verification: Optional[AttestationVerificationResult] = None
+    evidence_digest: Optional[str] = None
 
     def __post_init__(self) -> None:
         if self.ok and self.reason_code not in _OK_REASONS:
@@ -207,6 +219,11 @@ class ControlAttestationResult:
         if not self.ok and self.reason_code in _OK_REASONS:
             raise ValueError(
                 f"ControlAttestationResult.ok=False is inconsistent with reason_code={self.reason_code}"
+            )
+        if self.evidence_digest is not None and self.reason_code != AttestationControlReason.VERIFIED:
+            raise ValueError(
+                "ControlAttestationResult.evidence_digest MUST be None unless "
+                f"reason_code is VERIFIED (got reason_code={self.reason_code})"
             )
 
 
@@ -326,6 +343,22 @@ class PreExecutionControl:
                     f"(evidence_type={requirement.evidence_type!r}); none supplied",
                 )
 
+            # PR-3 TOCTOU fix: snapshot the raw attestation document into a
+            # private copy IMMEDIATELY, before any verification and before the
+            # single ``await`` point below (nonce consumption). ``raw_attestation``
+            # is a caller-supplied mutable dict; without this snapshot, a
+            # concurrent mutation of the caller's original object during that
+            # await could let verify_attestation() (and the claim-policy check)
+            # examine artifact A while evidence_digest ends up derived from a
+            # mutated artifact B -- exactly the "token binds to a different
+            # artifact than the one Control verified" failure MCC-AT-003 exists
+            # to rule out (EBT-DIGEST-003). Every subsequent operation in this
+            # method -- verification, claim inspection, the nonce key, and the
+            # final digest -- reads only this snapshot, never the caller's
+            # original object, so nothing that happens to that object after
+            # this point can change what gets verified or digested.
+            raw_attestation = copy.deepcopy(raw_attestation)
+
             now_i = int(now if now is not None else time.time())
             expected_action_hash = hash_action(action)
             expected_payload_hash = (
@@ -409,10 +442,19 @@ class PreExecutionControl:
                     verification=result,
                 )
 
+            # PR-3: the trusted evidence_digest is derived HERE, by Control,
+            # from the exact raw attestation document it just finished
+            # cryptographically verifying -- never from a caller-supplied
+            # digest/verified flag (there is no such input to this method).
+            # Digesting the raw dict (not a re-serialized reconstruction of
+            # it) means the digest corresponds exactly to the bytes whose
+            # Ed25519 signature was actually checked.
+            evidence_digest = hash_document(raw_attestation)
+
             return ControlAttestationResult(
                 True, AttestationControlReason.VERIFIED,
                 "attestation verified, required claims satisfied, nonce consumed",
-                verification=result,
+                verification=result, evidence_digest=evidence_digest,
             )
         except Exception as exc:  # noqa: BLE001 -- Control itself must never raise into the caller
             return ControlAttestationResult(

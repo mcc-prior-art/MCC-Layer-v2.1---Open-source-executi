@@ -12,8 +12,14 @@ below and `docs/ATTESTATION_CONTROL_INTEGRATION.md` /
 separate Control-side component (`gateway/pre_execution_control.py`) above
 it, and does not modify anything below §11. Where this document still says
 "deferred to PR-2," treat that as historical framing (true as of PR-1); §12
-records what actually shipped. Cryptographic evidence binding into the
-decision-token schema itself remains deferred to PR-3 (see §12).
+records what actually shipped.
+
+**PR-3 update:** Cryptographic evidence binding into the decision-token
+schema itself — described below as deferred — has since landed too: see §13
+and `specs/MCC-AT-003.md` / `docs/ATTESTATION_CONTROL_INTEGRATION.md` §7.
+`src/mcc_attestation/` remains unchanged by PR-3 as well; PR-3 extends
+`gateway/pre_execution_control.py`'s result type and `src/mcc_core/core.py`
+/ `src/mcc_core/gate.py`, not this package.
 
 ## 1. Target architecture
 
@@ -346,11 +352,13 @@ package still does not create or depend on a nonce registry of its own.
 All of the above were, as of PR-1, deferred to PR-2 / PR-3. As of PR-2 (§12),
 the bullets on nonce/replay consumption and on gating decision-token
 issuance have been addressed — by a new Control-side component, not by any
-change to this package. The remaining bullets (binding attestations *into*
-the decision-token schema, execution-ticket semantics, an Attester network
-service, an ML/risk-class policy, and any change to `mcc_core.gate` /
-`mcc_core.authority` themselves) remain true after PR-2 and stay deferred to
-PR-3+.
+change to this package. As of PR-3 (§13), the "does not bind attestations
+into decision tokens" and "does not add execution-ticket semantics" bullets
+are also addressed — by extending `DecisionEngine.issue_token()` and
+`ExecutionGate`, still not by any change to this package. The remaining
+bullets (an Attester network service, an ML/risk-class policy, and any
+further change to `mcc_core.authority`) remain true after PR-3 and stay
+deferred to future work.
 
 ## 10. Accurate claim language
 
@@ -438,3 +446,47 @@ and `docs/ATTESTATION_CONTROL_INTEGRATION.md`. Reference implementation:
 `tests/test_pre_execution_control.py`,
 `tests/test_governance_service_attestation.py`,
 `tests/test_pre_execution_control_architecture_guards.py`.
+
+## 13. PR-3: Evidence-Bound Execution Ticket (summary; see `specs/MCC-AT-003.md`)
+
+PR-3 closes the PR-2/PR-3 boundary referenced throughout this document: the
+successful, required-and-verified result `PreExecutionControl.evaluate()`
+already produced (§12) now also carries `evidence_digest` — the
+canonicalize-then-SHA-256 digest (`mcc_core.signing.hash_document`, the same
+primitive `hash_payload` already uses) of the *complete signed*
+`EvidenceAttestation` document Control just verified:
+
+```
+PreExecutionControl.evaluate() -> ok=True, VERIFIED
+        |   evidence_digest = hash_document(raw signed attestation)  <-- new
+        v
+DecisionEngine.issue_token(..., evidence_digest=...)   <-- extended, PR-3
+        |   evidence_digest becomes a claim under the token's existing
+        |   Ed25519 signature -- absent entirely for non-attested issuance
+        v
+ExecutionGate.verify(..., evidence=...)                 <-- extended, PR-3
+        |   token carries no evidence_digest -> unchanged legacy behavior
+        |   token carries evidence_digest -> exact artifact required,
+        |       checked BEFORE nonce consumption (fail-closed, no burn)
+        v
+EnforcementCoordinator.enforce()  (unchanged a-h order; the Gate is step a)
+```
+
+Nothing in `src/mcc_attestation/` changed, and nothing in
+`gateway/pre_execution_control.py`'s decision logic (§12) changed —
+`evidence_digest` is a pure byproduct of the single evaluation PR-2 already
+performs, not a second verification pass. `ExecutionGate`'s new check is a
+deterministic canonical-document hash comparison only: it does not import
+`mcc_attestation`, does not re-verify trust or claim policy, and does not
+decide whether a claim's semantic content (e.g. `risk_class=low`) is
+correct — that remains, as §12 already establishes, entirely
+`PreExecutionControl`'s responsibility, decided once, before the token
+exists.
+
+Full normative detail — the digest algorithm, the token claim rules, the
+Gate's exact enforcement order (including the ordering-before-nonce-
+consumption proof), and backward compatibility — is in
+`specs/MCC-AT-003.md` and `docs/ATTESTATION_CONTROL_INTEGRATION.md` §7.
+Conformance evidence: `tests/test_evidence_bound_execution_ticket.py`,
+`tests/test_governance_service_attestation.py`,
+`tests/test_evidence_bound_execution_ticket_architecture_guards.py`.
