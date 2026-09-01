@@ -1,10 +1,19 @@
 # MCC Attestation — Architecture (PR-1: Pre-Execution Attestation Foundation)
 
-**Status:** Foundation only. This document describes `src/mcc_attestation/`
-as it exists after PR-1 — a standalone, independent package. It does **not**
+**Status:** This document describes `src/mcc_attestation/` as it exists
+after PR-1 — a standalone, independent package. As of PR-1, it does **not**
 integrate into MCC-Control, `AuthorityModel`, decision-token issuance,
-`ExecutionGate`, or the Gateway API. Runtime integration is explicitly
-deferred to PR-2 and PR-3.
+`ExecutionGate`, or the Gateway API.
+
+**PR-2 update:** Runtime Control integration has since landed — see §12
+below and `docs/ATTESTATION_CONTROL_INTEGRATION.md` /
+`specs/MCC-AT-002.md`. The package described in this document
+(`src/mcc_attestation/`) is unchanged by PR-2: PR-2 adds a new,
+separate Control-side component (`gateway/pre_execution_control.py`) above
+it, and does not modify anything below §11. Where this document still says
+"deferred to PR-2," treat that as historical framing (true as of PR-1); §12
+records what actually shipped. Cryptographic evidence binding into the
+decision-token schema itself remains deferred to PR-3 (see §12).
 
 ## 1. Target architecture
 
@@ -308,14 +317,17 @@ Any unexpected exception anywhere in the verifier is caught and resolves to
 `INVALID` — **no exception path can produce a `VERIFIED` result.** This is
 proven directly by `tests/test_mcc_attestation.py::test_21_*`.
 
-### Replay is deferred to Control (PR-2)
+### Replay: this package still does not consume the nonce
 
 `nonce` is a required field, structurally validated (present, non-empty),
-but **not consumed** by this package — no nonce registry is created, checked,
-or claimed here. Consuming the nonce against a replay-detection registry
-(exactly-once enforcement) is a Control/runtime responsibility, deferred to
-PR-2's integration work. This package does not create a second, competing
-nonce registry alongside `mcc_core.nonce`.
+but **not consumed** by `mcc_attestation` itself — no nonce registry is
+created, checked, or claimed by this package. That remains correct after
+PR-2: consuming the nonce against a replay-detection registry (exactly-once
+enforcement) is a Control/runtime responsibility, and PR-2 implements it in
+`gateway/pre_execution_control.py`, one architectural layer above this
+package, by reusing the existing `mcc_core.nonce` registry with a
+domain-separated key (`attestation:<attester_id>:<nonce>`). See §12. This
+package still does not create or depend on a nonce registry of its own.
 
 ## 9. What PR-1 explicitly does not do
 
@@ -331,7 +343,14 @@ nonce registry alongside `mcc_core.nonce`.
 - Does not change `ALLOW` / `DENY` / `ESCALATE` / `CONSTRAIN` behavior.
 - Does not consume replay state.
 
-All of the above are explicitly deferred to PR-2 / PR-3.
+All of the above were, as of PR-1, deferred to PR-2 / PR-3. As of PR-2 (§12),
+the bullets on nonce/replay consumption and on gating decision-token
+issuance have been addressed — by a new Control-side component, not by any
+change to this package. The remaining bullets (binding attestations *into*
+the decision-token schema, execution-ticket semantics, an Attester network
+service, an ML/risk-class policy, and any change to `mcc_core.gate` /
+`mcc_core.authority` themselves) remain true after PR-2 and stay deferred to
+PR-3+.
 
 ## 10. Accurate claim language
 
@@ -365,3 +384,57 @@ Avoid:
   `ExecutionGate` dependency.
 
 See `specs/MCC-AT-001.md` for the normative specification.
+
+## 12. PR-2: Control integration (summary; see `specs/MCC-AT-002.md`)
+
+PR-2 adds exactly one new component, `gateway.pre_execution_control.
+PreExecutionControl`, positioned strictly between existing authority
+resolution and existing decision-token issuance:
+
+```
+MandateAuthority / ConsensusVerifier (unchanged)
+        |
+        v
+mandate CONSTRAIN rewrite, if any -> exact final forward_context
+        |
+        v
+PreExecutionControl.evaluate()          <-- new, PR-2
+        |   calls mcc_attestation.verify_attestation() itself (unchanged)
+        |   applies a trusted, declarative AttestationRequirement
+        |   consumes the attestation nonce via the existing mcc_core.nonce
+        |       registry, domain-separated key "attestation:<id>:<nonce>"
+        v
+DecisionEngine.issue_token()            (unchanged)
+        |
+        v
+ExecutionGate / EnforcementCoordinator  (unchanged, a-h order)
+```
+
+Nothing in `src/mcc_attestation/` changed. `PreExecutionControl` is Control-
+side deterministic policy *above* the verifier this document describes — it
+decides whether a required, verified attestation exists for the exact final
+payload about to be authorized; it does not reimplement or weaken
+verification, and it does not itself issue tokens, execute anything, or
+grant authority. An `EvidenceAttestation` still does not itself grant
+execution authority (§3 above is unchanged) — both a valid authority
+decision *and* (when required) a valid, freshly-bound, unreplayed
+attestation are necessary before `DecisionEngine.issue_token()` may be
+called.
+
+The two governed runtime paths that call `DecisionEngine.issue_token()` —
+`GovernanceService.execute_with_mandate` (covering `/mandates/execute` and,
+via delegation, `/approvals/{id}/execute`) and
+`GovernanceService.execute_with_consensus` (`/consensus/execute`) — both now
+call `PreExecutionControl` first. An action with no configured
+`AttestationRequirement`, or a deployment with no `PreExecutionControl`
+configured at all, behaves identically to pre-PR-2 in every observable
+respect.
+
+Full normative detail — the required evaluation order, the exact-payload
+binding rule, replay/nonce domain separation, fail-closed reason codes, HTTP
+wiring, and the explicit PR-2/PR-3 boundary — is in `specs/MCC-AT-002.md`
+and `docs/ATTESTATION_CONTROL_INTEGRATION.md`. Reference implementation:
+`gateway/pre_execution_control.py`; conformance evidence:
+`tests/test_pre_execution_control.py`,
+`tests/test_governance_service_attestation.py`,
+`tests/test_pre_execution_control_architecture_guards.py`.
