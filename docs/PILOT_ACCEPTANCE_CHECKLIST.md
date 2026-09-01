@@ -104,6 +104,41 @@ following exist and are retained:
 - [ ] A written statement from the partner's own technical point of contact confirming the pilot ran against their environment and describing what they observed, in their own words.
 - [ ] Explicit documentation of what the pilot did and did not test (e.g. "simulated actuator only; no production actuator was exercised").
 
+## Attestation-aware full-chain mode — additional checks (PR-6)
+
+Everything above applies unchanged to the legacy evaluate-only mode. The
+following applies **only** when a partner opts into the attestation-aware
+full-chain mode (`docs/PILOT_RUNBOOK.md` Part II, §18-24) — it does not
+replace any check above.
+
+- [ ] The Independent Attester Service used is a genuinely separate
+      process from the Gateway (`docs/PILOT_RUNBOOK.md` §20) — not merely
+      two Python objects in one interpreter (see
+      `tests/test_attester_service_process_isolation.py` for the proof
+      this claim rests on).
+- [ ] The partner understands the Attester's assessment provider in this
+      reference deployment is the **deterministic test provider**, never a
+      production risk-assessment source (`specs/MCC-AT-004.md`).
+- [ ] The partner has reviewed which claims the demo attestation carries
+      (`risk_class: low`, fixed) and understands this is a fixture, not a
+      real risk assessment of their candidate action.
+- [ ] Observe-mode exit criteria (above) are also met for the full-chain
+      mode's own evidence bundles (`pilot_attestation_evidence.schema.json`)
+      before any transition to its enforced mode.
+- [ ] The partner understands enforced full-chain mode still performs no
+      real external action — the governed actuator is the same
+      loopback/simulated upstream used elsewhere in this repository's
+      pilot deployments, never a production actuator.
+- [ ] The `known_limitations` field of every full-chain evidence bundle has
+      been read, not skipped (`docs/PILOT_RUNBOOK.md` §23) — it states
+      what this bundle deliberately does not include and why.
+- [ ] The partner understands `docs/ATTESTATION_INDEPENDENT_ASSURANCE.md`
+      (PR-5) is assurance evidence for the underlying chain's security
+      properties, self-administered and reproducible by anyone — it is
+      **not** a substitute for, and does not itself constitute, a
+      completed external pilot or third-party audit of this partner's own
+      deployment.
+
 ## Items that cannot be claimed until confirmed by the external partner
 
 The following must never be asserted by AXLOGIQ/MCC-Core — in this

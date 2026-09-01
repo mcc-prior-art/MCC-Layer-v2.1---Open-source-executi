@@ -491,3 +491,274 @@ validation, a certified pilot outcome, or evidence of a successful
 production deployment.** Those determinations belong to the external
 partner and are addressed explicitly in
 [`docs/PILOT_ACCEPTANCE_CHECKLIST.md`](PILOT_ACCEPTANCE_CHECKLIST.md).
+
+---
+
+# Part II — Attestation-Aware Full-Chain Mode (PR-6)
+
+Everything from here on describes a **second, opt-in** pilot mode. §1-17
+above (the legacy evaluate-only mode) are unchanged by this Part and remain
+fully supported — nothing here alters their behavior, their evidence
+schema, or their `POST /evaluate` contract.
+
+## 18. Purpose, architecture, and prerequisites
+
+§3 above documented that the legacy evaluate-only mode issues a signed
+decision token but does **not** itself route through `PreExecutionControl`
+or the Execution Gate's evidence-digest enforcement — it exercises only the
+first half of MCC-Core's decision path. This Part closes that gap: a
+second, opt-in reference pilot that exercises the **complete**
+attestation-to-execution chain documented in `specs/MCC-AT-001.md` through
+`specs/MCC-AT-004.md`:
+
+```
+   candidate action
+         |
+         v
+  AttesterClient  ------------------------->  Independent Attester Service
+         |                                      (SEPARATE process, own
+         v                                       Ed25519 key — MCC-AT-004)
+  signed EvidenceAttestation
+  (mcc-attestation/1; MCC-AT-001)
+         |
+         v
+  MCCGatewayClient.execute_with_mandate(
+    ..., attestation=...)  ----------------->  MCC-Core Gateway
+         |                                      PreExecutionControl verifies
+         v                                      the attestation, derives
+  [server-side, unchanged]                      evidence_digest (MCC-AT-002/003)
+                                                      |
+                                                      v
+                                                 DecisionEngine issues an
+                                                 evidence-bound signed token
+                                                      |
+                                                      v
+                                                 ExecutionGate re-verifies
+                                                 signature/binding/nonce/
+                                                 evidence_digest
+                                                      |
+                                                      v
+                                                 governed (loopback/
+                                                 simulated) actuator
+         |
+         v
+  AttestationChainEvidence (partner-safe bundle)
+```
+
+Two independent fail-closed layers sit between a decision and any
+actuation here too, in addition to §3's two:
+
+1. **The Attester itself** — refuses to sign anything it has no configured
+   assessment for (fail-closed HTTP 503; `specs/MCC-AT-004.md`), and its
+   private key never leaves its own process (proven, not merely claimed —
+   see `tests/test_attester_service_process_isolation.py`).
+2. **`PreExecutionControl`** — independently re-verifies the attestation's
+   signature, trust, action/payload/scope binding, time window, and
+   single-use nonce on every call; never trusts a caller-supplied
+   `verified` flag (there is no such field in the wire schema — see
+   `openapi/mcc-gateway.yaml`'s `MandateExecuteRequest.attestation`).
+
+**Prerequisites**, in addition to §2/§5 above:
+
+- Everything in §2 and §5 (cloned pinned commit, `mcc_sdk` installed).
+- `mcc-core`'s governance-free `signing` module importable — either
+  `PYTHONPATH=src` (from the repository root; what every example in this
+  section assumes) or an installed `mcc-core` distribution. **The legacy
+  evaluate-only mode in Part I never requires this** — `pilot.reference_python`
+  imports `mcc_core` lazily, only inside the full-chain evidence code path
+  (see `pilot/reference_python/attestation_evidence.py`).
+- `pip install -r requirements-dev.txt` for `pytest`/`jsonschema` if you
+  intend to run `tests/pilot/test_attestation_chain_pilot.py` yourself.
+
+## 19. Demo key and config generation
+
+The reference deployment (like every existing pilot deployment in this
+repository — see `deploy/pilot/generate_pilot_config.py`) uses **locally
+generated demo keys**, never a production key-management procedure:
+
+```bash
+PYTHONPATH=src python3 -m pilot.reference_python.generate_attestation_demo_config
+```
+
+This writes, into a git-ignored `pilot/reference_python/.secrets-attestation-demo/`
+directory (see `pilot/reference_python/.gitignore`):
+
+- a demo Attester Ed25519 signing key + the env block to start it with;
+- a demo mandate-issuer Ed25519 key + the Gateway's `MCC_TRUST_CONFIG`
+  (mandate trust set — public key only);
+- the Gateway's `MCC_ATTESTATION_REQUIREMENTS_CONFIG` /
+  `MCC_ATTESTATION_TRUST_CONFIG` (attestation trust set — public key only);
+- **one** demo mandate, signed, ready to pass to the runner's
+  `--mandate-file` flag.
+
+The script prints every environment variable §20 below needs. Re-run with
+`--force` to regenerate; never commit the `.secrets-attestation-demo/`
+directory.
+
+## 20. Starting the Attester and the Gateway
+
+Two processes, each in its own terminal (repository root):
+
+```bash
+# Terminal 1 — the Independent Attester Service (uses the DETERMINISTIC
+# TEST assessment provider only — see specs/MCC-AT-004.md's explicit
+# "not a production assessment provider" disclaimer):
+export PYTHONPATH=src
+export MCC_ATTESTER_ID=pilot-demo-attester.risk.v1
+export MCC_ATTESTER_SIGNING_KEY_PATH=pilot/reference_python/.secrets-attestation-demo/attester_signing.pem
+export MCC_ATTESTER_KEY_ID=<printed by §19>
+export MCC_ATTESTER_SERVICE_AUTH_SECRET=pilot-demo-attester-auth-secret-CHANGE-ME
+export MCC_ATTESTER_SCOPE_TEMPLATE="notify:{resource}"
+export MCC_ATTESTER_VALIDITY_SECONDS=900
+export MCC_ATTESTER_TEST_ASSESSMENT_TABLE=pilot/reference_python/.secrets-attestation-demo/demo_assessment_table.json
+export MCC_ATTESTER_HOST=127.0.0.1
+export MCC_ATTESTER_PORT=8100
+python3 -m mcc_attester_service
+```
+
+```bash
+# Terminal 2 — the Gateway, with attestation requirements + mandate trust
+# ADDED to its normal §6 startup:
+export MCC_ATTESTATION_REQUIREMENTS_CONFIG=pilot/reference_python/.secrets-attestation-demo/attestation_requirements.json
+export MCC_ATTESTATION_TRUST_CONFIG=pilot/reference_python/.secrets-attestation-demo/attestation_trust.json
+export MCC_TRUST_CONFIG=pilot/reference_python/.secrets-attestation-demo/mandate_trust.json
+uvicorn gateway.app:app --host 127.0.0.1 --port 8001
+```
+
+Verify both are healthy before proceeding:
+
+```bash
+curl -s http://127.0.0.1:8100/health | python3 -m json.tool
+curl -s http://127.0.0.1:8001/health | python3 -m json.tool
+```
+
+The legacy `POST /evaluate` path (§8-9) on this SAME Gateway process is
+**unaffected** by the attestation configuration above — it never calls
+`PreExecutionControl` (§3, §18) — so both modes can be exercised against
+one running Gateway.
+
+## 21. Observe-mode procedure (full-chain)
+
+Observe mode obtains a real, genuinely signed attestation from the real
+Attester and computes what `PreExecutionControl` would derive from it
+(the `evidence_digest_client_computed` field — see §23), but **never
+calls `POST /mandates/execute` at all**: there is structurally no HTTP
+request this mode can make that could reach the Execution Gate or any
+actuator, loopback or otherwise.
+
+```bash
+PYTHONPATH=src python3 -m pilot.reference_python.attestation_runner \
+    --gateway-url http://127.0.0.1:8001 --attester-url http://127.0.0.1:8100 \
+    --api-key demo-key --attester-auth-secret pilot-demo-attester-auth-secret-CHANGE-ME \
+    --mode observe
+```
+
+Or programmatically:
+
+```python
+from pilot.reference_python import AttestationChainConfig, AttestationChainPilot
+
+config = AttestationChainConfig(
+    gateway_url="http://127.0.0.1:8001", attester_url="http://127.0.0.1:8100",
+    attester_auth_secret="pilot-demo-attester-auth-secret-CHANGE-ME",
+    gateway_api_key="demo-key", mode="observe",
+)
+with AttestationChainPilot(config) as pilot:
+    outcome = pilot.submit(actor="your-integration", context={"channel": "email", "recipient": "..."})
+    print(outcome.mode, outcome.actuated)  # "observe", False — always
+```
+
+## 22. Enforced-mode procedure (full-chain)
+
+Enforced mode requires a signed mandate — this integration never mints one
+itself (see `pilot/reference_python/attestation_integration.py`'s module
+docstring); the demo uses the one §19 generated:
+
+```bash
+PYTHONPATH=src python3 -m pilot.reference_python.attestation_runner \
+    --mode enforced \
+    --mandate-file pilot/reference_python/.secrets-attestation-demo/demo_mandate.json \
+    --gateway-url http://127.0.0.1:8001 --attester-url http://127.0.0.1:8100 \
+    --api-key demo-key --attester-auth-secret pilot-demo-attester-auth-secret-CHANGE-ME
+```
+
+In enforced mode, the real Gateway's `PreExecutionControl` and Execution
+Gate independently verify every property described in §18 before the
+governed (loopback/simulated) actuator ever runs — never the pilot's own
+say-so. `DENY`/`ESCALATE`/`BLOCKED` outcomes never actuate, exactly as in
+§11 for the legacy mode.
+
+## 23. Evidence export procedure (full-chain)
+
+Every submission through `AttestationChainPilot.submit()` produces one
+`AttestationChainEvidence` record (`pilot/reference_python/attestation_evidence.py`),
+validated against
+[`pilot/schema/pilot_attestation_evidence.schema.json`](../pilot/schema/pilot_attestation_evidence.schema.json)
+— a **separate** schema from the legacy mode's (§15); the two are not
+comparable field-for-field.
+
+It contains: `mcc_commit_sha`, a secret-free `config_fingerprint`, `mode`,
+`action`/`resource`, an `attestation` summary (`attester_id`, `kid`,
+`attestation_id`, `evidence_type`, `issued_at`/`expires_at`, and
+`evidence_digest_client_computed`), the Gateway's `gateway_decision`/
+`gateway_status`/`gateway_reason`/`audit_ref`, whether an execution
+receipt was present, `actuated`, and `independent_invocations` (a count of
+Attester calls and Gateway calls — proof of how many separate service
+boundaries this run actually crossed).
+
+It never contains: the Attester auth secret, the Gateway API key, the raw
+`claims`/`provenance` of the attestation (which may carry
+partner-specific risk content), the Ed25519 `sig`, or the raw candidate
+payload.
+
+**Known limitations, stated explicitly in every bundle's
+`known_limitations` field** (never silently omitted):
+
+- `decision_token_fingerprint` is **not** included. `POST /mandates/execute`'s
+  response (`gateway/governance_api.py::ExecuteResponse`) does not echo
+  any reference to the signed Decision Token back to the caller — this PR
+  does not add one, to avoid modifying that core response contract for
+  pilot convenience.
+- `policy_hash` is **not** included. It is not independently obtainable
+  from `POST /mandates/execute`'s response in the current API contract.
+- `evidence_digest_client_computed` is computed by this pilot, client-side,
+  from the exact attestation document it obtained, using the same shared
+  `mcc_core.signing.hash_document` primitive `PreExecutionControl` uses
+  server-side — it is **not** read back from the server's own computation
+  (the API does not expose one).
+
+## 24. Full-chain mode: fail-closed behavior, compatibility, and comparison
+
+| Failure mode | Behavior |
+|---|---|
+| Attester unreachable / times out | `AttesterClientError` raised; the Gateway is never called (dual-oracle proof: `tests/pilot/test_attestation_chain_pilot.py::test_11_attester_unavailable_fails_closed`) |
+| Attester declines (no assessment configured; HTTP 503) | `AttesterClientError` raised; no attestation, no execute attempt |
+| Missing/forged/tampered/expired/replayed/wrong-bound attestation | `POST /mandates/execute` returns `status: "BLOCKED"`; the governed actuator is never invoked (`test_attestation_chain_pilot.py::test_02`-`test_10`) |
+| `enforced` mode called without a `mandate` | `ValueError` raised by `AttestationChainPilot.submit()` itself, before any network call |
+| Gateway unreachable | `MCCGatewayError` raised (same exception the legacy mode's underlying transport already uses) |
+
+**Compatibility.** The legacy evaluate-only mode (Part I) is unmodified by
+this Part: same request/response shape on `POST /evaluate`, same
+`PilotConfig`/`PilotIntegration`/`SimulatedActuator`, same evidence schema.
+The one change to shared code is additive: `pilot.client.MCCGatewayClient.execute_with_mandate`
+gained an optional `attestation` keyword argument (default `None`,
+reproducing the exact pre-PR-6 request body when omitted) —
+`tests/test_pilot_client.py::test_execute_with_mandate_omits_attestation_field_by_default`
+is the regression proof.
+
+| | Legacy evaluate-only (Part I) | Attestation-aware full-chain (Part II) |
+|---|---|---|
+| Entry point | `mcc_sdk.MCCClient.evaluate()` | `AttesterClient.attest()` + `pilot.client.MCCGatewayClient.execute_with_mandate()` |
+| Gateway endpoint | `POST /evaluate` | `POST /mandates/execute` |
+| Requires a mandate | No | Yes |
+| Requires a separate Attester process | No | Yes |
+| Routes through `PreExecutionControl` / Execution Gate | No | Yes |
+| Evidence schema | `pilot_evidence.schema.json` | `pilot_attestation_evidence.schema.json` |
+| Actuator | Local `SimulatedActuator` (in-process, no network) | The Gateway's own governed (loopback/simulated) upstream |
+
+This mode is, like Part I, a **reference/test deployment**: the Attester's
+`DeterministicTestProvider` is explicitly not a production assessment
+provider (`specs/MCC-AT-004.md`), the actuator is loopback/simulated, and
+completing this Part's procedures does not itself constitute third-party
+validation — see §17 above and `docs/PILOT_ACCEPTANCE_CHECKLIST.md`'s new
+"Attestation-aware full-chain mode" section.

@@ -447,27 +447,69 @@ This is an integration contract, not adapter certification.
 ## Production Pilot
 
 The operational package for connecting an external engineering team to a
-real MCC-Core Gateway using the official Python SDK
-([`sdk/mcc-sdk`](sdk/mcc-sdk/), package `mcc_sdk`): a step-by-step runbook,
-a minimal reference integration with a local simulated actuator only, and
-a reproducible, schema-validated pilot evidence bundle.
+real MCC-Core Gateway. Two opt-in pilot modes exist, both against a real
+running Gateway, neither a mock — plus a third, not-yet-built stage this
+package does not claim:
+
+1. **Legacy evaluate-only mode** (PR #82, the default) — candidate action
+   → the official Python SDK ([`sdk/mcc-sdk`](sdk/mcc-sdk/), package
+   `mcc_sdk`) → `POST /evaluate` → decision validation → a pilot-side mode
+   gate → a local, simulated actuator only. This path issues a signed
+   decision token but does not itself route through
+   `PreExecutionControl`/the Execution Gate/`EnforcementCoordinator` — see
+   `docs/PILOT_RUNBOOK.md` §3 for exactly what it does and does not
+   exercise.
+2. **Attestation-aware full-chain mode** (PR-6, opt-in) — candidate action
+   → a separate Independent Attester Service → a signed
+   `EvidenceAttestation` → Gateway `POST /mandates/execute` → the real
+   `PreExecutionControl` → an evidence-bound signed Decision Token → the
+   real Execution Gate → a governed (loopback/simulated) actuator. This is
+   the path that actually exercises the attestation-to-execution chain
+   documented in `specs/MCC-AT-001.md` through `MCC-AT-004.md` and
+   independently assured in PR-5 (below). See `docs/PILOT_RUNBOOK.md`
+   §18-24 and [`pilot/reference_python/attestation_integration.py`](pilot/reference_python/attestation_integration.py).
+3. **Future real production deployment** — a real external actuator, a
+   production `AssessmentProvider` (not the deterministic test provider
+   both modes above use for the Attester), and third-party validation.
+   None of this exists yet; neither mode above claims it does.
+
+```
+candidate action
+  -> Independent Attester Service (separate process, own Ed25519 key)
+  -> signed EvidenceAttestation
+  -> Gateway POST /mandates/execute
+  -> PreExecutionControl (verifies attestation, derives evidence_digest)
+  -> DecisionEngine (evidence-bound signed Decision Token)
+  -> ExecutionGate (re-verifies signature, binding, nonce, evidence_digest)
+  -> governed (loopback/simulated) actuator
+  -> partner-safe evidence bundle
+```
 
 - **[docs/PILOT_RUNBOOK.md](docs/PILOT_RUNBOOK.md)** — clean-clone and
-  commit-pinning, Gateway startup, observe-mode then enforced-mode
+  commit-pinning, Gateway startup, both pilot modes' observe/enforced
   procedures, rollback, and evidence export.
 - **[docs/PILOT_ACCEPTANCE_CHECKLIST.md](docs/PILOT_ACCEPTANCE_CHECKLIST.md)**
   — pre-pilot checks, partner/AXLOGIQ responsibilities, exit/entry
   criteria, and what cannot be claimed without the partner's own
   confirmation.
-- **[pilot/reference_python/](pilot/reference_python/)** — the reference
-  integration: candidate action → official SDK → `POST /evaluate` →
-  decision validation → execution gate → local simulated actuator only.
+- **[pilot/reference_python/](pilot/reference_python/)** — both reference
+  integrations, and the demo config generator for the full-chain mode.
 - **[pilot/schema/pilot_evidence.schema.json](pilot/schema/pilot_evidence.schema.json)**
-  — the evidence bundle schema every pilot run's output validates against.
+  / **[pilot/schema/pilot_attestation_evidence.schema.json](pilot/schema/pilot_attestation_evidence.schema.json)**
+  — the two evidence bundle schemas (legacy / full-chain) pilot runs
+  validate against.
+- **[openapi/mcc-gateway.yaml](openapi/mcc-gateway.yaml)** — the Gateway's
+  HTTP contract, including `POST /mandates/execute`'s `attestation` field.
 
 This prepares MCC-Core for a real external pilot. It does not claim that a
 real pilot, third-party validation, or production traffic has already
-occurred — see the checklist above.
+occurred — see the checklist above. Independent, reproducible assurance
+evidence for the underlying attestation-to-execution chain itself (not the
+pilot integration) lives in `docs/ATTESTATION_INDEPENDENT_ASSURANCE.md` and
+`scripts/verify_assurance.sh` (see "Reproducible Assurance Baseline"
+above) — self-administered reproducible assurance is not a third-party
+audit, and repository-local certification artifacts are not production or
+legal certification.
 
 ## Real Governed Agent Pilot
 

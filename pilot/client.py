@@ -297,11 +297,20 @@ class MCCGatewayClient:
         self, *, mandate: Dict[str, Any], actor: str, action: str,
         resource: Optional[str] = None, context: Optional[Dict[str, Any]] = None,
         transaction_id: Optional[str] = None, idempotency_key: Optional[str] = None,
+        attestation: Optional[Dict[str, Any]] = None,
     ) -> ExecutionOutcome:
+        """``attestation`` (PR-6): an optional raw, signed EvidenceAttestation
+        (mcc-attestation/1 schema; obtained separately from an Independent
+        Attester Service — see ``pilot/reference_python/attester_client.py``).
+        This is transport only: the server-side ``MandateExecuteRequest``
+        already accepts this field (PR-2); this client simply exposed no way
+        to pass it before now. Omitting it (the default) reproduces exactly
+        the pre-PR-6 request body — whether it is required at all is a
+        trusted, server-side Control-policy decision, never a client choice."""
         body = {"mandate": mandate, "actor": actor, "action": action,
                 "context": dict(context or {})}
         for k, v in (("resource", resource), ("transaction_id", transaction_id),
-                     ("idempotency_key", idempotency_key)):
+                     ("idempotency_key", idempotency_key), ("attestation", attestation)):
             if v is not None:
                 body[k] = v
         return self._exec_outcome(self._post("/mandates/execute", body))

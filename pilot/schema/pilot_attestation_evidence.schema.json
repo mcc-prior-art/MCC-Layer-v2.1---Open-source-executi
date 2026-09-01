@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mcc-prior-art/mcc-layer/pilot/schema/pilot_attestation_evidence.schema.json",
+  "title": "MCC-Core Attestation-Aware Full-Chain Pilot Evidence (v1)",
+  "description": "The partner-safe evidence record produced by one submission through pilot/reference_python's opt-in attestation-aware full-chain pilot (PR-6). This schema describes the SHAPE of an evidence record only -- it does not itself certify, validate, or attest that any pilot occurred, and it is not a substitute for the repository-local reproducible assurance evidence in docs/ATTESTATION_INDEPENDENT_ASSURANCE.md or scripts/verify_assurance.sh. See docs/PILOT_ACCEPTANCE_CHECKLIST.md for what an externally attributable pilot result additionally requires.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mcc_commit_sha",
+    "run_correlation_id",
+    "start_time_utc",
+    "end_time_utc",
+    "config_fingerprint",
+    "mode",
+    "action",
+    "attestation",
+    "actuated",
+    "independent_invocations",
+    "status",
+    "status_reason",
+    "known_limitations"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1" },
+    "mcc_commit_sha": { "type": "string", "minLength": 1 },
+    "run_correlation_id": { "type": "string", "minLength": 1 },
+    "start_time_utc": { "type": "string", "format": "date-time" },
+    "end_time_utc": { "type": "string", "format": "date-time" },
+    "config_fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "mode": { "type": "string", "enum": ["observe", "enforced"] },
+    "action": { "type": "string", "minLength": 1 },
+    "resource": { "type": ["string", "null"] },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_digest_client_computed"],
+      "properties": {
+        "attester_id": { "type": ["string", "null"] },
+        "kid": { "type": ["string", "null"] },
+        "attestation_id": { "type": ["string", "null"] },
+        "evidence_type": { "type": ["string", "null"] },
+        "issued_at": { "type": ["integer", "null"] },
+        "expires_at": { "type": ["integer", "null"] },
+        "evidence_digest_client_computed": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "gateway_decision": {
+      "type": ["string", "null"],
+      "enum": ["ALLOW", "DENY", "ESCALATE", "CONSTRAIN", null]
+    },
+    "gateway_status": {
+      "type": ["string", "null"],
+      "enum": ["EXECUTED", "BLOCKED", "EXECUTION_FAILED", null]
+    },
+    "gateway_reason": { "type": ["string", "null"] },
+    "audit_ref": { "type": ["string", "null"] },
+    "execution_receipt_present": { "type": "boolean" },
+    "actuated": { "type": "boolean" },
+    "independent_invocations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attester_service_calls", "gateway_calls"],
+      "properties": {
+        "attester_service_calls": { "type": "integer", "minimum": 0 },
+        "gateway_calls": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+    "status_reason": { "type": "string", "minLength": 1 },
+    "known_limitations": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
