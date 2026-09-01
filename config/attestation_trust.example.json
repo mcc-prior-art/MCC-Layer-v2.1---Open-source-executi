@@ -1,0 +1,9 @@
+[
+  {
+    "_comment": "PR-4 example: MCC_ATTESTATION_TRUST_CONFIG holds ONLY the Independent Attester Service's Ed25519 PUBLIC key -- the gateway never sees, loads, or needs its private key. Generate the Attester's key pair with scripts/generate_signing_key.py (run on the Attester side only); publish the printed public key here with scripts/build_attester_trust_config.py. Rotate by adding a new kid entry, then removing the old one once rotation is complete.",
+    "attester_id": "attester.payment-risk.v1",
+    "kid": "REPLACE_WITH_ATTESTER_KEY_ID",
+    "public_key_b64": "REPLACE_WITH_BASE64_ED25519_PUBLIC_KEY_32_BYTES",
+    "evidence_types": ["risk_assessment"]
+  }
+]
