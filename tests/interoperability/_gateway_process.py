@@ -19,6 +19,12 @@ configured from environment variables written by the harness:
     MCC_TRUST_CONFIG             optional signed-mandate issuer trust set (PR #71
                                   Workstream C mandate-forgery-containment tests;
                                   absent by default -- see mandate/trust.py)
+    MCC_ATTESTATION_REQUIREMENTS_CONFIG / MCC_ATTESTATION_TRUST_CONFIG
+                                  optional PR-2 Pre-Execution Attestation Control
+                                  (PR-5 Workstream attestation-chain tests; absent by
+                                  default -- see gateway/pre_execution_control.py and
+                                  gateway/governance_api.py's own
+                                  _build_pre_execution_control, unmodified here)
 
 No adapter-specific behavior lives here: this is the one shared Gateway for all five
 adapters.
@@ -59,6 +65,10 @@ def build_app() -> FastAPI:
     }
     if "MCC_TRUST_CONFIG" in os.environ:
         env["MCC_TRUST_CONFIG"] = os.environ["MCC_TRUST_CONFIG"]
+    if "MCC_ATTESTATION_REQUIREMENTS_CONFIG" in os.environ:
+        env["MCC_ATTESTATION_REQUIREMENTS_CONFIG"] = os.environ["MCC_ATTESTATION_REQUIREMENTS_CONFIG"]
+    if "MCC_ATTESTATION_TRUST_CONFIG" in os.environ:
+        env["MCC_ATTESTATION_TRUST_CONFIG"] = os.environ["MCC_ATTESTATION_TRUST_CONFIG"]
     service = build_governance_service(
         engine=gw.engine, signing_key=gw.signing_key, audit=gw.audit,
         policy_hash=gw.policy_hash, token_audience=gwmod.settings.token_audience,
