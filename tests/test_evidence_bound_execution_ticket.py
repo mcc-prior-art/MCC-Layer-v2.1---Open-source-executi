@@ -498,3 +498,262 @@ def test_16_verified_low_risk_claim_yields_digest_without_semantic_claim():
     assert result.evidence_digest == hash_document(raw)
     assert not hasattr(result, "risk_is_true")
     assert not hasattr(result, "semantically_correct")
+
+
+# ---------------------------------------------------------------------------
+# Owner-review fix #1: TOCTOU between verification and evidence_digest
+# derivation. ``raw_attestation`` is a caller-supplied mutable dict;
+# ``PreExecutionControl.evaluate`` has exactly one ``await`` point (nonce
+# consumption). Without an up-front, private snapshot, a concurrent mutation
+# of the caller's object during that await could let verify_attestation()
+# check artifact A while evidence_digest ends up computed over a mutated
+# artifact B. These tests exploit that window directly with a controllable
+# nonce registry double and prove the fix: the returned digest always
+# corresponds to A (what was actually verified), never to B, and — tied all
+# the way through — a token bound to A's digest still rejects B at the Gate.
+# ---------------------------------------------------------------------------
+
+
+class _BlockingNonceRegistry:
+    """Test double wrapping a real registry: pauses inside ``consume()``
+    until externally resumed, via two ``asyncio.Event``s, so a test can
+    deterministically land a mutation inside Control's single await window
+    rather than relying on incidental scheduling."""
+
+    def __init__(self, inner):
+        self._inner = inner
+        self.entered = asyncio.Event()
+        self._resume = asyncio.Event()
+
+    async def consume(self, nonce, ttl_seconds=300):
+        self.entered.set()
+        await self._resume.wait()
+        return await self._inner.consume(nonce, ttl_seconds=ttl_seconds)
+
+    def resume(self) -> None:
+        self._resume.set()
+
+
+def test_17_toctou_concurrent_mutation_during_nonce_consume_cannot_bind_mutated_artifact():
+    key = _attester_key()
+    registry = _BlockingNonceRegistry(InMemoryNonceRegistry())
+    control = _control(key, nonce_registry=registry)
+
+    att_a = _valid_attestation(key, claims={"risk_class": "low"}, nonce="toctou-nonce")
+    raw = att_a.to_dict()
+    # What "A" looked like at the moment verify_attestation() examined it --
+    # captured independently of the ``raw`` reference the test is about to
+    # mutate, so later assertions do not accidentally compare a snapshot to
+    # itself after mutation.
+    snapshot_of_a = copy.deepcopy(raw)
+
+    async def run_eval():
+        return await control.evaluate(
+            action=ACTION, forward_context=FORWARD_CONTEXT, resource=RESOURCE,
+            raw_attestation=raw, now=NOW + 10,
+        )
+
+    async def scenario():
+        task = asyncio.create_task(run_eval())
+        await registry.entered.wait()
+        # Control has already passed structural/crypto verification and the
+        # claim-policy check (both synchronous, both already ran before the
+        # nonce-consume await) and is now suspended inside consume(). Mutate
+        # the CALLER's original dict object -- the same reference passed
+        # in -- to simulate a concurrent actor changing it.
+        raw["claims"]["risk_class"] = "high"
+        raw["sig"] = "TAMPERED-" + raw["sig"]
+        raw["attestation_id"] = raw["attestation_id"] + "-mutated"
+        registry.resume()
+        return await task
+
+    result = run(scenario())
+
+    assert result.ok and result.reason_code == AttestationControlReason.VERIFIED
+    # The digest must correspond to A -- the artifact actually verified --
+    # never to the now-mutated object (B).
+    assert result.evidence_digest == hash_document(snapshot_of_a)
+    assert result.evidence_digest != hash_document(raw)  # `raw` is now B
+
+    # Tied through to the Gate: a token issued with this evidence_digest
+    # binds to A. Presenting the mutated object (B) at actuation time must
+    # still be rejected as a substitution/mutation, exactly as if the
+    # mutation had never touched Control's own reference at all.
+    signing_key = SigningKey.generate("gw-toctou")
+    token = _issue_evidence_bound_token(signing_key, evidence_digest=result.evidence_digest)
+    gate = _gate(signing_key.kid, signing_key.public_key())
+
+    denied = run(gate.verify(token, action=ACTION, payload=FORWARD_CONTEXT, evidence=raw, now=NOW))
+    assert not denied.allowed
+    assert "EVIDENCE_DIGEST_MISMATCH" in denied.reason
+
+    allowed = run(gate.verify(
+        token, action=ACTION, payload=FORWARD_CONTEXT, evidence=snapshot_of_a, now=NOW,
+    ))
+    assert allowed.allowed, allowed.reason
+
+
+def test_17b_toctou_fix_does_not_break_the_ordinary_uncontested_path():
+    """Companion/control-group case: with no concurrent mutation at all
+    (the ordinary, uncontested path), evaluation must still succeed and
+    still bind to the exact document supplied -- the snapshot fix must not
+    itself introduce a new failure mode."""
+    key = _attester_key()
+    registry = _BlockingNonceRegistry(InMemoryNonceRegistry())
+    control = _control(key, nonce_registry=registry)
+    att = _valid_attestation(key, claims={"risk_class": "low"}, nonce="uncontested-nonce")
+    raw = att.to_dict()
+    expected_digest = hash_document(raw)
+
+    async def scenario():
+        task = asyncio.create_task(control.evaluate(
+            action=ACTION, forward_context=FORWARD_CONTEXT, resource=RESOURCE,
+            raw_attestation=raw, now=NOW + 10,
+        ))
+        await registry.entered.wait()
+        registry.resume()  # resume immediately -- no mutation in between
+        return await task
+
+    result = run(scenario())
+    assert result.ok and result.reason_code == AttestationControlReason.VERIFIED
+    assert result.evidence_digest == expected_digest
+
+
+# ---------------------------------------------------------------------------
+# Owner-review fix #2: MCC-AT-003 evidence_digest format conformance.
+# ``sha256:<64 lowercase hex>`` is the ONLY well-formed shape. A malformed
+# digest must never become executable authority: DecisionEngine.issue_token
+# refuses to sign one, and ExecutionGate independently fails closed (before
+# nonce consumption) on a token that carries one anyway.
+# ---------------------------------------------------------------------------
+
+
+_VALID_DIGEST = "sha256:" + "ab" * 32
+_MALFORMED_DIGESTS = {
+    "wrong_prefix": "sha1:" + "ab" * 32,
+    "wrong_length_short": "sha256:" + "ab" * 31,
+    "wrong_length_long": "sha256:" + "ab" * 33,
+    "uppercase_hex": "sha256:" + ("AB" * 32),
+    "non_hex_chars": "sha256:" + ("zz" * 32),
+    "no_colon": "sha256" + "ab" * 32,
+    "empty_string": "",
+}
+
+
+def test_18a_is_valid_digest_accepts_only_the_exact_format():
+    from mcc_core.signing import is_valid_digest
+
+    assert is_valid_digest(_VALID_DIGEST) is True
+    for name, bad in _MALFORMED_DIGESTS.items():
+        assert is_valid_digest(bad) is False, name
+    assert is_valid_digest(None) is False
+    assert is_valid_digest(12345) is False
+    assert is_valid_digest({"sha256": "x"}) is False
+
+
+def test_18b_issue_token_accepts_a_well_formed_evidence_digest():
+    signing_key = SigningKey.generate("gw-1")
+    engine = _engine(signing_key)
+    token = engine.issue_token(
+        verdict="ALLOW", subject="agent/x", action=ACTION, payload=FORWARD_CONTEXT,
+        evidence_digest=_VALID_DIGEST,
+    )
+    assert token["evidence_digest"] == _VALID_DIGEST
+
+
+@pytest.mark.parametrize("name", sorted(_MALFORMED_DIGESTS))
+def test_18c_issue_token_refuses_a_malformed_evidence_digest(name):
+    from mcc_core.core import TokenNotIssuable
+
+    signing_key = SigningKey.generate("gw-1")
+    engine = _engine(signing_key)
+    with pytest.raises(TokenNotIssuable):
+        engine.issue_token(
+            verdict="ALLOW", subject="agent/x", action=ACTION, payload=FORWARD_CONTEXT,
+            evidence_digest=_MALFORMED_DIGESTS[name],
+        )
+
+
+def test_18d_issue_token_refuses_a_non_string_evidence_digest():
+    from mcc_core.core import TokenNotIssuable
+
+    signing_key = SigningKey.generate("gw-1")
+    engine = _engine(signing_key)
+    with pytest.raises(TokenNotIssuable):
+        engine.issue_token(
+            verdict="ALLOW", subject="agent/x", action=ACTION, payload=FORWARD_CONTEXT,
+            evidence_digest=12345,  # type: ignore[arg-type]
+        )
+
+
+def _directly_signed_token_with_claim(signing_key: SigningKey, evidence_digest, *, now=NOW):
+    """Build a token bypassing DecisionEngine.issue_token entirely -- signs
+    an otherwise-valid claim set directly via SigningKey.sign_token(), so the
+    resulting token IS correctly Ed25519-signed but was never subject to
+    issue_token's own evidence_digest format check. This is exactly the
+    defense-in-depth scenario the Gate's own format check exists for: a
+    valid signature proves the claims were not tampered with after signing,
+    never that the signer's issuance-time validation actually ran."""
+    claims = {
+        "iss": "mcc/core", "sub": "agent/x", "aud": "pilot", "jti": "toctou-fmt",
+        "iat": now, "nbf": now, "exp": now + 60, "decision": "ALLOW",
+        "action": ACTION, "action_hash": hash_action(ACTION),
+        "payload_hash": hash_payload(FORWARD_CONTEXT), "constraints": {},
+        "policy_id": "pilot/v1", "policy_hash": POLICY_HASH, "nonce": "fmt-nonce-1",
+        "audit_ref": None, "transaction_id": None, "idempotency_key": None,
+        "actor_id": None, "resource_id": None, "auth_claims": {}, "mandate_id": None,
+        "evidence_digest": evidence_digest,
+    }
+    return signing_key.sign_token(claims)
+
+
+@pytest.mark.parametrize("name", sorted(_MALFORMED_DIGESTS))
+def test_19a_gate_fails_closed_on_a_correctly_signed_token_with_malformed_evidence_digest(name):
+    signing_key = SigningKey.generate("gw-1")
+    token = _directly_signed_token_with_claim(signing_key, _MALFORMED_DIGESTS[name])
+
+    from mcc_core.signing import verify_token
+    assert verify_token(token, signing_key.public_key())  # genuinely, validly signed
+
+    registry = InMemoryNonceRegistry()
+    gate = _gate(signing_key.kid, signing_key.public_key(), nonce_registry=registry)
+    key = _attester_key()
+    att = _valid_attestation(key).to_dict()
+
+    result = run(gate.verify(token, action=ACTION, payload=FORWARD_CONTEXT, evidence=att, now=NOW))
+    assert not result.allowed
+    assert "EVIDENCE_INVALID" in result.reason
+
+    # The nonce must not have been burned by the malformed-claim rejection.
+    still_available = run(registry.consume(token["nonce"], ttl_seconds=60))
+    assert still_available is True
+
+
+def test_19b_gate_fails_closed_on_a_non_string_evidence_digest_claim():
+    signing_key = SigningKey.generate("gw-1")
+    token = _directly_signed_token_with_claim(signing_key, 12345)
+
+    registry = InMemoryNonceRegistry()
+    gate = _gate(signing_key.kid, signing_key.public_key(), nonce_registry=registry)
+    key = _attester_key()
+    att = _valid_attestation(key).to_dict()
+
+    result = run(gate.verify(token, action=ACTION, payload=FORWARD_CONTEXT, evidence=att, now=NOW))
+    assert not result.allowed
+    assert "EVIDENCE_INVALID" in result.reason
+
+    still_available = run(registry.consume(token["nonce"], ttl_seconds=60))
+    assert still_available is True
+
+
+def test_19c_gate_accepts_a_well_formed_digest_with_matching_evidence_as_control_group():
+    """Control-group companion to 19a/19b: the format check must not reject
+    a well-formed digest that also matches the presented evidence."""
+    signing_key = SigningKey.generate("gw-1")
+    key = _attester_key()
+    att = _valid_attestation(key).to_dict()
+    token = _directly_signed_token_with_claim(signing_key, hash_document(att))
+
+    gate = _gate(signing_key.kid, signing_key.public_key())
+    result = run(gate.verify(token, action=ACTION, payload=FORWARD_CONTEXT, evidence=att, now=NOW))
+    assert result.allowed, result.reason

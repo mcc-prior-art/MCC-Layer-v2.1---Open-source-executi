@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict
 
@@ -20,6 +21,10 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 
 SIGNATURE_FIELD = "sig"
+
+#: The exact format every ``hash_*``/``sha256_hex`` helper in this module
+#: produces: ``sha256:`` followed by exactly 64 lowercase hex characters.
+_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def canonical_bytes(obj: Any) -> bytes:
@@ -52,6 +57,20 @@ def hash_document(document: Dict[str, Any]) -> str:
     ``canonical_bytes`` + ``sha256_hex`` and risking two call sites silently
     drifting into incompatible digest algorithms."""
     return sha256_hex(canonical_bytes(document))
+
+
+def is_valid_digest(value: Any) -> bool:
+    """True iff ``value`` is a well-formed digest string: ``sha256:`` plus
+    exactly 64 lowercase hexadecimal characters -- the exact, and only,
+    format ``sha256_hex``/``hash_payload``/``hash_action``/``hash_document``
+    ever produce. A single shared check, so every boundary that accepts a
+    digest (``DecisionEngine.issue_token``'s ``evidence_digest`` argument,
+    ``ExecutionGate``'s ``evidence_digest`` token claim) enforces identically
+    instead of each writing its own regex and risking two definitions of
+    "well-formed" silently drifting apart. Anything else -- wrong prefix,
+    wrong length, uppercase hex, non-hex characters, or a non-string value
+    entirely -- is rejected; this function never raises."""
+    return isinstance(value, str) and _DIGEST_RE.fullmatch(value) is not None
 
 
 class SigningKey:

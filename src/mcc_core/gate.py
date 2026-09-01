@@ -32,7 +32,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from .core import Verdict
 from .nonce import NonceRegistry
-from .signing import hash_action, hash_document, hash_payload, verify_token
+from .signing import hash_action, hash_document, hash_payload, is_valid_digest, verify_token
 
 
 @dataclass
@@ -175,6 +175,21 @@ class ExecutionGate:
         # never burns the token's one-time nonce.
         token_evidence_digest = token.get("evidence_digest")
         if token_evidence_digest is not None:
+            # Defense-in-depth: DecisionEngine.issue_token already refuses to
+            # sign a malformed evidence_digest, but the Gate does not trust
+            # that every token it ever sees was produced by that exact code
+            # path -- a valid Ed25519 signature only proves the claims were
+            # not tampered with after signing, not that the signer's own
+            # issuance-time validation ran. A well-formed-looking but
+            # otherwise malformed claim (wrong prefix, wrong length,
+            # uppercase/non-hex, or a non-string value) must fail closed here
+            # too, before any evidence artifact is even considered and before
+            # the nonce is consumed.
+            if not is_valid_digest(token_evidence_digest):
+                return GateResult(
+                    False,
+                    "EVIDENCE_INVALID: token's evidence_digest claim is malformed",
+                )
             if evidence is None:
                 return GateResult(
                     False,

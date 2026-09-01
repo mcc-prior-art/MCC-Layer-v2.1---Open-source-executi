@@ -84,8 +84,8 @@ _EXPORTS: dict[str, str] = {
     "VelocityOutcome": "velocity", "velocity_registry_from_env": "velocity",
     # signing (pure — no governance engine)
     "SigningKey": "signing", "canonical_bytes": "signing", "hash_action": "signing",
-    "hash_document": "signing", "hash_payload": "signing", "public_key_from_b64": "signing",
-    "sha256_hex": "signing", "verify_token": "signing",
+    "hash_document": "signing", "hash_payload": "signing", "is_valid_digest": "signing",
+    "public_key_from_b64": "signing", "sha256_hex": "signing", "verify_token": "signing",
 }
 
 __all__ = sorted(_EXPORTS)
@@ -204,6 +204,7 @@ if TYPE_CHECKING:  # help static type-checkers see the re-exported names
         hash_action,
         hash_document,
         hash_payload,
+        is_valid_digest,
         public_key_from_b64,
         sha256_hex,
         verify_token,

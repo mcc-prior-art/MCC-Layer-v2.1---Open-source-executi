@@ -56,6 +56,7 @@ because the two nonce spaces never collide at the key level.
 
 from __future__ import annotations
 
+import copy
 import fnmatch
 import time
 from dataclasses import dataclass, field
@@ -341,6 +342,22 @@ class PreExecutionControl:
                     f"action {action!r} requires a verified pre-execution attestation "
                     f"(evidence_type={requirement.evidence_type!r}); none supplied",
                 )
+
+            # PR-3 TOCTOU fix: snapshot the raw attestation document into a
+            # private copy IMMEDIATELY, before any verification and before the
+            # single ``await`` point below (nonce consumption). ``raw_attestation``
+            # is a caller-supplied mutable dict; without this snapshot, a
+            # concurrent mutation of the caller's original object during that
+            # await could let verify_attestation() (and the claim-policy check)
+            # examine artifact A while evidence_digest ends up derived from a
+            # mutated artifact B -- exactly the "token binds to a different
+            # artifact than the one Control verified" failure MCC-AT-003 exists
+            # to rule out (EBT-DIGEST-003). Every subsequent operation in this
+            # method -- verification, claim inspection, the nonce key, and the
+            # final digest -- reads only this snapshot, never the caller's
+            # original object, so nothing that happens to that object after
+            # this point can change what gets verified or digested.
+            raw_attestation = copy.deepcopy(raw_attestation)
 
             now_i = int(now if now is not None else time.time())
             expected_action_hash = hash_action(action)
