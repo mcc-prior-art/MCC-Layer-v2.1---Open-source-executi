@@ -130,8 +130,12 @@ class FakeRedis:
 
         if script == _RELEASE_LUA:
             now = float(a[0])
+            target_amount, target_dest = a[1], a[2]
             for member, score in z.items():
-                if score == now:
+                if score != now:
+                    continue
+                _id, amt_str, dest_str = member.split(":", 2)
+                if amt_str == target_amount and dest_str == target_dest:
                     del z[member]
                     return 1
             return 0

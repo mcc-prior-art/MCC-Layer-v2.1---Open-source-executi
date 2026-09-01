@@ -129,19 +129,34 @@ return {1, 'ok'}
 """
 
 # Removes exactly one event at this ``now`` -- the one the matching ``reserve``
-# call (same scope, same ``now``) just added. Atomically finds-then-removes so
-# a concurrent reservation landing between a naive find and a naive remove
-# cannot be mistakenly evicted. Idempotent / tolerant: no match is not an
-# error (over-release is a no-op, mirroring the in-memory backend).
+# call (same scope, same ``now``) just added. Correlation is explicit and
+# deterministic, not "the first score match": among every member at this
+# exact ``now``, only one whose encoded amount/destination also matches this
+# release's own descriptor is removed, so a sibling reservation made by a
+# DIFFERENT operation at the identical timestamp -- with a different amount
+# and/or destination -- is never mistakenly evicted (proven by
+# tests/test_velocity.py::test_release_correlates_by_amount_and_destination_not_just_timestamp).
+# Atomically finds-then-removes inside one script so a concurrent reservation
+# landing mid-search cannot race the removal. Idempotent / tolerant: no
+# match is not an error (over-release is a no-op, mirroring the in-memory
+# backend). Among members that are themselves value-identical (same ts,
+# amount, destination -- genuinely fungible units), which one is removed
+# does not affect any future aggregate decision.
 #   KEYS: 1 = the scope's event ZSET
-#   ARGV: 1 = now
+#   ARGV: 1 = now, 2 = amount_repr ('' if this limit doesn't track amount),
+#         3 = destination (hashed, '' if none)
 _RELEASE_LUA = """
 local key = KEYS[1]
 local now = tonumber(ARGV[1])
+local target_amount = ARGV[2]
+local target_dest = ARGV[3]
 local matches = redis.call('ZRANGEBYSCORE', key, now, now)
-if #matches > 0 then
-  redis.call('ZREM', key, matches[1])
-  return 1
+for _, m in ipairs(matches) do
+  local amt_str, dest_str = string.match(m, '^[^:]*:([^:]*):(.*)$')
+  if amt_str == target_amount and dest_str == target_dest then
+    redis.call('ZREM', key, m)
+    return 1
+  end
 end
 return 0
 """
@@ -308,18 +323,33 @@ class InMemoryVelocityRegistry:
         """Undo the single reservation event committed by the matching
         ``reserve`` call for this exact ``(limit, descriptor, now)`` -- used
         to roll back an earlier-reserved dimension when a later dimension in
-        the same operation breaches (coordinator step (d)). Removes the most
-        recently added event with ``ts == now`` (searching from the end):
-        within one ``EnforcementCoordinator.enforce()`` call, ``release`` is
-        invoked, without any intervening ``await``, immediately after the
-        ``reserve`` calls it is undoing and with the identical ``now`` --
-        tolerant no-op if nothing matches (over-release is not an error)."""
+        the same operation breaches (coordinator step (d)).
+
+        Correlation is explicit and deterministic, not "whatever's newest":
+        a candidate event must match on ``ts == now`` AND the same stored
+        ``amount``/``destination`` this exact ``descriptor`` would have
+        contributed (recomputing ``use_amount`` identically to ``reserve``,
+        so a limit that doesn't track amount matches on the same stored
+        ``None`` it wrote, not the caller's raw ``descriptor.amount``).
+        This distinguishes this operation's own reservation from a sibling
+        operation's reservation made at the identical ``now`` with a
+        *different* amount and/or destination -- proven by
+        ``tests/test_velocity.py::test_release_correlates_by_amount_and_destination_not_just_timestamp``.
+        Tolerant no-op if nothing matches (over-release is not an error).
+        Among multiple candidates that are themselves value-identical (same
+        ts, amount, destination -- i.e. genuinely fungible units), which
+        specific one is removed does not affect any future aggregate
+        decision, since they contribute identically to count/sum/destination
+        accounting either way."""
         now = time.monotonic() if now is None else now
         events = self._state.get(limit.scope_key(descriptor, now))
         if not events:
             return True
+        use_amount = limit.max_amount is not None and descriptor.amount is not None
+        target_amount = descriptor.amount if use_amount else None
         for i in range(len(events) - 1, -1, -1):
-            if events[i]["ts"] == now:
+            e = events[i]
+            if e["ts"] == now and e["amount"] == target_amount and e["destination"] == descriptor.destination:
                 events.pop(i)
                 break
         return True
@@ -447,11 +477,21 @@ class RedisVelocityRegistry:
     ) -> bool:
         """Undo one reservation event at this exact ``now`` -- used to roll
         back an earlier-reserved dimension when a later dimension in the same
-        operation breaches. Tolerant: no matching event is not an error."""
+        operation breaches. Correlates explicitly by amount/destination (see
+        ``_RELEASE_LUA``), not just timestamp, so a sibling reservation from a
+        different operation at the identical ``now`` is never evicted by
+        mistake. Tolerant: no matching event is not an error."""
         now = time.time() if now is None else now
+        from . import redis_keys
+
         key = self._namespace + limit.scope_key(descriptor, now) + ":events"
+        use_amount = limit.max_amount is not None and descriptor.amount is not None
+        amount_repr = repr(float(descriptor.amount)) if use_amount else ""
+        dest = redis_keys.hash_component(descriptor.destination) if descriptor.destination is not None else ""
         try:
-            await self._c(self._redis.eval(_RELEASE_LUA, 1, key, repr(float(now))))
+            await self._c(
+                self._redis.eval(_RELEASE_LUA, 1, key, repr(float(now)), amount_repr, dest)
+            )
             return True
         except Exception:
             return False

@@ -7,6 +7,7 @@ fail-closed on registry outage.
 """
 
 import asyncio
+from unittest.mock import patch
 
 import pytest
 
@@ -40,8 +41,12 @@ class VelFakeRedis:
 
         if script == _RELEASE_LUA:
             now = float(a[0])
+            target_amount, target_dest = a[1], a[2]
             for member, score in z.items():
-                if score == now:
+                if score != now:
+                    continue
+                _id, amt_str, dest_str = member.split(":", 2)
+                if amt_str == target_amount and dest_str == target_dest:
                     del z[member]
                     return 1
             return 0
@@ -356,6 +361,83 @@ def test_release_after_sliding_expiry_is_a_safe_tolerant_noop(reg):
     assert fresh.verdict == Verdict.ALLOW
 
 
+@pytest.mark.parametrize("reg", both())
+def test_release_correlates_by_amount_and_destination_not_just_timestamp(reg):
+    """Adversarial review finding: matching a release solely on ``ts == now``
+    is ambiguous whenever >=2 successful reservations share the same scope
+    AND the exact same ``now`` -- exactly the shape every other test in this
+    file already constructs (many pass an identical ``now=`` to multiple
+    calls). Two DIFFERENT operations, X (amount=1000) and Y (amount=8000),
+    both reserve in the same scope at the identical instant. Releasing X
+    must remove X's own contribution and leave Y's completely intact -- not
+    "whichever matched the timestamp first/last" and not "an arbitrary
+    ZRANGEBYSCORE match".
+
+    Proof by exact arithmetic, not by inference: max_amount=10000 is set so
+    that a probe reservation of 2001 only breaches if Y's 8000 is *still*
+    counted (8000 + 2001 = 10001 > 10000); if the wrong reservation had been
+    evicted (Y instead of X, leaving only X's 1000), the identical probe
+    would wrongly ALLOW (1000 + 2001 = 3001 <= 10000). The DENY reason is
+    asserted to name the exact prior sum (8000), not just the verdict.
+    """
+    limit = VelocityLimit(name="amt", window_seconds=60, max_amount=10000,
+                          aggregate_by=("actor",))
+    x = run(reg.reserve(limit, desc(amount=1000, destination="dest-x"), now=5000.0))
+    y = run(reg.reserve(limit, desc(amount=8000, destination="dest-y"), now=5000.0))
+    assert x.ok and y.ok
+
+    # Release X specifically -- same limit/scope, same now, X's own amount
+    # and destination (this is exactly the (limit, descriptor, now) tuple
+    # EnforcementCoordinator._release() would pass back for X's own earlier
+    # reservation, never Y's).
+    released = run(reg.release(limit, desc(amount=1000, destination="dest-x"), now=5000.0))
+    assert released is True
+
+    probe = run(reg.reserve(limit, desc(amount=2001, destination="dest-y"), now=5000.0))
+    assert probe.verdict == Verdict.DENY, (
+        "Y's 8000 must still be counted after releasing X -- a DENY here "
+        "proves X (not Y) was the reservation actually removed"
+    )
+    assert "10001" in probe.reason and "10000" in probe.reason, (
+        f"expected the exact prior sum (8000) + probe (2001) = 10001 in the "
+        f"breach reason, got: {probe.reason!r}"
+    )
+
+
+@pytest.mark.parametrize("reg", both())
+def test_release_correlation_preserves_exact_count_amount_and_destination_state(reg):
+    """The same same-timestamp-disambiguation proof, but exercising all
+    three velocity dimensions (count, cumulative amount, distinct
+    destinations) together on one combined limit -- release must correlate
+    correctly for each simultaneously, not just amount in isolation."""
+    limit = VelocityLimit(name="combo", window_seconds=60, max_count=5,
+                          max_amount=10000, max_new_destinations=5,
+                          aggregate_by=("actor",))
+    x = run(reg.reserve(limit, desc(amount=1000, destination="dest-x"), now=5000.0))
+    y = run(reg.reserve(limit, desc(amount=8000, destination="dest-y"), now=5000.0))
+    assert x.ok and y.ok  # count=2, sum=9000, dests={x, y}
+
+    released = run(reg.release(limit, desc(amount=1000, destination="dest-x"), now=5000.0))
+    assert released is True
+    # Expected surviving state: count=1 (Y only), sum=8000, dests={dest-y}.
+
+    # A probe reusing Y's destination (not new) with an amount that only
+    # breaches if Y's 8000 remains counted -- proves sum AND destination
+    # membership were both correctly preserved, not corrupted by the release.
+    probe = run(reg.reserve(limit, desc(amount=2001, destination="dest-y"), now=5000.0))
+    assert probe.verdict == Verdict.DENY
+    assert "count" not in probe.reason  # count (2 -> 3) never approached max_count=5
+    assert "new destinations" not in probe.reason  # dest-y is a repeat, not new
+    assert "10001" in probe.reason  # exactly 8000 (Y, surviving) + 2001, not 1000 + 2001
+
+    # A second, independent probe (fresh destination, small amount) confirms
+    # the surviving count is exactly 1 (Y), not 0 or 2: two more reservations
+    # fit under max_count=5 starting from count=1, and max_new_destinations=5
+    # is not exceeded by adding one genuinely new destination.
+    probe2 = run(reg.reserve(limit, desc(amount=1, destination="dest-z"), now=5000.0))
+    assert probe2.ok
+
+
 # ---- Configurable outcome ----
 
 @pytest.mark.parametrize("reg", both())
@@ -432,3 +514,117 @@ def test_negative_amount_cannot_reduce_aggregate():
     assert not run(reg.reserve(limit, desc_bad)).ok        # rejected, sum unchanged
     # A legitimate 20 would still cross 100 (proves the -50 did not apply).
     assert not run(reg.reserve(limit, VelocityDescriptor(dimensions={"actor": "a"}, amount=20.0))).ok
+
+
+# ---- Distributed time semantics -------------------------------------------
+#
+# Adversarial review question: can InMemoryVelocityRegistry's default clock
+# (time.monotonic(), whose reference point is arbitrary and NOT comparable
+# across processes/hosts) leak into RedisVelocityRegistry -- the ONE backend
+# actually shared across multiple MCC-Core instances/hosts -- and cause
+# sliding-window timestamps to be computed on non-comparable clock origins?
+#
+# The two registries are architecturally separate classes with independent
+# ``now`` resolution; RedisVelocityRegistry's own default is time.time()
+# (wall-clock, epoch-based, the standard NTP-comparable source distributed
+# systems already rely on for anything sharing state across hosts -- Redis's
+# own key expiry is wall-clock based too). Nothing threads a monotonic value
+# into it: every production call site (EnforcementCoordinator.enforce, and
+# every caller of it -- gateway/governance_service.py,
+# interceptors/egress_proxy.py, main.py) omits ``now=`` entirely, so each
+# registry always resolves its OWN appropriate default independently. This
+# is the same client-wall-clock trust assumption the pre-existing
+# fixed-window design already relied on (its bucket formula also used
+# whichever clock the active backend defaulted to) -- the sliding-window fix
+# does not introduce a new distributed-clock dependency.
+#
+# InMemoryVelocityRegistry is documented and used single-process-only (never
+# shared across hosts), so time.monotonic()'s non-comparability across hosts
+# does not apply to it as a matter of that registry's own design contract.
+
+def test_redis_registry_default_clock_is_wall_clock_not_monotonic():
+    """RedisVelocityRegistry.reserve()/release() must resolve their default
+    ``now`` from time.time() (wall-clock, cross-host comparable), never from
+    time.monotonic() (arbitrary per-process/per-host reference point) --
+    proven by patching each clock to a distinguishable sentinel and checking
+    which one the committed ZSET score actually reflects."""
+    fake = VelFakeRedis()
+    reg = RedisVelocityRegistry(fake)
+    limit = VelocityLimit(name="amt", window_seconds=60, max_amount=10000, aggregate_by=("actor",))
+
+    wall_clock_sentinel = 1_800_000_000.0
+    monotonic_sentinel = 12_345.0  # a small, obviously-not-wall-clock value
+    with patch("time.time", return_value=wall_clock_sentinel), \
+         patch("time.monotonic", return_value=monotonic_sentinel):
+        out = run(reg.reserve(limit, desc(amount=100)))  # now= omitted -> default
+    assert out.ok
+
+    (zset,) = fake.zsets.values()
+    (score,) = zset.values()
+    assert score == wall_clock_sentinel, (
+        f"RedisVelocityRegistry committed a ZSET score of {score}, expected "
+        f"the wall-clock sentinel {wall_clock_sentinel} (time.time()) -- if "
+        f"this fires, the Redis-backed, multi-host-shared registry defaulted "
+        f"to a non-comparable clock (time.monotonic())"
+    )
+
+
+def test_inmemory_registry_default_clock_is_monotonic_by_documented_design():
+    """The mirror image of the test above: InMemoryVelocityRegistry -- which
+    is single-process-only by contract, never shared across hosts -- is
+    documented to default to time.monotonic(). This test pins that choice so
+    a future change can't silently make the two registries' default-clock
+    behavior diverge from what's documented without a visible test failure."""
+    reg = InMemoryVelocityRegistry()
+    limit = VelocityLimit(name="amt", window_seconds=60, max_amount=10000, aggregate_by=("actor",))
+
+    wall_clock_sentinel = 1_800_000_000.0
+    monotonic_sentinel = 12_345.0
+    with patch("time.time", return_value=wall_clock_sentinel), \
+         patch("time.monotonic", return_value=monotonic_sentinel):
+        out = run(reg.reserve(limit, desc(amount=100)))  # now= omitted -> default
+    assert out.ok
+
+    (events,) = reg._state.values()
+    (event,) = events
+    assert event["ts"] == monotonic_sentinel
+
+
+def test_no_production_call_site_passes_an_explicit_now_to_velocity_reserve():
+    """Call-path evidence for the distributed-time-semantics review: every
+    production caller of EnforcementCoordinator.enforce() -- which is the
+    only path that reaches velocity.reserve()/release() -- omits ``now``
+    entirely, so each registry always resolves its own appropriate default
+    independently (time.time() for the shared Redis backend, time.monotonic()
+    for the single-process-only in-memory backend). If a future change starts
+    explicitly threading a caller-computed timestamp through, this static
+    check catches it so the distributed-clock assumption above gets
+    re-reviewed rather than silently regressing."""
+    import ast
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    call_sites = [
+        root / "gateway" / "governance_service.py",
+        root / "interceptors" / "egress_proxy.py",
+        root / "main.py",
+    ]
+    found_enforce_call = False
+    for path in call_sites:
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                func = node.func
+                attr = getattr(func, "attr", None)
+                if attr == "enforce":
+                    found_enforce_call = True
+                    kwnames = {kw.arg for kw in node.keywords}
+                    assert "now" not in kwnames, (
+                        f"{path}: a call to .enforce() now passes an explicit "
+                        f"now= -- re-review the distributed-clock assumption "
+                        f"in RedisVelocityRegistry before this ships"
+                    )
+    assert found_enforce_call, (
+        "no .enforce() call site found in the expected files -- this guard "
+        "would pass vacuously; update it to look at the new call site(s)"
+    )
