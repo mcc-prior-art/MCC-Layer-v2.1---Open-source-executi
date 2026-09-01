@@ -224,11 +224,27 @@ introduces no change to it — the Independent Attester Service is simply a new
 kind of *producer* of the attestations that trust configuration verifies.
 
 **AIS-KEY-003.** The service-to-service authentication secret (§7) MUST be a
-value entirely distinct from the Attester's private signing key. Compromising
-one MUST NOT compromise the other. A conforming implementation MUST refuse
-to start if the two are configured to the same value or if the auth secret
-falls below a minimum length floor (reference implementation: 16 characters;
-see `config.MIN_AUTH_SECRET_LENGTH`).
+value entirely distinct from the Attester's private signing key: it
+authenticates HTTP callers to this service's `/attest` endpoint and carries
+no cryptographic relationship whatsoever to the Ed25519 key that signs
+attestations — the two are different security mechanisms, with no shared
+derivation, occupying different fields in configuration.
+
+`mcc_core.signing.SigningKey` deliberately never exposes the private key as
+a comparable plaintext value (MCC-AT-001's `attester.py`: "nothing...
+exposes, logs, or serializes the private key"), so a literal
+auth-secret-vs-private-key string-equality check is neither meaningful nor
+implementable without adding a private-key-exposing accessor purely to
+support it — a conforming implementation MUST NOT add such an accessor. What
+IS meaningfully checkable, and MUST be enforced, is the one "key-shaped"
+string genuinely comparable to the auth secret in this design: the
+Attester's PUBLIC key value (`SigningKey.public_key_b64()`). A conforming
+implementation MUST refuse to start if the configured auth secret equals the
+Attester's public key value — a real, plausible misconfiguration (pasting a
+printed public key into the auth-secret field by mistake) that this check
+catches, fail-closed. A conforming implementation MUST also refuse to start
+if the auth secret falls below a minimum length floor (reference
+implementation: 16 characters; see `config.MIN_AUTH_SECRET_LENGTH`).
 
 **AIS-KEY-004.** The service MUST NOT silently generate a signing key when
 none is configured. Missing or malformed key configuration MUST cause the

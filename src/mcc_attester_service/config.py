@@ -66,6 +66,25 @@ class AttesterServiceConfig:
                 f"service-to-service authentication secret, and it MUST be "
                 f"distinct from the Attester's Ed25519 signing key"
             )
+        # AIS-KEY-003: mcc_core.signing.SigningKey deliberately never exposes
+        # the private key as a comparable plaintext value (see
+        # mcc_attestation/attester.py: "nothing... exposes, logs, or
+        # serializes the private key"), so a literal auth_secret-vs-private-
+        # key equality check is neither meaningful nor implementable without
+        # adding a private-key-exposing accessor purely to support it -- that
+        # would be a strictly worse trade. What IS meaningfully checkable,
+        # and is checked here, is the one "key-shaped" string genuinely
+        # comparable to auth_secret in this design: the Attester's PUBLIC
+        # key value. A real, plausible misconfiguration -- pasting the
+        # printed public key into MCC_ATTESTER_SERVICE_AUTH_SECRET by
+        # mistake -- is caught and refused, fail-closed.
+        if self.auth_secret == self.signing_key.public_key_b64():
+            raise AttesterServiceConfigError(
+                "auth_secret must not equal the Attester's public key value "
+                "-- this usually indicates the wrong value was pasted into "
+                "MCC_ATTESTER_SERVICE_AUTH_SECRET (e.g. the printed public "
+                "key instead of a genuine, independently generated secret)"
+            )
         if not self.scope_template:
             raise AttesterServiceConfigError("scope_template must be non-empty")
         if not isinstance(self.validity_seconds, int) or isinstance(self.validity_seconds, bool):

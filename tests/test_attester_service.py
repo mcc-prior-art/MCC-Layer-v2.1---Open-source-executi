@@ -259,6 +259,31 @@ def test_e_config_loader_never_silently_generates_a_key(tmp_path):
         attester_service_config_from_env(env)
 
 
+def test_e_auth_secret_equal_to_the_public_key_value_fails_closed():
+    """AIS-KEY-003: the one 'key-shaped' string genuinely comparable to
+    auth_secret in this design is the Attester's PUBLIC key value -- a
+    plausible copy-paste misconfiguration. A literal comparison against the
+    PRIVATE key is not implementable (SigningKey never exposes it as a
+    plaintext value) and is not what this guards against."""
+    key = _key()
+    with pytest.raises(AttesterServiceConfigError):
+        AttesterServiceConfig(
+            attester_id="attester.payment-risk.v1", signing_key=key,
+            auth_secret=key.public_key_b64(), scope_template=SCOPE_TEMPLATE,
+            validity_seconds=300,
+        )
+
+
+def test_e_auth_secret_distinct_from_public_key_value_succeeds():
+    key = _key()
+    config = AttesterServiceConfig(
+        attester_id="attester.payment-risk.v1", signing_key=key,
+        auth_secret=AUTH_SECRET, scope_template=SCOPE_TEMPLATE, validity_seconds=300,
+    )
+    assert config.auth_secret == AUTH_SECRET
+    assert config.auth_secret != key.public_key_b64()
+
+
 def test_e_a_valid_pem_key_file_loads_successfully(tmp_path):
     private_key = Ed25519PrivateKey.generate()
     path = _pem_path(tmp_path, private_key)
