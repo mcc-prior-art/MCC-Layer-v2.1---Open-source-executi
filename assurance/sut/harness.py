@@ -540,7 +540,8 @@ def _generate_trust_config(evaluators) -> str:
 
 def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
                              max_amount: Optional[int] = None,
-                             require_consensus: bool = True) -> SystemUnderTest:
+                             require_consensus: bool = True,
+                             extra_env: Optional[Dict[str, str]] = None) -> SystemUnderTest:
     """Boot the three real subprocesses and return a live SystemUnderTest.
     Caller is responsible for ``.close()`` (or use as a context manager).
 
@@ -565,7 +566,16 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
     here, exactly mirroring how the existing ``tests/test_mandate_http.py``
     constructs its own coordinator (``EnforcementCoordinator``'s default is
     already ``require_consensus=False``) -- a legitimate, precedented
-    alternative deployment topology, not a workaround."""
+    alternative deployment topology, not a workaround.
+
+    ``extra_env`` (PR-5): additional environment variables merged into the
+    Gateway subprocess's env, on top of (never overriding) the mandate-trust
+    and consensus/challenge variables this function already sets --
+    currently used only by ``assurance.sut.attestation_harness`` to wire
+    ``MCC_ATTESTATION_REQUIREMENTS_CONFIG``/``MCC_ATTESTATION_TRUST_CONFIG``
+    (PR-2's own, unmodified env-driven Control wiring). ``None`` (the
+    default) is byte-for-byte the pre-PR-5 behavior for every existing
+    caller."""
     from mcc_core.signing import SigningKey
 
     tmpdir = tempfile.mkdtemp(prefix="mcc-assurance-")
@@ -617,6 +627,8 @@ def build_system_under_test(*, n_evaluators: int = 3, threshold: int = 3,
         # never supplies consensus evidence.
         gateway_extra_env["MCC_REQUIRE_CONSENSUS"] = "0"
         gateway_extra_env["MCC_REQUIRE_CHALLENGE"] = "0"
+    if extra_env:
+        gateway_extra_env.update(extra_env)
     gw = SharedGovernedGateway(n_evaluators=n_evaluators, threshold=threshold,
                                 extra_env=gateway_extra_env)
 

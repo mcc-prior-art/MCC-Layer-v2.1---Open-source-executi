@@ -70,16 +70,23 @@ make verify-assurance
 This runs, in order, and fails immediately if any stage fails:
 
 1. `make independent-assurance` — every workstream test module under
-   `assurance/tests/` (Workstreams A-K + the negative control), against a
-   real, locally-provisioned three-process deployment (Gateway, `egress_proxy`
-   actuator, mock external-effect sink). Writes a signed evidence bundle to
+   `assurance/tests/` (Workstreams A-K + the negative control, plus PR-5's
+   `test_attestation_chain.py` and `test_attestation_negative_control.py`,
+   covering the PR-1->4 attestation-to-execution chain the original
+   Workstreams A-K predate), against a real, locally-provisioned
+   deployment (Gateway, `egress_proxy` actuator, mock external-effect
+   sink, and, for the PR-5 modules, a real Independent Attester Service
+   process). Writes a signed evidence bundle to
    `artifacts/independent-assurance` (git-ignored).
 2. `model/run_tlc.sh` — exhaustive, bounded TLA+ model checking of
    `model/MCCExecutionStateMachine.tla` against every `INVARIANT`/`PROPERTY`
    in `model/MCCExecutionStateMachine.cfg` (the default, small configuration:
-   720 states).
+   720 states), followed by `model/AttestationEvidenceBinding.tla` (PR-5's
+   extension, modeling the evidence-verification/binding/Gate-check chain
+   the first spec predates) against its own `.cfg` (41 states).
 3. `make mutation-test` — runs every `Defect` in `mutation/defects.py`
-   (26 entries) through `mutation/harness.py`: each is applied to an
+   (38 entries: the original 26, plus 12 added by PR-5 for the PR-1->4
+   attestation chain) through `mutation/harness.py`: each is applied to an
    isolated copy of the repository and a real pytest subprocess proves the
    named detector test(s) actually catch it.
 
@@ -106,9 +113,9 @@ whichever stage failed.
   paths run for real, unskipped, in CI.
 - `model/run_tlc.sh` exits `0` and prints TLC's own "Model checking
   completed. No error has been found." for every checked `INVARIANT`/
-  `PROPERTY`.
+  `PROPERTY`, for BOTH specs it now runs in sequence.
 - `make mutation-test` exits `0` and prints
-  `"total": 26, "detected": 26, "mutation_score": 1.0, "survived_defect_ids": []`.
+  `"total": 38, "detected": 38, "mutation_score": 1.0, "survived_defect_ids": []`.
 - `make verify-assurance` prints `== verify-assurance: PASS ==` and exits
   `0`; `git status --short` is empty both before and after the whole run.
 
@@ -149,6 +156,14 @@ Read that sentence twice. Specifically:
   procedure supports.
 
 ## The 24 documented gate-bypass attempts
+
+This list (Workstreams A/C, PR #71) predates PR-1 through PR-4 and does not
+cover the attestation-to-execution chain those PRs added — see
+`docs/ATTESTATION_INDEPENDENT_ASSURANCE.md` for the equivalent,
+independently-numbered set of adversarial attempts against THAT chain
+(forged/tampered/mis-bound/stale/replayed attestations, evidence
+substitution, and the Independent Attester Service's own trust boundary),
+which uses the identical dual-oracle pass condition described below.
 
 Definition used: a test that attempts to execute an action without a valid
 ALLOW-equivalent authorization — forged signature, replayed
@@ -219,7 +234,7 @@ if you see it stated elsewhere.
 
 ## The mutation corpus
 
-Path: **`mutation/defects.py`** — 26 `Defect` entries (a frozen dataclass:
+Path: **`mutation/defects.py`** — 38 `Defect` entries (a frozen dataclass:
 `id`, `description`, `file_path`, `find`, `replace`, `detector_tests`), run
 by `mutation/harness.py` against an isolated repository copy per mutant, via
 real `pytest` subprocesses. `python -m mutation` (what `make mutation-test`
@@ -276,8 +291,8 @@ PYTHONPATH=. python -m mutation --output report.json      # also write the full 
 
 ```json
 {
-  "total": 26,
-  "detected": 26,
+  "total": 38,
+  "detected": 38,
   "mutation_score": 1.0,
   "survived_defect_ids": []
 }

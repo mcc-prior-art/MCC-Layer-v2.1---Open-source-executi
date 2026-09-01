@@ -1,6 +1,9 @@
-"""Twenty-six targeted, hand-authored security-critical mutations (PR #71,
+"""Thirty-eight targeted, hand-authored security-critical mutations (PR #71,
 Workstream J; extended post-merge-review to close a disclosed mutation-
-testing gap -- see the ``gate-*-fail-open`` block below).
+testing gap -- see the ``gate-*-fail-open`` block below; extended again by
+PR-5 to cover the PR-1->4 attestation-to-execution chain, which the
+original 26 entirely predate -- see the trailing block below that and
+``docs/ATTESTATION_INDEPENDENT_ASSURANCE.md``'s gap matrix).
 
 Unlike generic mutation testing (which mutates arbitrary operators across a
 whole codebase and requires heavy tuning to separate meaningful mutants
@@ -296,12 +299,127 @@ DEFECTS: List[Defect] = [
         detector_tests=("tests/test_mcc_core.py::test_gate_denies_replayed_nonce",
                          "tests/test_mcc_core.py::test_gate_fail_closed_when_redis_down"),
     ),
+
+    # -- PR-5: twelve targeted defects closing the PR-1->4 attestation-to- --
+    # -- execution chain gap the original 26 (all pre-dating PR-1) leave --
+    # -- entirely uncovered. See docs/ATTESTATION_INDEPENDENT_ASSURANCE.md --
+    # -- for the full gap matrix. Each targets one named security-critical --
+    # -- decision from the PR-5 task specification's own candidate list. --
+
+    Defect(
+        id="attester-trust-check-disabled",
+        description="MCC-AT-001 verifier no longer resolves the attester's (attester_id, kid) against the trust store -- any attester, trusted or not, is accepted.",
+        file_path="src/mcc_attestation/verifier.py",
+        find="        if anchor is None:",
+        replace="        if False:  # MUTATED: attester trust check disabled",
+        detector_tests=("assurance/tests/test_attestation_chain.py::test_a1_forged_attestation_untrusted_key_blocked_no_actuation",),
+    ),
+    Defect(
+        id="attester-signature-verification-disabled",
+        description="MCC-AT-001 verifier no longer checks the attestation's Ed25519 signature -- a forged/tampered attestation is accepted.",
+        file_path="src/mcc_attestation/verifier.py",
+        find="        if not verify_token(attestation.to_dict(), anchor.public_key):",
+        replace="        if False:  # MUTATED: attestation signature check disabled",
+        # NOTE: assurance/tests/test_attestation_chain.py::test_a2 (a claims
+        # tamper) does NOT isolate this defect -- Control's SEPARATE claim-
+        # policy check still rejects a claims tamper even with signature
+        # verification fully disabled, so that E2E test alone would let this
+        # mutant survive (confirmed by direct verification before this
+        # detector was finalized). tests/test_mcc_attestation.py's own
+        # PR-1 unit test asserts the SPECIFIC "signature_verification"
+        # named check's status directly, at the pure verifier boundary,
+        # unaffected by any Control-layer check -- the correct, precise
+        # detector for this exact defect.
+        detector_tests=("tests/test_mcc_attestation.py::test_03_forged_signature_is_invalid",),
+    ),
+    Defect(
+        id="attestation-action-binding-disabled",
+        description="MCC-AT-001 verifier no longer checks the attestation's action_hash -- evidence for one action authorizes any other.",
+        file_path="src/mcc_attestation/verifier.py",
+        find="        if attestation.action_hash != expected_action_hash:",
+        replace="        if False:  # MUTATED: action binding check disabled",
+        detector_tests=("assurance/tests/test_attestation_chain.py::test_b_wrong_action_binding_blocked_no_actuation",),
+    ),
+    Defect(
+        id="attestation-payload-binding-disabled",
+        description="MCC-AT-001 verifier no longer checks the attestation's payload_hash -- evidence for one payload authorizes a mutated one.",
+        file_path="src/mcc_attestation/verifier.py",
+        find="            if attestation.payload_hash != expected_payload_hash:",
+        replace="            if False:  # MUTATED: payload binding check disabled",
+        detector_tests=("assurance/tests/test_attestation_chain.py::test_c_wrong_payload_binding_blocked_no_actuation",),
+    ),
+    Defect(
+        id="attestation-scope-binding-disabled",
+        description="MCC-AT-001 verifier no longer checks the attestation's scope -- evidence valid for one trusted scope is reusable for another.",
+        file_path="src/mcc_attestation/verifier.py",
+        find="        if attestation.scope != expected_scope:",
+        replace="        if False:  # MUTATED: scope binding check disabled",
+        detector_tests=("assurance/tests/test_attestation_chain.py::test_d_wrong_scope_blocked_no_actuation",),
+    ),
+    Defect(
+        id="attestation-expiry-check-disabled",
+        description="MCC-AT-001 verifier no longer checks whether the attestation has expired -- stale evidence is accepted indefinitely.",
+        file_path="src/mcc_attestation/verifier.py",
+        find="        if now >= attestation.expires_at:",
+        replace="        if False:  # MUTATED: expiry check disabled",
+        detector_tests=("assurance/tests/test_attestation_chain.py::test_f_expired_evidence_blocked_no_actuation",),
+    ),
+    Defect(
+        id="attestation-replay-consumption-ignored",
+        description="PreExecutionControl no longer fails closed when the attestation nonce registry reports the nonce already consumed -- the same attestation authorizes execution twice.",
+        file_path="gateway/pre_execution_control.py",
+        find="            if not consumed:",
+        replace="            if False:  # MUTATED: attestation replay check disabled",
+        detector_tests=("assurance/tests/test_attestation_chain.py::test_g_attestation_replay_second_use_blocked",),
+    ),
+    Defect(
+        id="evidence-digest-computed-from-caller-object-not-snapshot",
+        description="PreExecutionControl reverts the PR-3 TOCTOU fix: derives evidence_digest from the caller-supplied (mutable, potentially concurrently-mutated) object instead of a private snapshot taken before verification.",
+        file_path="gateway/pre_execution_control.py",
+        find="            raw_attestation = copy.deepcopy(raw_attestation)",
+        replace="            raw_attestation = raw_attestation  # MUTATED: TOCTOU snapshot removed",
+        detector_tests=("tests/test_evidence_bound_execution_ticket.py::test_17_toctou_concurrent_mutation_during_nonce_consume_cannot_bind_mutated_artifact",),
+    ),
+    Defect(
+        id="evidence-digest-omitted-from-issued-token",
+        description="DecisionEngine.issue_token never binds evidence_digest into the signed token even when Control supplied one -- PR-3's evidence-bound execution ticket silently reverts to an unbound token.",
+        file_path="src/mcc_core/core.py",
+        find="        if evidence_digest is not None:",
+        replace="        if False:  # MUTATED: evidence_digest never bound into the token",
+        detector_tests=("tests/test_evidence_bound_execution_ticket.py::test_06a_issued_token_carries_the_exact_evidence_digest",),
+    ),
+    Defect(
+        id="gate-evidence-digest-mismatch-ignored",
+        description="ExecutionGate no longer rejects an evidence artifact whose digest does not match the token's bound evidence_digest -- a substituted or mutated artifact is accepted.",
+        file_path="src/mcc_core/gate.py",
+        find="            if computed_digest != token_evidence_digest:",
+        replace="            if False:  # MUTATED: evidence digest mismatch ignored",
+        detector_tests=("tests/test_evidence_bound_execution_ticket.py::test_09_gate_denies_evidence_substitution_even_when_independently_valid",
+                         "tests/test_evidence_bound_execution_ticket.py::test_10_gate_denies_mutated_evidence"),
+    ),
+    Defect(
+        id="attester-service-caller-controlled-field-permitted",
+        description="The Independent Attester Service's request schema no longer rejects unknown/bypass-shaped fields -- a caller can attach self-declared trusted output (claims, sig, verified, ...) to the request.",
+        file_path="src/mcc_attester_service/app.py",
+        find='    model_config = ConfigDict(extra="forbid")',
+        replace='    model_config = ConfigDict(extra="allow")  # MUTATED: caller-controlled fields permitted',
+        detector_tests=("tests/test_attester_service.py::test_b_caller_cannot_supply_a_bypass_shaped_field",),
+    ),
+    Defect(
+        id="attester-service-unauthenticated-call-permitted",
+        description="The Independent Attester Service's service-to-service auth check is disabled -- any caller, authenticated or not, reaches the assessment provider and signer.",
+        file_path="src/mcc_attester_service/app.py",
+        find="        if not x_attester_auth or not secrets.compare_digest(x_attester_auth, auth_secret):",
+        replace="        if False:  # MUTATED: auth check disabled",
+        detector_tests=("tests/test_attester_service.py::test_g_missing_auth_header_rejected_before_provider_is_called",
+                         "tests/test_attester_service.py::test_g_wrong_auth_header_rejected_before_provider_is_called"),
+    ),
 ]
 
 DEFECT_IDS = tuple(d.id for d in DEFECTS)
 
-assert len(DEFECT_IDS) == 26, f"expected exactly 26 targeted defects, found {len(DEFECT_IDS)}"
-assert len(set(DEFECT_IDS)) == 26, "defect ids must be unique"
+assert len(DEFECT_IDS) == 38, f"expected exactly 38 targeted defects, found {len(DEFECT_IDS)}"
+assert len(set(DEFECT_IDS)) == 38, "defect ids must be unique"
 
 GATE_FAIL_OPEN_DEFECT_IDS = tuple(d.id for d in DEFECTS if d.id == "gate-fail-open" or d.id.startswith("gate-") and d.id.endswith("-fail-open"))
 assert len(GATE_FAIL_OPEN_DEFECT_IDS) == 14, (
