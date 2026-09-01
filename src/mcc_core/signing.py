@@ -41,6 +41,19 @@ def hash_action(action: str) -> str:
     return sha256_hex(action.encode("utf-8"))
 
 
+def hash_document(document: Dict[str, Any]) -> str:
+    """Deterministic digest of an arbitrary complete canonical JSON document
+    (e.g. a whole signed artifact, not just an action payload) -- the same
+    canonicalize-then-SHA-256 primitive ``hash_payload`` uses, named
+    generically so unrelated callers that need to digest a full document
+    (e.g. PR-3's evidence-bound execution ticket, binding a complete signed
+    ``EvidenceAttestation`` into a decision token) share one hashing
+    implementation instead of each reimplementing
+    ``canonical_bytes`` + ``sha256_hex`` and risking two call sites silently
+    drifting into incompatible digest algorithms."""
+    return sha256_hex(canonical_bytes(document))
+
+
 class SigningKey:
     """Ed25519 signing key bound to a key ID."""
 

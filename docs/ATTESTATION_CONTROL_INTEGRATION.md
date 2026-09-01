@@ -7,6 +7,14 @@ after PR-2. See `specs/MCC-AT-002.md` for the normative specification and
 `docs/ATTESTATION_ARCHITECTURE.md` for the PR-1 EvidenceAttestation
 foundation this integration builds on (unchanged by PR-2).
 
+PR-3 (`specs/MCC-AT-003.md`) extends what is described here: it binds the
+exact `evidence_digest` this document's `PreExecutionControl.evaluate()`
+already derives (§4 below, MCC-AT-002 §5 step 7's successful result) into
+the decision token itself, and adds the corresponding enforcement check to
+`ExecutionGate`. Nothing in this document's description of
+`PreExecutionControl`'s own decision logic changes — see §7 below for what
+PR-3 specifically closes.
+
 ## 1. What PR-2 adds
 
 PR-1 built an independent, standalone Attester boundary: a versioned,
@@ -191,23 +199,32 @@ validate the schema and delegate to `GovernanceService`. All attestation
 policy interpretation lives in `PreExecutionControl`, never in a FastAPI
 handler.
 
-## 7. Known limitation carried forward from PR-1
+## 7. Known limitation carried forward from PR-1 — closed by PR-3
 
-After PR-2, `PreExecutionControl` proves that a required attestation was
-valid **at decision-token issuance time**. Until a future PR (anticipated:
-the Evidence-Bound Execution Ticket) extends the decision-token schema
-itself:
+After PR-2, `PreExecutionControl` proved that a required attestation was
+valid **at decision-token issuance time**, but the issued token itself
+carried no cryptographic record of *which* attestation gated it — a party
+inspecting only the token could not independently confirm attestation
+occurred; that fact was provable only from the audit trail at issuance time.
 
-- the issued token carries no cryptographic evidence digest — a party
-  inspecting only the token cannot independently confirm attestation
-  occurred; that fact is provable only from the audit trail at issuance
-  time;
-- `ExecutionGate` does not independently re-check Attester revocation or
-  re-verify evidence at actuation time; a trust anchor revoked *after* a
-  token was validly issued does not retroactively invalidate that token.
+**PR-3 closes this.** `PreExecutionControl.evaluate()`'s successful,
+required-and-verified result (§4/§5 above, MCC-AT-002 §5 step 7) now also
+yields `evidence_digest = hash_document(raw_attestation)` — the same
+canonicalize-then-SHA-256 primitive used elsewhere in this codebase — which
+`GovernanceService` passes into `DecisionEngine.issue_token()` as a new,
+signature-covered claim. `ExecutionGate` then requires the exact evidence
+artifact to be presented and to hash to that identical digest before it will
+consume the token's nonce (evidence binding is checked and can fail closed
+*before* nonce consumption, so a wrong or missing artifact never burns the
+token). See `specs/MCC-AT-003.md` for the full normative specification.
 
-This is documented explicitly, not hidden, in `specs/MCC-AT-002.md` §11 and
-§9 (PR-3 Boundary).
+One part of the original limitation remains, unchanged by PR-3:
+`ExecutionGate` still does not independently re-check Attester revocation or
+re-verify evidence *semantics* at actuation time (it checks only that the
+presented artifact is byte-identical, under canonicalization, to the one
+Control already verified) — a trust anchor revoked *after* a token was
+validly issued does not retroactively invalidate that token. This is
+documented in `specs/MCC-AT-003.md` §11 (Known Limitations).
 
 ## 8. Reference implementation and conformance evidence
 
@@ -231,4 +248,6 @@ This is documented explicitly, not hidden, in `specs/MCC-AT-002.md` §11 and
   attestation gate; no LLM/model/agent-framework dependency in the Control
   path; no bypass-shaped schema field.
 
-See `specs/MCC-AT-002.md` for the full normative specification.
+See `specs/MCC-AT-002.md` for the full normative specification of what is
+described in this document, and `specs/MCC-AT-003.md` for the
+Evidence-Bound Execution Ticket that extends it (§7 above).

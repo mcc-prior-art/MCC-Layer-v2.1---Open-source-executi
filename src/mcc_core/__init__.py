@@ -84,7 +84,7 @@ _EXPORTS: dict[str, str] = {
     "VelocityOutcome": "velocity", "velocity_registry_from_env": "velocity",
     # signing (pure — no governance engine)
     "SigningKey": "signing", "canonical_bytes": "signing", "hash_action": "signing",
-    "hash_payload": "signing", "public_key_from_b64": "signing",
+    "hash_document": "signing", "hash_payload": "signing", "public_key_from_b64": "signing",
     "sha256_hex": "signing", "verify_token": "signing",
 }
 
@@ -202,6 +202,7 @@ if TYPE_CHECKING:  # help static type-checkers see the re-exported names
         SigningKey,
         canonical_bytes,
         hash_action,
+        hash_document,
         hash_payload,
         public_key_from_b64,
         sha256_hex,

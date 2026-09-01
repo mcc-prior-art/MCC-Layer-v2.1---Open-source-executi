@@ -68,6 +68,7 @@ class DecisionEngine:
         resource_id: Optional[str] = None,
         auth_claims: Optional[Dict[str, Any]] = None,
         mandate_id: Optional[str] = None,
+        evidence_digest: Optional[str] = None,
     ) -> Dict[str, Any]:
         verdict = Verdict(verdict)
         if verdict not in EXECUTABLE_VERDICTS:
@@ -107,4 +108,16 @@ class DecisionEngine:
             # for audit and actuation-time revocation re-checks.
             "mandate_id": mandate_id,
         }
+        # PR-3: Evidence-Bound Execution Ticket. A first-class,
+        # signature-covered claim -- deliberately NOT folded into the
+        # caller-controlled ``auth_claims`` map -- binding this token to the
+        # exact complete signed EvidenceAttestation Control verified before
+        # issuance (mcc_core.signing.hash_document over that document,
+        # "sha256:<64 lowercase hex>"). Omitted entirely (not merely null)
+        # for legacy/non-attested issuance, so a token issued for an action
+        # with no configured AttestationRequirement is byte-for-byte
+        # unaffected: existing behavior is unchanged. This is never a
+        # semantic claim -- ExecutionGate compares only the digest.
+        if evidence_digest is not None:
+            claims["evidence_digest"] = evidence_digest
         return self.signing_key.sign_token(claims)

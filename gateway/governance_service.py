@@ -100,23 +100,33 @@ class GovernanceService:
     async def _attestation_gate(
         self, *, action: str, forward_context: Dict[str, Any], resource: Optional[str],
         attestation: Optional[Dict[str, Any]],
-    ):
-        """Shared PR-2 gate: returns ``None`` when issuance may proceed, or an
-        ``ExecOutcome`` (BLOCKED) to return immediately without ever calling
-        ``DecisionEngine.issue_token``. A no-op (returns ``None``) when no
-        Control boundary is configured, or when the action has no configured
-        AttestationRequirement -- both preserve exact pre-PR-2 behavior."""
+    ) -> "tuple[Optional[ExecOutcome], Optional[str]]":
+        """Shared PR-2/PR-3 gate. Returns ``(blocked, evidence_digest)``:
+
+        * ``blocked`` is ``None`` when issuance may proceed, or an
+          ``ExecOutcome`` (BLOCKED) the caller must return immediately
+          without ever calling ``DecisionEngine.issue_token``.
+        * ``evidence_digest`` (PR-3) is the trusted digest Control itself
+          derived from the exact verified attestation, present if and only
+          if a REQUIRED attestation was VERIFIED -- ``None`` when no Control
+          boundary is configured, when the action has no configured
+          AttestationRequirement (NOT_REQUIRED), and always when ``blocked``
+          is not ``None``. This is the single Control operation: the
+          attestation is verified here exactly once, and the same result
+          that decides ALLOW/BLOCK also supplies the digest -- there is no
+          second verification pass to "obtain" it.
+        """
         if self.pre_execution_control is None:
-            return None
+            return None, None
         result = await self.pre_execution_control.evaluate(
             action=action, forward_context=forward_context, resource=resource,
             raw_attestation=attestation, policy_hash=self.policy_hash,
         )
         if result.ok:
-            return None
+            return None, result.evidence_digest
         return ExecOutcome(
             "BLOCKED", f"{result.reason_code.value}: {result.reason}", decision="DENY",
-        )
+        ), None
 
     # ---- helpers ----
 
@@ -201,7 +211,9 @@ class GovernanceService:
         # PR-2: no executable authority without required, valid attestation --
         # evaluated against the exact forward_context, BEFORE any token is
         # issued. A no-op when unconfigured or the action has no requirement.
-        blocked = await self._attestation_gate(
+        # PR-3: the same Control call also yields the trusted evidence_digest
+        # for a VERIFIED required attestation (None otherwise).
+        blocked, evidence_digest = await self._attestation_gate(
             action=action, forward_context=forward_context, resource=resource,
             attestation=attestation,
         )
@@ -217,9 +229,14 @@ class GovernanceService:
             transaction_id=transaction_id, idempotency_key=idempotency_key,
             actor_id=actor, resource_id=resource,
             auth_claims=auth_claims, mandate_id=decision.mandate_id,
+            evidence_digest=evidence_digest,
         )
+        # PR-3: the exact raw evidence artifact (when this token is
+        # evidence-bound) follows the token down the SAME governed execution
+        # path, to be checked by ExecutionGate against evidence_digest --
+        # never a second, separate execution route.
         return await self._run(token, action, forward_context, actor, resource,
-                               transaction_id, headers)
+                               transaction_id, headers, evidence=attestation)
 
     # ---- approval operations (ESCALATE loop) ----
 
@@ -366,7 +383,7 @@ class GovernanceService:
         # Consensus carries no mandate CONSTRAIN rewrite step, so the exact
         # final payload is simply the canonicalized one -- still resolved via
         # the action profile, never the raw caller-supplied context.
-        blocked = await self._attestation_gate(
+        blocked, evidence_digest = await self._attestation_gate(
             action=action, forward_context=canonical, resource=resource,
             attestation=attestation,
         )
@@ -379,14 +396,16 @@ class GovernanceService:
         token = self.engine.issue_token(
             verdict="ALLOW", subject=actor, action=action, payload=canonical,
             transaction_id=transaction_id, idempotency_key=idempotency_key,
-            actor_id=actor, resource_id=resource, auth_claims=auth_claims, nonce=nonce)
+            actor_id=actor, resource_id=resource, auth_claims=auth_claims, nonce=nonce,
+            evidence_digest=evidence_digest)
         return await self._run(token, action, canonical, actor, resource, transaction_id, None,
-                               consensus_votes=votes)
+                               consensus_votes=votes, evidence=attestation)
 
     # ---- the one governed execution path ----
 
     async def _run(self, token, action, forward_context, actor, resource,
-                   transaction_id, headers, consensus_votes=None) -> ExecOutcome:
+                   transaction_id, headers, consensus_votes=None,
+                   evidence: Optional[Dict[str, Any]] = None) -> ExecOutcome:
         async def executor():
             if self.upstream is None:
                 raise RuntimeError("no upstream configured")
@@ -396,7 +415,7 @@ class GovernanceService:
             token=token, action=action, payload=forward_context, executor=executor,
             request_binding={"actor_id": actor, "resource_id": resource,
                              "transaction_id": transaction_id},
-            consensus_votes=consensus_votes,
+            consensus_votes=consensus_votes, evidence=evidence,
         )
         status = (ActuationStatus.EXECUTED if result.status == ActuationStatus.EXECUTED
                   else result.status)

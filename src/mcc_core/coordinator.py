@@ -121,11 +121,17 @@ class EnforcementCoordinator:
         executor: Executor,
         request_binding: Optional[Dict[str, Any]] = None,
         consensus_votes: Optional[Any] = None,
+        evidence: Optional[Dict[str, Any]] = None,
         now: Optional[int] = None,
     ) -> ActuationResult:
-        # (a) validate token + operation binding, (b) consume nonce.
+        # (a) validate token + operation binding + PR-3 evidence-bound
+        # execution ticket binding, (b) consume nonce. ``evidence`` is the
+        # exact raw evidence artifact for this operation (when the caller
+        # has one); the gate itself decides whether the token even requires
+        # one -- passing None here for a non-evidence-bound token is a no-op.
         gate_result = await self.gate.verify(
-            token, action=action, payload=payload, binding=request_binding, now=now
+            token, action=action, payload=payload, binding=request_binding,
+            evidence=evidence, now=now,
         )
         if not gate_result.allowed:
             self._record(kind="actuation_rejected", action=action, reason=gate_result.reason)
@@ -256,6 +262,12 @@ class EnforcementCoordinator:
                 )
 
         # (e) durably record the pre-enforcement decision (audit-before-actuation).
+        # ``evidence_digest`` (PR-3), when the token carries one, is already
+        # proven above (gate verification) to match the exact evidence
+        # artifact just presented -- recording the digest here (never the
+        # attestation itself or its semantic claims) completes the audit
+        # chain: signed attestation -> evidence_digest -> signed execution
+        # authority -> this pre_actuation record -> the side effect below.
         pre_ref = self._record(
             kind="pre_actuation",
             action=action,
@@ -266,6 +278,7 @@ class EnforcementCoordinator:
             payload_hash=binding_ref,
             policy_hash=token.get("policy_hash"),
             decision=token.get("decision"),
+            evidence_digest=token.get("evidence_digest"),
         )
         if pre_ref is None:
             # Cannot confirm the pre-actuation record -> indeterminate before
