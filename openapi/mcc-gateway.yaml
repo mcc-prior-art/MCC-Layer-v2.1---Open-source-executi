@@ -676,6 +676,30 @@ components:
           additionalProperties: true
         transaction_id: { type: string, nullable: true }
         idempotency_key: { type: string, nullable: true }
+        attestation:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: >-
+            An optional raw, signed EvidenceAttestation (mcc-attestation/1
+            schema; see docs/ATTESTATION_ARCHITECTURE.md and
+            specs/MCC-AT-001.md through MCC-AT-004.md) — obtained separately
+            from an Independent Attester Service, never fabricated by this
+            gateway or by the caller. This field's presence alone does not
+            grant anything: whether it is required for a given `action` is a
+            trusted, server-side policy decision (PreExecutionControl /
+            AttestationRequirement); an action with no configured requirement
+            ignores it exactly as before this field existed. The server
+            always independently re-verifies the raw document (signature,
+            trust, action/payload/scope binding, time window, replay) — it
+            never trusts a pre-computed "verified" flag, and none exists in
+            this schema.
+
+            Implementation status: **implemented**
+            (`gateway/pre_execution_control.py::PreExecutionControl.evaluate`,
+            wired at `gateway/governance_service.py::GovernanceService._attestation_gate`).
+            See docs/PILOT_RUNBOOK.md §18 for the reference pilot flow that
+            exercises this field end to end.
 
     ApprovalExecuteRequest:
       allOf:

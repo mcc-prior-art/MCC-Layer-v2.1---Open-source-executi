@@ -112,6 +112,51 @@ def test_no_direct_execute_method():
     assert set(names) == {"execute_with_approval", "execute_with_consensus", "execute_with_mandate"}
 
 
+# ---------------- PR-6: execute_with_mandate's new optional attestation field ----------------
+
+def test_execute_with_mandate_omits_attestation_field_by_default():
+    """Backward compatibility: a caller that never passes ``attestation``
+    (every pre-PR-6 caller) sends EXACTLY the pre-PR-6 request body -- the
+    field is absent, not ``null``."""
+    import httpx
+
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"status": "BLOCKED", "reason": "no upstream configured"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    sdk = MCCGatewayClient("http://testserver", api_key="demo-key", client=client)
+    sdk.execute_with_mandate(mandate={"kid": "x"}, actor="a", action="send_notification")
+
+    assert "attestation" not in captured["body"]
+
+
+def test_execute_with_mandate_forwards_attestation_when_given():
+    """PR-6: the new field is forwarded verbatim when the caller supplies
+    one -- this client never fabricates, drops, or mutates it."""
+    import httpx
+
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"status": "BLOCKED", "reason": "no upstream configured"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    sdk = MCCGatewayClient("http://testserver", api_key="demo-key", client=client)
+    raw_attestation = {"attester_id": "a.risk.v1", "kid": "k1", "sig": "deadbeef"}
+    sdk.execute_with_mandate(mandate={"kid": "x"}, actor="a", action="send_notification",
+                             attestation=raw_attestation)
+
+    assert captured["body"]["attestation"] == raw_attestation
+
+
 # ---------------- consensus path through the SDK ----------------
 
 def _consensus_app(threshold=3):
