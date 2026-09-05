@@ -30,6 +30,17 @@ CANONICAL_POSITIONING_FRAGMENTS = (
 
 ADMISSION_VS_AUTHORITY_LINE = "Admission is a decision. Authority is a verifiable execution artifact."
 
+# The five canonical elements of the "Current MCC-Core Messaging Standard"
+# section, checked independently for the same reflow-fragility reason as
+# CANONICAL_POSITIONING_FRAGMENTS above.
+MESSAGING_STANDARD_ELEMENTS = {
+    "business": "AI decides what to do. MCC-Core verifies whether it has the authority to do it.",
+    "technical": "MCC-Core creates and verifies cryptographically attributable execution authority,",
+    "category": "A safer model is still not an authority.",
+    "execution_rule": "No verified authority. No execution.",
+    "product_category": "Verifiable execution authority for autonomous AI systems.",
+}
+
 
 def _read(path: str) -> str:
     full = ROOT / path
@@ -48,6 +59,31 @@ def test_readme_carries_canonical_execution_authority_positioning():
         "README.md is missing the 'Admission is a decision. Authority is a "
         "verifiable execution artifact.' line"
     )
+
+
+def test_readme_carries_current_messaging_standard_section():
+    readme = _read("README.md")
+    assert "## Current MCC-Core Messaging Standard" in readme, (
+        "README.md is missing the 'Current MCC-Core Messaging Standard' section"
+    )
+    for label, fragment in MESSAGING_STANDARD_ELEMENTS.items():
+        assert fragment in readme, (
+            f"README.md is missing the {label!r} messaging-standard element: {fragment!r}"
+        )
+    for label_heading in ("**Business**", "**Technical**", "**Category**",
+                          "**Execution rule**", "**Product category**"):
+        assert label_heading in readme, (
+            f"README.md's messaging-standard section is missing the {label_heading!r} label"
+        )
+
+
+def test_messaging_standard_explicitly_does_not_replace_historical_doctrine():
+    readme = _read("README.md")
+    assert (
+        "This current messaging layer clarifies MCC-Core's product and category"
+    ) in readme
+    assert "does not replace or modify the historical MCC-Core" in readme
+    assert "Doctrine Lines v1.0 or the dated doctrine record" in readme
 
 
 def test_readme_links_to_execution_authority_boundary_doc():

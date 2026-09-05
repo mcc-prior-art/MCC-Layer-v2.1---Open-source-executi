@@ -98,6 +98,36 @@ make verify-assurance
 
 ---
 
+## Current MCC-Core Messaging Standard
+
+**Business**
+
+AI decides what to do. MCC-Core verifies whether it has the authority to do it.
+
+**Technical**
+
+MCC-Core creates and verifies cryptographically attributable execution authority,
+bound to the exact action and its execution conditions,
+before the gate permits execution.
+
+**Category**
+
+A safer model is still not an authority.
+
+**Execution rule**
+
+No verified authority. No execution.
+
+**Product category**
+
+Verifiable execution authority for autonomous AI systems.
+
+This current messaging layer clarifies MCC-Core's product and category
+positioning. It does not replace or modify the historical MCC-Core
+Doctrine Lines v1.0 or the dated doctrine record.
+
+---
+
 ## MCC-Core Doctrine Lines v1.0
 
 **A proposal is not permission.**  
