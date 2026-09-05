@@ -330,10 +330,27 @@ class RevocationConfigError(Exception):
 
 def revocation_registry_from_env(env: Optional[Mapping[str, str]] = None):
     """``MCC_REVOCATION_BACKEND`` = ``memory`` (default) or ``redis`` (requires
-    ``MCC_REDIS_URL``). No silent fallback from redis to in-memory."""
+    ``MCC_REDIS_URL``). No silent fallback from redis to in-memory.
+
+    ``MCC_DEPLOYMENT_MODE=enforcement`` additionally refuses ``memory`` —
+    explicit or default — with the same ``RevocationConfigError``, never a
+    downgrade: a revoked-but-not-yet-expired mandate must not become valid
+    again after a restart or on an instance that never observed the
+    revocation. Mirrors the identical guard already applied to
+    ``nonce_registry_from_env`` (``mcc_core.nonce``) for the same reason.
+    """
     env = os.environ if env is None else env
     backend = env.get("MCC_REVOCATION_BACKEND", "memory").strip().lower()
     if backend in ("memory", "inmemory", "in-memory"):
+        from .deployment_mode import is_enforcement_mode
+
+        if is_enforcement_mode(env):
+            raise RevocationConfigError(
+                "MCC_DEPLOYMENT_MODE=enforcement refuses MCC_REVOCATION_BACKEND=memory "
+                "(explicit or default); enforcement deployments require "
+                "MCC_REVOCATION_BACKEND=redis with a usable MCC_REDIS_URL — no silent "
+                "downgrade to volatile, non-durable, non-shared revocation state"
+            )
         return InMemoryRevocationRegistry()
     if backend == "redis":
         from . import redis_keys

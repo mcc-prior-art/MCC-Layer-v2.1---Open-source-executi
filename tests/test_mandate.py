@@ -229,6 +229,158 @@ def test_revocation_status_enum_values():
     assert RevocationStatus.REVOKED.value == "REVOKED"
 
 
+# ---- Durable revocation state under MCC_DEPLOYMENT_MODE=enforcement ----
+#
+# Redis is doubled in-process (no server needed) for the fast/offline proofs
+# below, exactly matching tests/test_nonce.py's convention. The real-server
+# multi-instance proof already exists and is unaffected by this fix:
+# scripts/redis_mandate_smoke.py (run by the nonce-redis-smoke CI job) revokes
+# a mandate through one RedisRevocationRegistry instance and confirms a
+# SEPARATE instance sharing the same Redis observes it immediately.
+
+class FakeRedisSet:
+    """Minimal ``sadd``/``sismember`` double, shareable across registries --
+    the set-based equivalent of test_nonce.py's ``FakeRedis``."""
+
+    def __init__(self):
+        self.members = set()
+
+    async def sadd(self, key, value):
+        self.members.add(value)
+        return 1
+
+    async def sismember(self, key, value):
+        return value in self.members
+
+
+def test_a_restart_durability_revoked_mandate_stays_revoked():
+    """A: create revocation state, recreate the registry object (simulating a
+    process restart) against the SAME backend, verify the authority remains
+    revoked."""
+    key = issuer()
+    backend = FakeRedisSet()  # the persistent store surviving the "restart"
+    m = make_mandate(key, revocation_required=True)
+
+    registry_before = RedisRevocationRegistry(backend)
+    run(registry_before.revoke(m["mandate_id"]))
+    result_before = run(verifier(key, registry_before).verify(
+        m, subject="agent/payments-bot", action="send_payment", resource="acct-1", now=NOW))
+    assert not result_before.ok
+    assert "REVOKED" in result_before.reason
+
+    # Simulated restart: an entirely new registry object, same backend.
+    del registry_before
+    registry_after = RedisRevocationRegistry(backend)
+    result_after = run(verifier(key, registry_after).verify(
+        m, subject="agent/payments-bot", action="send_payment", resource="acct-1", now=NOW))
+    assert not result_after.ok
+    assert "REVOKED" in result_after.reason
+
+
+def test_b_multi_instance_consistency_offline_double():
+    """B: instance A revokes, instance B (sharing the same backend) observes
+    the revocation immediately -- the fast offline counterpart to the real
+    Redis proof in scripts/redis_mandate_smoke.py."""
+    key = issuer()
+    backend = FakeRedisSet()
+    m = make_mandate(key, revocation_required=True)
+
+    registry_a = RedisRevocationRegistry(backend)
+    registry_b = RedisRevocationRegistry(backend)
+
+    before = run(verifier(key, registry_b).verify(
+        m, subject="agent/payments-bot", action="send_payment", resource="acct-1", now=NOW))
+    assert before.ok
+
+    run(registry_a.revoke(m["mandate_id"]))  # revoke via instance A
+
+    after = run(verifier(key, registry_b).verify(  # observe via instance B
+        m, subject="agent/payments-bot", action="send_payment", resource="acct-1", now=NOW))
+    assert not after.ok
+    assert "REVOKED" in after.reason
+
+
+def test_c_enforcement_mode_with_memory_backend_refuses_startup():
+    """C: MCC_DEPLOYMENT_MODE=enforcement with no durable revocation config
+    (default backend is memory) must fail at configuration/startup time, not
+    silently instantiate an in-memory registry."""
+    with pytest.raises(RevocationConfigError):
+        revocation_registry_from_env({"MCC_DEPLOYMENT_MODE": "enforcement"})
+
+
+def test_c_enforcement_mode_with_explicit_memory_backend_refuses_startup():
+    with pytest.raises(RevocationConfigError):
+        revocation_registry_from_env({
+            "MCC_DEPLOYMENT_MODE": "enforcement",
+            "MCC_REVOCATION_BACKEND": "memory",
+        })
+
+
+def test_d_enforcement_mode_with_redis_missing_url_refuses_startup():
+    """D: enforcement mode + an invalid/incomplete durable backend
+    configuration (redis selected, no MCC_REDIS_URL) must fail closed."""
+    with pytest.raises(RevocationConfigError):
+        revocation_registry_from_env({
+            "MCC_DEPLOYMENT_MODE": "enforcement",
+            "MCC_REVOCATION_BACKEND": "redis",
+        })
+
+
+def test_d_enforcement_mode_with_unknown_backend_refuses_startup():
+    with pytest.raises(RevocationConfigError):
+        revocation_registry_from_env({
+            "MCC_DEPLOYMENT_MODE": "enforcement",
+            "MCC_REVOCATION_BACKEND": "sqlite",
+        })
+
+
+def test_e_enforcement_mode_never_returns_in_memory_registry():
+    """E: no permutation of a missing/invalid config lets enforcement mode
+    fall back to InMemoryRevocationRegistry -- every one of these raises."""
+    for env in (
+        {"MCC_DEPLOYMENT_MODE": "enforcement"},
+        {"MCC_DEPLOYMENT_MODE": "enforcement", "MCC_REVOCATION_BACKEND": "memory"},
+        {"MCC_DEPLOYMENT_MODE": "enforcement", "MCC_REVOCATION_BACKEND": "redis"},
+    ):
+        with pytest.raises(RevocationConfigError):
+            revocation_registry_from_env(env)
+
+    # And a well-configured enforcement deployment gets a genuine
+    # RedisRevocationRegistry -- never a silently substituted in-memory one.
+    reg = revocation_registry_from_env({
+        "MCC_DEPLOYMENT_MODE": "enforcement",
+        "MCC_REVOCATION_BACKEND": "redis",
+        "MCC_REDIS_URL": "redis://127.0.0.1:6379/0",
+    })
+    assert isinstance(reg, RedisRevocationRegistry)
+    assert not isinstance(reg, InMemoryRevocationRegistry)
+
+
+def test_f_valid_authority_verification_unchanged_with_durable_config():
+    """F: normal, valid authority verification/execution behavior is
+    unaffected when durable revocation configuration is valid -- an
+    un-revoked mandate still verifies under a real (doubled) Redis-backed
+    registry exactly as it does with the in-memory one."""
+    key = issuer()
+    backend = FakeRedisSet()
+    registry = RedisRevocationRegistry(backend)
+    m = make_mandate(key, revocation_required=True)
+    result = run(verifier(key, registry).verify(
+        m, subject="agent/payments-bot", action="send_payment", resource="acct-1", now=NOW))
+    assert result.ok
+    assert result.reason == "MANDATE_VERIFIED"
+
+
+def test_r1_reference_mode_can_still_intentionally_use_memory():
+    """Development/test modes retain the existing ephemeral behavior where
+    enforcement semantics are not requested."""
+    assert isinstance(
+        revocation_registry_from_env({"MCC_DEPLOYMENT_MODE": "reference"}),
+        InMemoryRevocationRegistry,
+    )
+    assert isinstance(revocation_registry_from_env({}), InMemoryRevocationRegistry)
+
+
 # ---- MandateAuthority (verified mandate -> verdict) ----
 
 from mcc_core import (  # noqa: E402

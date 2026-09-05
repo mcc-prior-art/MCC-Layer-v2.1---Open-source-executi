@@ -412,6 +412,22 @@ static guards proving neither addition introduces a second replay
 subsystem, a second authority/execution path, or a signing-key-adjacent
 surface on the `AssessmentProvider` boundary.
 
+**Phase 2 — durable revocation state.** A post-Phase-1 audit found that
+`revocation_registry_from_env` (`src/mcc_core/mandate.py`) did not yet carry
+the same `enforcement`-mode guard as `nonce_registry_from_env`: a mandate
+issued with `revocation_required=True` and revoked via the default
+in-memory backend would verify as `MANDATE_VERIFIED` again after a restart,
+or on any other instance that never observed the revocation — the identical
+risk shape Phase 1 closed for nonce replay, applied instead to revocation.
+`revocation_registry_from_env` now refuses `MCC_REVOCATION_BACKEND=memory`
+— explicit or default — under `MCC_DEPLOYMENT_MODE=enforcement`, mirroring
+`nonce_registry_from_env`'s guard verbatim; no new registry type, backend
+abstraction, or configuration mechanism was introduced.
+`tests/test_mandate.py`'s revocation-durability tests prove restart
+durability, cross-instance consistency (real Redis), and enforcement-mode
+fail-closed behavior for both a missing-config and an unreachable-backend
+configuration.
+
 ---
 
 ## See also
