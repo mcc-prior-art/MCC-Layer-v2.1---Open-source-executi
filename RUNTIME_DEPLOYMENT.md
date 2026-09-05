@@ -64,12 +64,12 @@ absent from a gate's trust set is effectively revoked (UNTRUSTED_KEY → deny).
 | `MCC_NONCE_BACKEND` | `memory` | gate replay-protection backend: `memory` (dev/single-instance) or `redis` (multi-instance) |
 | `MCC_IDEMPOTENCY_BACKEND` | `memory` | business-operation idempotency backend: `memory` or `redis` |
 | `MCC_VELOCITY_BACKEND` | `memory` | velocity/aggregate backend: `memory` or `redis` |
-| `MCC_REVOCATION_BACKEND` | `memory` | mandate revocation backend: `memory` or `redis` |
+| `MCC_REVOCATION_BACKEND` | `memory` | mandate revocation backend: `memory` (dev/single-instance) or `redis` (multi-instance, durable); `MCC_DEPLOYMENT_MODE=enforcement` refuses `memory` — see below |
 | `MCC_APPROVAL_BACKEND` | `memory` | ESCALATE approval store backend: `memory` or `redis` |
 | `MCC_REDIS_URL` | *(unset)* | required when any backend above is `redis`; the Redis shared by every instance |
 | `MCC_ENV` | `dev` | `dev`/`test`/`pilot`; `pilot` requires a valid trust config and refuses unsafe startup |
 | `MCC_TRUST_CONFIG` | *(unset)* | path to the multi-issuer trust JSON (public keys only); required in pilot |
-| `MCC_DEPLOYMENT_MODE` | `reference` | `reference`/`enforcement`; `enforcement` refuses `MCC_NONCE_BACKEND=memory` and refuses the Attester's `DeterministicTestProvider` — a separate, minimal switch from `MCC_ENV` (see `docs/EXECUTION_AUTHORITY_BOUNDARY.md`'s "Production Trust Hardening Phase 1") |
+| `MCC_DEPLOYMENT_MODE` | `reference` | `reference`/`enforcement`; `enforcement` refuses `MCC_NONCE_BACKEND=memory`, refuses `MCC_REVOCATION_BACKEND=memory`, and refuses the Attester's `DeterministicTestProvider` — a separate, minimal switch from `MCC_ENV` (see `docs/EXECUTION_AUTHORITY_BOUNDARY.md`'s "Production Trust Hardening Phase 1") |
 | `MCC_ATTESTER_PROVIDER_CLASS` | *(unset)* | dotted import path to the operator's trusted `AssessmentProvider` subclass; required by `python -m mcc_attester_service` when `MCC_DEPLOYMENT_MODE=enforcement` |
 | `MCC_APPROVER_SIGNING_KEY_PATH` | *(empty)* | PEM for the approval signer; empty = ephemeral dev approver key |
 | `MCC_APPROVER_KEY_ID` | `mcc-approver-1` | kid for the approver key |
@@ -126,6 +126,7 @@ TTL.
 | `MCC_IDEMPOTENCY_BACKEND=redis` / `MCC_VELOCITY_BACKEND=redis` with no `MCC_REDIS_URL` | startup error, not a silent in-memory downgrade |
 | `MCC_ENV=pilot` with missing/invalid/empty `MCC_TRUST_CONFIG` | startup refused (`TrustConfigError`); no fallback to a development key |
 | `MCC_DEPLOYMENT_MODE=enforcement` with `MCC_NONCE_BACKEND=memory` (explicit or default) | startup error (`NonceConfigError`), not a silent downgrade to volatile replay state |
+| `MCC_DEPLOYMENT_MODE=enforcement` with `MCC_REVOCATION_BACKEND=memory` (explicit or default) | startup error (`RevocationConfigError`); a revoked-but-not-yet-expired mandate must not become valid again after a restart or on an instance that never observed the revocation |
 | `MCC_DEPLOYMENT_MODE=enforcement` for `python -m mcc_attester_service` with no/invalid/test `MCC_ATTESTER_PROVIDER_CLASS` | startup refused (`AttesterServiceConfigError`); the `DeterministicTestProvider` is never silently substituted |
 | Unknown issuer / unknown kid / disabled issuer / expired or revoked key | mandate verification denies with the specific trust status |
 | Operator action without/with wrong `X-Operator-Key` | 403 (operator boundary), never executed |
