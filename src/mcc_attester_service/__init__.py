@@ -47,6 +47,7 @@ from .errors import (
     BindingDerivationError,
 )
 from .provider import AssessmentProvider, AssessmentResult, DeterministicTestProvider
+from .provider_loader import assessment_provider_from_env
 from .service import AttesterService, SigningFailedError
 
 __all__ = [
@@ -67,5 +68,6 @@ __all__ = [
     "AssessmentProvider",
     "AssessmentResult",
     "DeterministicTestProvider",
+    "assessment_provider_from_env",
     "AttesterService",
 ]

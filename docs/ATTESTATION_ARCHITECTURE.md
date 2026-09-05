@@ -566,3 +566,32 @@ prove, binding/nonce/validity ownership, and fail-closed behavior — is in
 `tests/test_attester_service_process_isolation.py` (the required
 cross-process proof — a genuine separate OS process, not two Python
 objects sharing an interpreter).
+
+## 16. Production Trust Hardening Phase 1 (summary; see `docs/EXECUTION_AUTHORITY_BOUNDARY.md` §11)
+
+PR-1 through PR-4 (and PR-5's independent assurance of the chain) proved the
+attestation-to-execution architecture correct; Phase 1 closes two
+production-readiness gaps without changing that architecture:
+
+* **Durable replay protection.** `MCC_DEPLOYMENT_MODE=enforcement`
+  (`src/mcc_core/deployment_mode.py`) makes `nonce_registry_from_env`
+  refuse `MCC_NONCE_BACKEND=memory` — the volatile, per-process replay
+  state a real deployment must never depend on.
+* **Production Attester provider boundary.** `mcc_attester_service.provider_loader`
+  refuses the reference `DeterministicTestProvider` in the same
+  enforcement mode and requires an explicit, operator-supplied
+  `AssessmentProvider` implementation instead.
+
+Neither change alters the canonical chain, the `EvidenceAttestation`
+schema, the Ed25519 signing path, or PreExecutionControl's verification
+logic. The precise, non-overclaiming statement of what a compromised
+Intelligence/agent caller can and cannot do under this architecture — the
+"evidence, not authority" boundary this Phase's adversarial tests exist to
+prove — is stated in full in
+[`docs/EXECUTION_AUTHORITY_BOUNDARY.md`, §11](EXECUTION_AUTHORITY_BOUNDARY.md#11-compromised-intelligence-boundary),
+not restated here, so the exact wording has one canonical location.
+Conformance evidence: `tests/test_compromised_intelligence_adversarial.py`
+(14 named adversarial scenarios), `tests/test_nonce.py` (R1-R4),
+`tests/test_attester_provider_loader.py`,
+`tests/test_production_trust_hardening_architecture_guards.py`, and
+`scripts/redis_restart_replay_smoke.py` (R5, real-Redis restart proof).

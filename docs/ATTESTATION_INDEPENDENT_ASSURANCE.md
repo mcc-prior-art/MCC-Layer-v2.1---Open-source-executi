@@ -75,6 +75,20 @@ evidence in the tables below actually establishes.
 | Q. Fail-closed infrastructure failure | `tests/test_pre_execution_control.py` (`ATTESTATION_REPLAY_UNAVAILABLE` path, in-process fake-failing registry); `tests/test_attester_service.py::test_e/test_f` | The assurance SUT's attestation nonce registry is `InMemoryNonceRegistry` (the deployment default -- `MCC_NONCE_BACKEND` is unset, exactly mirroring how `assurance.sut.harness.build_system_under_test`'s own Gateway is already configured for every OTHER workstream, none of which set `MCC_NONCE_BACKEND=redis` either). A real-Redis-killed-mid-scenario fault injection (mirroring Workstream B's `kill_notify`) was assessed and NOT added: it would prove the SAME `mcc_core.nonce.RedisNonceRegistry` fail-closed code path Workstream E's own real-Redis replay-resistance tests already exercise, since `PreExecutionControl` and `ExecutionGate` share the identical registry instance and interface (`gateway.governance_api._build_pre_execution_control`'s `nonce_registry_from_env(env)`) -- a second real-Redis-outage test would repeat Workstream E's own infrastructure and finding, not add a new one specific to attestation. | Documented as a deliberate non-duplication. The IN-MEMORY registry's own fail-closed-on-replay behavior (distinct from a backend OUTAGE) is what `test_g_attestation_replay_second_use_blocked` already exercises. |
 | R. Crash/recovery | `assurance/state_machine.py`, `docs/EXECUTION_STATE_MACHINE.md`, Workstream B's real-process-kill fault injection (`assurance/tests/test_execution_atomicity.py`) | Investigated: `PreExecutionControl.evaluate()` completes synchronously, in-process, entirely BEFORE `DecisionEngine.issue_token()` is ever called (see the runtime mapping in §4 below) -- there is no cross-process or network hop inside Control itself when the shared registry is in-memory (this deployment's actual configuration), so there is no NEW crash window Control introduces beyond "the Gateway process itself crashes," which is already exactly Workstream B's existing scenario, unmodified by attestation. Once a token IS issued, the REST of the pipeline (`EnforcementCoordinator.enforce`, audit-before-actuation, `EXECUTION_UNKNOWN`->`RECONCILED`) is the identical, already-crash-tested generic mechanism, and evidence binding adds no new state to it beyond an extra signed claim on the same token. No new compensation/rollback semantics were invented. | No PR-5 defect found; the generic Workstream B invariant is cited as already covering the extended chain, with the reasoning above recorded rather than assumed. |
 
+> **Production Trust Hardening Phase 1 update (forward reference, does not
+> alter the historical PR-5 record above):** item Q's `InMemoryNonceRegistry`
+> deployment default was, at the time PR-5 recorded it, an accurate
+> description of every existing deployment profile's actual configuration
+> -- not a defect PR-5 was scoped to fix. Phase 1 subsequently closed it for
+> production/enforcement deployments: `MCC_DEPLOYMENT_MODE=enforcement`
+> makes `nonce_registry_from_env` refuse the in-memory backend outright.
+> Item M's caller-controlled-output boundary is similarly extended, not
+> superseded: Phase 1 adds a second, production-specific boundary — which
+> *provider implementation* an Attester process may trust — on top of the
+> unchanged per-field boundary this row documents. See
+> `docs/EXECUTION_AUTHORITY_BOUNDARY.md`'s "Production Trust Hardening Phase
+> 1" section for the current state of both.
+
 ---
 
 ## 3. Adversarial end-to-end matrix (Phase 2)
