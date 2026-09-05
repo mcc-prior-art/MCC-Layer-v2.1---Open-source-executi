@@ -17,6 +17,13 @@ answer — the nonce is treated as unusable and execution is denied.
 ``nonce_registry_from_env`` selects the backend from configuration and
 *refuses to silently fall back* from Redis to in-memory: in an enforcement
 deployment a misconfigured or missing Redis is an error, not a downgrade.
+
+``MCC_DEPLOYMENT_MODE=enforcement`` (see ``mcc_core.deployment_mode``)
+additionally refuses to select ``InMemoryNonceRegistry`` at all — explicitly
+or by default — because volatile, non-shared replay state does not survive
+a restart and does not protect a multi-instance deployment. This is a
+selection-time guard only; it does not change either registry's own
+``consume`` semantics.
 """
 
 from __future__ import annotations
@@ -171,11 +178,25 @@ def nonce_registry_from_env(env: Optional[Mapping[str, str]] = None):
     ``MCC_REDIS_URL`` raises ``NonceConfigError`` instead of quietly returning
     an in-memory registry. An enforcement deployment that asked for Redis must
     fail to start rather than run with unshared, non-durable replay state.
+
+    ``MCC_DEPLOYMENT_MODE=enforcement`` additionally refuses ``memory`` —
+    explicit or default — with the same ``NonceConfigError``, never a
+    downgrade: a production/enforcement deployment must not come up with
+    volatile, per-process replay state.
     """
     env = os.environ if env is None else env
     backend = env.get("MCC_NONCE_BACKEND", "memory").strip().lower()
 
     if backend in ("memory", "inmemory", "in-memory"):
+        from .deployment_mode import is_enforcement_mode
+
+        if is_enforcement_mode(env):
+            raise NonceConfigError(
+                "MCC_DEPLOYMENT_MODE=enforcement refuses MCC_NONCE_BACKEND=memory "
+                "(explicit or default); enforcement deployments require "
+                "MCC_NONCE_BACKEND=redis with a usable MCC_REDIS_URL — no silent "
+                "downgrade to volatile, non-durable replay state"
+            )
         return InMemoryNonceRegistry()
 
     if backend == "redis":

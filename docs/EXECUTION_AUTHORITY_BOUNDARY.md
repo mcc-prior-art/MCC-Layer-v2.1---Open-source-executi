@@ -257,6 +257,45 @@ pre-enforcement decision (step `e`) **before** the executor is invoked
 `src/mcc_core/coordinator.py`. An audit-write failure fails the operation
 closed; it does not allow an unaudited actuation to proceed.
 
+### 11. Compromised-Intelligence boundary
+
+The precise, non-overclaiming guarantee this architecture makes about a
+fully hostile Intelligence/agent caller (Production Trust Hardening Phase 1;
+see `tests/test_compromised_intelligence_adversarial.py` for the 14-scenario
+adversarial proof):
+
+**MCC-Core MAY claim:** Compromise of the Intelligence layer does not give
+the attacker the Attester signing key and does not permit it to forge a
+trusted `EvidenceAttestation` or mint execution authority. Evidence remains
+independently processed by the configured `AssessmentProvider`, verified by
+Control, cryptographically bound into signed execution authority, and
+independently checked at the execution boundary.
+
+**MCC-Core MUST NOT claim:** that a compromised Intelligence layer can never
+request or receive a valid assessment. That is not the architectural
+boundary. A proposal is intentionally allowed to enter the assessment
+pipeline — see [Admission Control vs. Execution Authority](#admission-control-vs-execution-authority)
+above. What a compromised Intelligence layer cannot do is dictate the
+trusted output of that assessment, bypass the configured
+`AssessmentProvider`, forge or self-sign the resulting attestation, or turn
+a genuine attestation into execution authority on its own.
+
+A valid attestation does not itself grant execution authority — see
+[Important Distinctions](#important-distinctions) below, which states this
+independently of this section and is unchanged by it.
+
+The semantic correctness of an assessment depends on the configured trusted
+`AssessmentProvider`; MCC-Core guarantees attribution, integrity, binding,
+and enforcement around that evidence, not the objective truth of the
+assessment itself. A trusted `AssessmentProvider` that is wrong about the
+real world produces a genuinely attributable, correctly bound, and
+correctly enforced *wrong* decision — that is an assessment/policy failure,
+not a boundary failure. See `mcc_attester_service/provider.py` for the
+provider interface this applies to, and
+[Production Trust Hardening Phase 1](#production-trust-hardening-phase-1)
+below for the additional boundary around *which* provider a production
+deployment may trust.
+
 ---
 
 ## Important distinctions
@@ -264,8 +303,8 @@ closed; it does not allow an unaudited actuation to proceed.
 These boundaries are load-bearing, not stylistic, and this document does
 not weaken any of them:
 
-- **Attestation is evidence, not authority.** An `EvidenceAttestation`
-  never itself grants execution authority — see
+- **Attestation is evidence, not authority.** A valid attestation does not
+  itself grant execution authority — see
   [`docs/ATTESTATION_ARCHITECTURE.md`](ATTESTATION_ARCHITECTURE.md) §3.
 - **A valid signature does not make an assessment true.** It proves
   attribution and integrity — who asserted what, about which bound action,
@@ -330,6 +369,51 @@ the README's "Accurate Positioning" and "Claim Hygiene" sections):
 
 ---
 
+## Production Trust Hardening Phase 1
+
+Two production-hardening boundaries, added without altering the canonical
+chain (`INTELLIGENCE → ATTESTATION → CONTROL → SIGNED EXECUTION AUTHORITY →
+AUTHORITY VERIFICATION → GATE → EXECUTION`) or either PR-1 through PR-6
+architecture:
+
+**Durable replay protection.** `MCC_DEPLOYMENT_MODE` (`src/mcc_core/deployment_mode.py`)
+is a minimal, explicit switch — `reference` (default) or `enforcement` —
+kept deliberately separate from `MCC_ENV` (`gateway.trust.trust_set_from_env`),
+which gates only the external-mandate trust-config requirement (see
+`docs/PILOT_VOLTAGENT_DEPLOYMENT.md`'s own note that its Redis-backed
+durability is "enforced by `MCC_*_BACKEND=redis`, independent of `MCC_ENV`").
+In `enforcement` mode, `nonce_registry_from_env` (§6, Replay resistance,
+above) refuses `MCC_NONCE_BACKEND=memory` — explicit or default — with the
+same fail-closed `NonceConfigError` it already raises for a missing
+`MCC_REDIS_URL`; it never silently substitutes one backend for another.
+`scripts/redis_restart_replay_smoke.py` proves the resulting property
+against a real Redis: a genuine signed `EvidenceAttestation` is executed to
+completion, every Python object is destroyed and rebuilt from scratch
+(simulating a Gateway restart), and the identical attestation is rejected
+as a replay by the new instance — with an independent actuation counter
+confirming no second side effect occurred.
+
+**Production Attester provider boundary.** The shipped `DeterministicTestProvider`
+(`mcc_attester_service/provider.py`) remains available for tests and local
+reference runs, but `mcc_attester_service.provider_loader.assessment_provider_from_env`
+refuses it outright in `enforcement` mode. A production/enforcement Attester
+process must instead name its own trusted `AssessmentProvider` implementation
+via `MCC_ATTESTER_PROVIDER_CLASS` (a dotted import path); the loader fails
+closed if that variable is missing, unimportable, not an `AssessmentProvider`
+subclass, is (or subclasses) `DeterministicTestProvider`, or raises during
+construction. This package ships no concrete production provider — no LLM,
+no ML classifier, no policy engine — consistent with PR-4's own non-goals;
+the operator/application embedding MCC-Core supplies its own.
+
+See [§11, Compromised-Intelligence boundary](#11-compromised-intelligence-boundary)
+above for the precise claim this hardening does and does not extend, and
+`tests/test_production_trust_hardening_architecture_guards.py` for the
+static guards proving neither addition introduces a second replay
+subsystem, a second authority/execution path, or a signing-key-adjacent
+surface on the `AssessmentProvider` boundary.
+
+---
+
 ## See also
 
 - [`docs/ATTESTATION_ARCHITECTURE.md`](ATTESTATION_ARCHITECTURE.md) — the
@@ -346,5 +430,8 @@ the README's "Accurate Positioning" and "Claim Hygiene" sections):
   boundaries.
 - [`docs/REPRODUCING_ASSURANCE.md`](REPRODUCING_ASSURANCE.md) — how to
   reproduce the assurance evidence yourself.
+- [`RUNTIME_DEPLOYMENT.md`](../RUNTIME_DEPLOYMENT.md) — `MCC_DEPLOYMENT_MODE`,
+  `MCC_ATTESTER_PROVIDER_CLASS`, and the rest of the operational
+  environment-variable reference.
 - [`docs/PILOT_RUNBOOK.md`](PILOT_RUNBOOK.md) — the partner-facing pilot
   path that exercises this exact chain end to end (PR-6).

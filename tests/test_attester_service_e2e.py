@@ -334,3 +334,121 @@ def test_k_mutated_service_artifact_rejected_by_the_gate_evidence_binding():
     result = run(gate.verify(token, action=ACTION, payload=canonical, evidence=mutated))
     assert not result.allowed
     assert "EVIDENCE_DIGEST_MISMATCH" in result.reason
+
+
+# ---------------------------------------------------------------------------
+# Production Trust Hardening Phase 1, Workstream 1, R5 (fast/offline double).
+#
+# The genuine, real-Redis proof lives in scripts/redis_restart_replay_smoke.py
+# (run by the nonce-redis-smoke CI job against an actual Redis service). This
+# is the same property -- a RedisNonceRegistry-backed shared nonce registry
+# rejects replay after every Python object is torn down and rebuilt from
+# scratch -- reproduced fast/offline with the SAME in-process Redis double
+# tests/test_nonce.py already uses, so the invariant is checked on every
+# ordinary `pytest tests/ -q` run, not only in the dedicated Redis CI job.
+# ---------------------------------------------------------------------------
+
+
+class _FakeRedis:
+    """Atomic SET NX (ignores ex); shareable across registries -- the exact
+    double tests/test_nonce.py uses, duplicated here rather than imported
+    (test files intentionally do not import from one another)."""
+
+    def __init__(self):
+        self.store = {}
+
+    async def set(self, key, value, nx=False, ex=None):
+        if nx and key in self.store:
+            return None
+        self.store[key] = value
+        return True
+
+
+def test_r5_restart_replay_rejected_after_full_object_teardown_and_rebuild():
+    from mcc_core import RedisNonceRegistry
+
+    mandate_key = SigningKey.generate("issuer-r5")
+    attester_key = _attester_key()
+    shared_backend = _FakeRedis()  # the persistent "Redis" surviving the restart
+
+    def build_service():
+        # A fresh RedisNonceRegistry object each time (as a real restart
+        # would create), but pointed at the SAME backend -- exactly what
+        # RedisNonceRegistry.from_url(same_url) gives you after a real
+        # process restart against a real, persistent Redis.
+        shared_nonce_registry = RedisNonceRegistry(shared_backend)
+        control = _pre_execution_control_shared(attester_key, shared_nonce_registry)
+        return _governance_service_shared(
+            pre_execution_control=control, mandate_key=mandate_key,
+            nonce_registry=shared_nonce_registry,
+        )
+
+    attester_service = _attester_service(attester_key)
+    context = _raw_context()
+    canonical = _canonical(context)
+    raw_attestation = _obtain_attestation(attester_service, payload=canonical)
+    mandate = _mandate(mandate_key)
+
+    # Instance A: first, legitimate use.
+    service_a = build_service()
+    first = run(service_a.execute_with_mandate(
+        mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
+        context=context, attestation=raw_attestation,
+    ))
+    assert first.status == "EXECUTED", first.reason
+
+    # Simulated restart: destroy instance A entirely.
+    del service_a
+
+    # Instance B: brand-new objects, same backend, same artifacts.
+    service_b = build_service()
+    replay = run(service_b.execute_with_mandate(
+        mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
+        context=context, attestation=raw_attestation,
+    ))
+    assert replay.status != "EXECUTED", "replay was EXECUTED after simulated restart"
+    assert replay.status == "BLOCKED"
+
+
+def _pre_execution_control_shared(attester_key: SigningKey, nonce_registry) -> PreExecutionControl:
+    return PreExecutionControl(
+        requirements=AttestationRequirementRegistry([_requirement()]),
+        trust_store=AttesterTrustStore([
+            AttesterTrustAnchor(ATTESTER_ID, attester_key.kid, attester_key.public_key(),
+                                frozenset({"risk_assessment"})),
+        ]),
+        nonce_registry=nonce_registry,
+    )
+
+
+def _governance_service_shared(*, pre_execution_control, mandate_key: SigningKey, nonce_registry):
+    signing_key = SigningKey.generate("gw-signing-r5")
+    engine = DecisionEngine(
+        signing_key=signing_key, issuer="mcc/core", audience="pilot", policy_id="pilot/v1",
+        policy_hash=POLICY_HASH,
+    )
+    gate = ExecutionGate(
+        trusted_keys={signing_key.kid: signing_key.public_key()}, audience="pilot",
+        nonce_registry=nonce_registry, policy_hash=POLICY_HASH,
+    )
+    audit = _tmp_audit()
+    coordinator = EnforcementCoordinator(
+        gate=gate, idempotency=InMemoryIdempotencyRegistry(),
+        velocity=InMemoryVelocityRegistry(), audit=audit,
+        profiles=ProfileRegistry.default_pilot(), revocation_registry=InMemoryRevocationRegistry(),
+    )
+    trust_set = TrustSet()
+    trust_set.add_runtime_issuer("axlogiq/pilot", mandate_key.kid, mandate_key.public_key())
+    approver_key = SigningKey.generate("approver-r5")
+    trust_set.add_runtime_issuer("mcc/approvals", approver_key.kid, approver_key.public_key())
+    approvals = ApprovalService(InMemoryApprovalRegistry(), approver_key)
+
+    async def upstream(action, payload):
+        return {"ok": True, "action": action, "payload": payload}
+
+    return GovernanceService(
+        engine=engine, coordinator=coordinator, trust_set=trust_set,
+        revocation_registry=InMemoryRevocationRegistry(), approvals=approvals,
+        profiles=ProfileRegistry.default_pilot(), upstream=upstream, policy_hash=POLICY_HASH,
+        pre_execution_control=pre_execution_control,
+    )

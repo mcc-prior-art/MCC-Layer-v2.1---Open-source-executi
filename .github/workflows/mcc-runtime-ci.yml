@@ -1523,6 +1523,19 @@ jobs:
           pip install -r requirements-dev.txt
           pytest tests/examples/ -q
 
+      - name: Attestation-aware chain replay protection survives a restart against a real Redis
+        env:
+          MCC_REDIS_URL: redis://127.0.0.1:6379/0
+        run: |
+          # A genuine signed EvidenceAttestation is run through the full
+          # governed chain (Attester -> PreExecutionControl -> DecisionEngine
+          # -> ExecutionGate -> EnforcementCoordinator) to EXECUTED, every
+          # Python object is destroyed, a brand-new stack is built from
+          # scratch against the SAME Redis, and the identical attestation is
+          # replayed: it must be BLOCKED, and an independent actuation
+          # counter must still read exactly 1. Exits non-zero on any miss.
+          python scripts/redis_restart_replay_smoke.py
+
   invariants:
     runs-on: ubuntu-latest
     steps:

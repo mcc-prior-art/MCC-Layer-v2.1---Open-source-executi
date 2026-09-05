@@ -63,6 +63,10 @@ _EXPORTS: dict[str, str] = {
     "InMemoryNonceRegistry": "nonce", "NonceConfigError": "nonce",
     "NonceRegistry": "nonce", "RedisNonceRegistry": "nonce",
     "nonce_registry_from_env": "nonce",
+    # deployment_mode
+    "DeploymentModeConfigError": "deployment_mode",
+    "deployment_mode_from_env": "deployment_mode",
+    "is_enforcement_mode": "deployment_mode",
     # consensus
     "ConsensusPolicy": "consensus", "ConsensusResult": "consensus",
     "ConsensusVerifier": "consensus", "issue_vote": "consensus",
@@ -175,6 +179,11 @@ if TYPE_CHECKING:  # help static type-checkers see the re-exported names
         RevocationStatus,
         issue_mandate,
         revocation_registry_from_env,
+    )
+    from .deployment_mode import (  # noqa: F401
+        DeploymentModeConfigError,
+        deployment_mode_from_env,
+        is_enforcement_mode,
     )
     from .nonce import (  # noqa: F401
         InMemoryNonceRegistry,

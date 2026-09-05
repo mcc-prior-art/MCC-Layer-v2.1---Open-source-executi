@@ -270,3 +270,55 @@ def test_factory_redis_builds_redis_registry():
 def test_factory_unknown_backend_raises():
     with pytest.raises(NonceConfigError):
         nonce_registry_from_env({"MCC_NONCE_BACKEND": "sqlite"})
+
+
+# =========================
+# Production Trust Hardening Phase 1 — Workstream 1:
+# MCC_DEPLOYMENT_MODE=enforcement must never select volatile replay state.
+# =========================
+
+
+def test_r1_reference_mode_can_still_intentionally_use_memory():
+    # Default MCC_DEPLOYMENT_MODE ("reference") preserves today's behavior:
+    # memory is a legitimate, intentional choice for dev/single-instance use.
+    assert isinstance(
+        nonce_registry_from_env({"MCC_DEPLOYMENT_MODE": "reference"}), InMemoryNonceRegistry
+    )
+    # And the un-set default (no MCC_DEPLOYMENT_MODE at all) is equivalent to
+    # "reference" -- this is the existing, unmodified behavior every other
+    # caller of nonce_registry_from_env already relies on.
+    assert isinstance(nonce_registry_from_env({}), InMemoryNonceRegistry)
+
+
+def test_r2_enforcement_mode_with_memory_backend_refuses_startup():
+    with pytest.raises(NonceConfigError):
+        nonce_registry_from_env(
+            {"MCC_DEPLOYMENT_MODE": "enforcement", "MCC_NONCE_BACKEND": "memory"}
+        )
+
+
+def test_r2_enforcement_mode_with_default_backend_refuses_startup():
+    # No MCC_NONCE_BACKEND at all -> defaults to memory -> still refused.
+    # Enforcement mode must not depend on an operator remembering to set
+    # MCC_NONCE_BACKEND explicitly.
+    with pytest.raises(NonceConfigError):
+        nonce_registry_from_env({"MCC_DEPLOYMENT_MODE": "enforcement"})
+
+
+def test_r3_enforcement_mode_with_redis_missing_url_refuses_startup():
+    with pytest.raises(NonceConfigError):
+        nonce_registry_from_env(
+            {"MCC_DEPLOYMENT_MODE": "enforcement", "MCC_NONCE_BACKEND": "redis"}
+        )
+
+
+def test_r4_enforcement_mode_never_silently_falls_back_redis_to_memory():
+    # A well-configured enforcement deployment gets a genuine
+    # RedisNonceRegistry -- never a silently substituted in-memory one.
+    reg = nonce_registry_from_env({
+        "MCC_DEPLOYMENT_MODE": "enforcement",
+        "MCC_NONCE_BACKEND": "redis",
+        "MCC_REDIS_URL": "redis://127.0.0.1:6379/0",
+    })
+    assert isinstance(reg, RedisNonceRegistry)
+    assert not isinstance(reg, InMemoryNonceRegistry)
