@@ -4,9 +4,9 @@
 **Author:** Alexandr Ponomariov / AXLOGIQ Inc.  
 **Repository:** https://github.com/mcc-prior-art/mcc-layer  
 **Version:** `v1.12.0`  
-**Current capability baseline:** through [PR #85 — External Checkpoint Anchoring](https://github.com/mcc-prior-art/mcc-layer/pull/85)  
-**Baseline commit:** [`b079944`](https://github.com/mcc-prior-art/mcc-layer/commit/b079944f65e6ea7646d25d2d87530c40aad56ffb)  
-**Baseline date:** `2026-08-20`  
+**Current capability baseline:** through [PR #96 — Attestation-Aware External Pilot Path](https://github.com/mcc-prior-art/mcc-layer/pull/96)  
+**Baseline commit:** [`8130f19`](https://github.com/mcc-prior-art/mcc-layer/commit/8130f195cebe07d8bdd6b14b093f207b03b7269b)  
+**Baseline date:** `2026-09-01`  
 **Doctrine record:** `2026-06-02`
 
 ## Reproducible Assurance Baseline
@@ -23,6 +23,16 @@ make verify-assurance
 
 <p align="center">
   <strong>Verified execution authority for autonomous AI systems.</strong>
+</p>
+
+<p align="center">
+  MCC-Core does not merely determine whether an action is admissible. It creates and verifies<br>
+  cryptographically attributable execution authority, bound to the exact action and its execution<br>
+  conditions, before the gate permits execution.
+</p>
+
+<p align="center">
+  <strong>Admission is a decision. Authority is a verifiable execution artifact.</strong>
 </p>
 
 <p align="center">
@@ -310,6 +320,8 @@ MCC-Core produces explicit execution outcomes:
 When execution is authorized, MCC-Core issues a signed, scoped, time-limited, replay-protected decision token.
 
 The execution gate does not infer permission. It verifies authority.
+
+The distinction is not merely whether an action is acceptable under policy. MCC-Core turns a verified authorization decision into signed execution authority that is bound to the exact action and independently verified again at the execution boundary. Admission asks whether an action satisfies stated criteria; execution authority is a cryptographically attributable artifact — bound to the exact action hash, payload, and (where an attestation is required) the exact evidence that action was authorized under — that the execution gate re-verifies on its own, at the point of actuation, rather than trusting the admission decision alone. See [Execution Authority Boundary](docs/EXECUTION_AUTHORITY_BOUNDARY.md) for the full architectural distinction.
 
 This repository contains the public reference architecture, doctrine, runtime model, MCC-I infrastructure vertical, exhibit materials, and MCC-Core API Server reference direction.
 
