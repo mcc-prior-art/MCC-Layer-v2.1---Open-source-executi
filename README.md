@@ -4,9 +4,9 @@
 **Author:** Alexandr Ponomariov / AXLOGIQ Inc.  
 **Repository:** https://github.com/mcc-prior-art/mcc-layer  
 **Version:** `v1.12.0`  
-**Current capability baseline:** through [PR #96 — Attestation-Aware External Pilot Path](https://github.com/mcc-prior-art/mcc-layer/pull/96)  
-**Baseline commit:** [`8130f19`](https://github.com/mcc-prior-art/mcc-layer/commit/8130f195cebe07d8bdd6b14b093f207b03b7269b)  
-**Baseline date:** `2026-09-01`  
+**Current capability baseline:** through [PR #100 — GPT-6 Astra Reference Integration](https://github.com/mcc-prior-art/mcc-layer/pull/100)  
+**Baseline commit:** [`da82dd6`](https://github.com/mcc-prior-art/mcc-layer/commit/da82dd626bfd8a73344d48ba9072b5db72282d76)  
+**Baseline date:** `2026-09-06`  
 **Doctrine record:** `2026-06-02`
 
 ## Reproducible Assurance Baseline
@@ -182,7 +182,7 @@ Its reference runtime was implemented with an AI coding agent, tested against do
 
 **Historical evidence:** [PR #4 — Runtime Upgrade Merge](https://github.com/mcc-prior-art/mcc-layer/pull/4)
 
-Runtime upgrade record: PR #4 merged as commit `32d4d3a`, extending the reference runtime with a bounded 10,000-entry cache invariant under public CI verification. This is an early historical milestone; the repository's current capability baseline is tracked in the metadata block above and reflects PR #85.
+Runtime upgrade record: PR #4 merged as commit `32d4d3a`, extending the reference runtime with a bounded 10,000-entry cache invariant under public CI verification. This is an early historical milestone; the repository's current capability baseline is tracked in the metadata block above and reflects PR #100.
 
 ---
 
@@ -206,6 +206,64 @@ Full reproduction guide:
 - [TLA+ Model](model/MCCExecutionStateMachine.tla)
 
 Boundary: this is a self-administered reproducible assurance baseline, not a third-party audit.
+
+---
+
+## Frontier Model Validation — GPT-6 Astra
+
+MCC-Core has been exercised against a real frontier model without changing its
+execution-authority architecture. In
+[PR #100 — GPT-6 Astra Reference Integration](https://github.com/mcc-prior-art/mcc-layer/pull/100),
+GPT-6 Astra operated as the Intelligence layer: it could propose actions, but
+could not mint permission to execute.
+
+Astra remained strictly on the Intelligence/proposal side of the existing
+decision boundary — it never held a decision-token signing key, an Attester
+signing key, or a pre-issued mandate, and it never called the actuator
+directly. The existing
+`INTELLIGENCE → ATTESTATION → CONTROL → SIGNED EXECUTION AUTHORITY →
+AUTHORITY VERIFICATION → GATE → EXECUTION` chain was not redesigned for
+Astra; every governed call runs through the same
+`GovernanceService`/`MandateAuthority`/`PreExecutionControl`/`DecisionEngine`/
+`EnforcementCoordinator` primitives every other integration in this
+repository uses.
+
+Live runs against the real GPT-6 Astra API produced realistic, non-canonical
+model outputs, and the integration handled both fail-closed — rejecting the
+mismatch before it reached the Attester or the Gate — rather than silently
+aliasing, normalizing, or guessing at the model's intent:
+
+- **[Commit `ff19361`](https://github.com/mcc-prior-art/mcc-layer/commit/ff193614d8323b34f3e13219bb0588f6a0c3bf27)**
+  — a live run proposed the action `github.create_issue` instead of the
+  mandate's exact canonical action `create_github_issue`. Fixed with an
+  exact-match, no-aliasing canonical-action contract check.
+- **[Commit `a69a7ee`](https://github.com/mcc-prior-art/mcc-layer/commit/a69a7ee81db42e6bd6bdd9995e13c50c59b7cf43)**
+  — a later live run proposed the correct action but a paraphrased/URL-form
+  resource instead of the mandate's exact canonical repository identifier.
+  Fixed with the same exact-match discipline extended to the resource
+  identifier.
+
+Both findings strengthened the model-to-MCC proposal contract; neither
+touched the mandate's own action/resource scope or any execution-authority
+semantics.
+
+PR #100 was subsequently merged (merge commit
+[`da82dd6`](https://github.com/mcc-prior-art/mcc-layer/commit/da82dd626bfd8a73344d48ba9072b5db72282d76)).
+Post-merge, both **MCC Runtime CI** and **MCC Independent Assurance**
+completed successfully on `main`.
+
+Full architecture, trust boundaries, and scenario detail:
+[docs/GPT6_ASTRA_REFERENCE_INTEGRATION.md](docs/GPT6_ASTRA_REFERENCE_INTEGRATION.md).
+
+**Boundary:** this is a real frontier-model reference validation, not an
+OpenAI certification, endorsement, or partnership, and not an independent
+third-party security audit. It does not establish that MCC-Core is
+production-certified, and it does not generalize to every frontier model —
+it demonstrates the pattern with one named provider. Model alignment
+influences what the model proposes; execution authority determines whether a
+proposed action may execute — Astra's own decision not to propose an action
+is a property of the model, not an MCC-Core denial, and is never credited as
+an MCC-Core security outcome.
 
 ---
 
