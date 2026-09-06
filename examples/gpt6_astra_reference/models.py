@@ -131,8 +131,37 @@ def parse_proposals(raw: Any) -> List[AstraProposal]:
     return [parse_proposal(raw)]
 
 
+class AstraNonCanonicalActionError(AstraProposalError):
+    """Raised when a proposal's ``action`` is not EXACTLY the canonical
+    action identifier a task requires. No alias, synonym, or namespaced
+    variant is ever accepted -- a model that names the same real-world
+    operation differently (e.g. ``"github.create_issue"`` in place of the
+    canonical ``"create_github_issue"``) has NOT supplied the canonical
+    identifier this mandate is scoped to, and is rejected at the proposal
+    layer -- it is never forwarded to the Attester/Gate as if it required
+    its own scope decision, and the mandate's action scope is never
+    broadened or dynamically matched to accommodate it."""
+
+
+def require_canonical_action(proposal: AstraProposal, canonical_action: str) -> AstraProposal:
+    """Fail-closed proposal-contract check: ``proposal.action`` must equal
+    ``canonical_action`` byte-for-byte. This performs no normalization, no
+    case-folding, no alias table, and no fuzzy or prefix matching -- exact
+    equality only. Returns ``proposal`` unchanged on success; raises
+    :class:`AstraNonCanonicalActionError` (a subclass of
+    :class:`AstraProposalError`) otherwise, so every existing "malformed
+    Astra output" handling path already in this package also covers a
+    non-canonical action."""
+    if proposal.action != canonical_action:
+        raise AstraNonCanonicalActionError(
+            f"model proposed action {proposal.action!r}; this task requires exactly the "
+            f"canonical action identifier {canonical_action!r} -- no alias is accepted"
+        )
+    return proposal
+
+
 __all__ = [
     "AstraProposal", "AstraSelfRefusal", "AstraError", "AstraOutcome",
-    "AstraProposalError", "FORBIDDEN_TRUSTED_FIELDS",
-    "parse_proposal", "parse_proposals",
+    "AstraProposalError", "AstraNonCanonicalActionError", "FORBIDDEN_TRUSTED_FIELDS",
+    "parse_proposal", "parse_proposals", "require_canonical_action",
 ]

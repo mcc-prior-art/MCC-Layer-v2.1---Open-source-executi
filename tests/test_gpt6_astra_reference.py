@@ -15,12 +15,14 @@ import asyncio
 
 import pytest
 
-from examples.gpt6_astra_reference.astra_provider import DeterministicAstraProvider
+from examples.gpt6_astra_reference.astra_provider import AstraResponse, DeterministicAstraProvider
 from examples.gpt6_astra_reference.evidence import TerminalStatus, classify_exec_outcome
 from examples.gpt6_astra_reference.github_actuator import (
     GitHubActuatorConfig, GitHubActuatorConfigError, GitHubActuatorDisabledError, GitHubIssueActuator,
 )
-from examples.gpt6_astra_reference.models import AstraProposal, AstraProposalError, parse_proposal
+from examples.gpt6_astra_reference.models import (
+    AstraNonCanonicalActionError, AstraProposal, AstraProposalError, parse_proposal, require_canonical_action,
+)
 from examples.gpt6_astra_reference._localstack import ACTION, ACTOR, LocalAstraDemoStack
 from examples.gpt6_astra_reference.pipeline import (
     run_positive_path,
@@ -297,3 +299,110 @@ def test_15_disabled_actuator_refuses_unsupported_action():
     actuator = GitHubIssueActuator(config)
     with pytest.raises(GitHubActuatorDisabledError):
         run(actuator("delete_repository", {}))
+
+
+# ---------------------------------------------------------------------------
+# 16-18. Live-shaped non-canonical action contract (regression: a real
+# OpenAI-compatible endpoint proposed "github.create_issue" instead of the
+# canonical "create_github_issue"); complete, independent scenario reporting
+# even when a positive-shaped proposal is denied or would otherwise raise
+# AuthorityDeniedError. No network access, no OpenAI credentials -- the
+# live provider is replaced with an in-process test double that reproduces
+# the exact observed shape.
+# ---------------------------------------------------------------------------
+
+
+class _FixedActionProvider:
+    """Test double standing in for a live ``OpenAIAstraProvider``: always
+    returns exactly one proposal with a fixed action/resource, regardless of
+    the task string. Used to deterministically reproduce, offline, the
+    live-model failure modes this regression guards against -- a
+    non-canonical action identifier, or a canonical action for an
+    out-of-mandate resource."""
+
+    def __init__(self, action: str, resource: str = DEMO_REPO) -> None:
+        self._action = action
+        self._resource = resource
+
+    async def propose(self, task: str) -> AstraResponse:
+        proposal = AstraProposal(action=self._action, resource=self._resource,
+                                 payload={"title": "t", "body": "b"})
+        return AstraResponse(outcome=[proposal], is_live=True, model="gpt-6-astra")
+
+
+def test_16_require_canonical_action_rejects_the_live_shaped_alias():
+    """The exact mismatch observed live: the model said "github.create_issue"
+    where the mandate is scoped to the canonical "create_github_issue". This
+    must be rejected outright -- never normalized or aliased."""
+    proposal = AstraProposal(action="github.create_issue", resource=DEMO_REPO, payload={})
+    with pytest.raises(AstraNonCanonicalActionError):
+        require_canonical_action(proposal, ACTION)
+
+
+def test_16_require_canonical_action_accepts_the_exact_canonical_identifier():
+    proposal = AstraProposal(action=ACTION, resource=DEMO_REPO, payload={})
+    assert require_canonical_action(proposal, ACTION) is proposal
+
+
+def test_16_positive_scenario_fails_closed_on_non_canonical_action_not_a_crash(monkeypatch):
+    """Regression test for the exact live failure observed against a real
+    OpenAI-compatible endpoint (gpt-6-astra): the model proposed
+    'github.create_issue' instead of the canonical 'create_github_issue'.
+    This must be reported as an ASTRA_ERROR -- MCC is never invoked, no
+    alias is accepted, and the scenario function must not raise."""
+    from examples.gpt6_astra_reference import cli as cli_module
+
+    monkeypatch.setattr(
+        cli_module.OpenAIAstraProvider, "from_env",
+        classmethod(lambda cls, env=None: _FixedActionProvider("github.create_issue")),
+    )
+    trace = run(run_positive(live_astra=True))
+    assert trace.terminal_status == TerminalStatus.ASTRA_ERROR
+    assert trace.gate_accepted is None  # MCC was never invoked
+    assert trace.actuator_invocations == 0
+    assert "github.create_issue" in trace.notes[0]
+    assert "create_github_issue" in trace.notes[0]
+
+
+def test_17_tamper_scenario_reports_completely_on_authority_denial_not_a_crash(monkeypatch):
+    """Regression test for 'every CLI scenario is independent': when
+    authority issuance itself is denied before a token exists (here: a
+    canonical action proposed for a resource outside the mandate's scope --
+    the shape a live model's own resource choice could produce), the
+    scenario must return a complete, classified RunTrace instead of letting
+    AuthorityDeniedError propagate out of the scenario function."""
+    from examples.gpt6_astra_reference import cli as cli_module
+
+    monkeypatch.setattr(
+        cli_module.OpenAIAstraProvider, "from_env",
+        classmethod(lambda cls, env=None: _FixedActionProvider(ACTION, resource="owner/some-unrelated-repo")),
+    )
+    trace = run(run_tamper(live_astra=True))
+    assert trace.terminal_status == TerminalStatus.MCC_AUTHORITY_DENY
+    assert "RESOURCE_SCOPE_MISMATCH" in trace.gate_reason
+    assert trace.actuator_invocations == 0
+
+
+def test_18_all_scenarios_report_even_after_a_positive_path_denial(monkeypatch, capsys):
+    """System-level regression test for 'all --live-astra must continue
+    through and report every scenario even if the positive scenario is
+    denied or raises AuthorityDeniedError': force every scenario's live
+    Astra call to return the same live-shaped non-canonical proposal, and
+    assert the CLI driver still reaches and reports every single scenario,
+    with no unhandled traceback."""
+    from examples.gpt6_astra_reference import cli as cli_module
+
+    monkeypatch.setattr(
+        cli_module.OpenAIAstraProvider, "from_env",
+        classmethod(lambda cls, env=None: _FixedActionProvider("github.create_issue")),
+    )
+    exit_code = run(cli_module._main(["all", "--live-astra"]))
+    out = capsys.readouterr().out
+    for name in cli_module._SCENARIOS:
+        assert f"===== scenario: {name} =====" in out, f"scenario {name!r} was never reported"
+    assert "Traceback" not in out
+    assert "[SCENARIO ERROR]" not in out
+    # None of these scenarios can prove their invariant with a rejected,
+    # non-canonical proposal -- the run correctly reports failure, but by
+    # completing and reporting every scenario, never by crashing.
+    assert exit_code == 1
