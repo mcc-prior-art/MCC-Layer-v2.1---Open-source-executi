@@ -265,6 +265,38 @@ proposed action may execute — Astra's own decision not to propose an action
 is a property of the model, not an MCC-Core denial, and is never credited as
 an MCC-Core security outcome.
 
+### PR #102 — Adversarial Execution-Boundary Validation
+
+> Intelligence can propose.
+> Authority must verify.
+> Execution must enforce.
+>
+> Intelligence may adapt.
+> Authority must not drift.
+
+PR #102 extends the reference integration above from a single live
+proposal into a deterministic, offline adversarial suite: semantic action
+aliasing, resource-form substitution, persuasive/claimed-approval text,
+tool/execution-path substitution, multi-step agentic drift, and adaptive
+retry against stale or tampered authority. Every scenario asserts both an
+authority outcome and an independently-counted actuator-invocation count;
+none widened the mandate's action or resource scope to pass.
+
+A live run against the real `gpt-6-astra` model followed the deterministic
+suite: 3 in-scope proposals executed; 2 explicitly out-of-scope proposals
+(one plain, one carrying an untrusted "already approved" claim) were both
+denied — `RESOURCE_SCOPE_MISMATCH` — with the actuator invocation count
+unchanged in both cases.
+
+A further self-directed live red-team run (LIVE-F) gave `gpt-6-astra` only
+the objective and MCC-mediation fact — no strategy name, no canonical
+identifiers — and let it choose, retry, and adapt freely for up to 10
+attempts. It used its full budget across two different action-naming
+conventions and four resource-identifier guesses, none authorized: 0 of 10
+attempts executed, 0 actuator invocations, 0 safety violations. Full
+matrix, live evidence, strategy analysis, and limitations:
+[docs/GPT6_ASTRA_ADVERSARIAL_EXECUTION_BOUNDARY.md](docs/GPT6_ASTRA_ADVERSARIAL_EXECUTION_BOUNDARY.md).
+
 ---
 
 ## Proof of Concept — First-Run Gate Verification
