@@ -18,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "examples" / "gpt6_astra_reference" / "adversarial.py"
 LIVE_MATRIX_PATH = ROOT / "examples" / "gpt6_astra_reference" / "live_matrix.py"
+LIVE_REDTEAM_PATH = ROOT / "examples" / "gpt6_astra_reference" / "live_redteam.py"
 
 #: Same forbidden signing-material names PR-100 already guards against.
 FORBIDDEN_SIGNING_NAMES = {
@@ -150,3 +151,61 @@ def test_live_matrix_never_touches_signing_material():
             used.add(node.attr)
     hit = used & FORBIDDEN_SIGNING_NAMES
     assert not hit, f"live_matrix.py references forbidden signing-material names: {hit}"
+
+
+# ---------------------------------------------------------------------------
+# LIVE-F — the self-directed red-team module: same guards, plus proof it
+# shares (not duplicates) the hard-abort mechanism and never gains its own
+# actuator/signing/authority-mutation surface.
+# ---------------------------------------------------------------------------
+
+
+def test_live_redteam_uses_the_one_real_live_adapter_only():
+    tree = ast.parse(LIVE_REDTEAM_PATH.read_text(encoding="utf-8"), filename=str(LIVE_REDTEAM_PATH))
+    imported = _imported_modules(tree)
+    assert not ({"httpx", "requests", "urllib"} & imported), (
+        "live_redteam.py must never perform its own direct network transport"
+    )
+    names = _used_names(tree)
+    assert "OpenAIAstraProvider" in names
+
+
+def test_live_redteam_never_touches_signing_material():
+    tree = ast.parse(LIVE_REDTEAM_PATH.read_text(encoding="utf-8"), filename=str(LIVE_REDTEAM_PATH))
+    used = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            used.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            used.add(node.attr)
+    hit = used & FORBIDDEN_SIGNING_NAMES
+    assert not hit, f"live_redteam.py references forbidden signing-material names: {hit}"
+
+
+def test_live_redteam_defines_no_second_core_primitive_or_hard_abort_mechanism():
+    """No second Gate/authority/replay class, AND no second hard-abort
+    exception -- LIVE-F must reuse ``live_matrix.LiveMatrixSafetyViolation``,
+    never define its own parallel safety mechanism."""
+    tree = ast.parse(LIVE_REDTEAM_PATH.read_text(encoding="utf-8"), filename=str(LIVE_REDTEAM_PATH))
+    class_names = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
+    for fragment in FORBIDDEN_CLASS_NAME_FRAGMENTS:
+        hit = {c for c in class_names if fragment in c}
+        assert not hit, f"live_redteam.py defines a class resembling a core primitive: {hit}"
+    assert not any("SafetyViolation" in c or "Abort" in c for c in class_names), (
+        f"live_redteam.py must reuse live_matrix.LiveMatrixSafetyViolation, not define its own: {class_names}"
+    )
+    names = _used_names(tree)
+    assert "LiveMatrixSafetyViolation" in names
+    assert "check_actuation_matches_outcome" in names
+
+
+def test_live_redteam_never_imports_the_actuator_or_gate_directly():
+    """LIVE-F must reach the actuator ONLY through
+    ``adversarial.build_multi_actuator`` (the same wiring LIVE-A..E use),
+    and must never import the concrete GitHub actuator class, the Gate, or
+    the coordinator directly."""
+    tree = ast.parse(LIVE_REDTEAM_PATH.read_text(encoding="utf-8"), filename=str(LIVE_REDTEAM_PATH))
+    imported = _imported_modules(tree)
+    forbidden = {"examples.gpt6_astra_reference.github_actuator", "github_actuator",
+                 "mcc_core.gate", "mcc_core.coordinator"}
+    assert not (imported & forbidden), f"live_redteam.py imports a forbidden direct-execution module: {imported & forbidden}"

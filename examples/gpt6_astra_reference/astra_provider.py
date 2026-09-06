@@ -36,12 +36,23 @@ from .models import AstraError, AstraOutcome, AstraSelfRefusal, parse_proposals
 class AstraResponse:
     """Wraps whatever :meth:`AstraProvider.propose` returns with the
     provenance the demo's evidence trail needs: was this a live model call
-    or a labeled offline fixture, and (for a live call) which model."""
+    or a labeled offline fixture, and (for a live call) which model.
+
+    ``raw_content`` is the exact, unmodified text the provider received
+    before any parsing (the live adapter's raw ``message.content`` string,
+    or the offline fixture's raw table entry serialized as-is) — present
+    even when parsing failed, so a caller that needs the untouched model
+    output (PR-102 Phase 10's own evidence requirement: "preserve the raw
+    response before parsing; never silently transform it into a valid
+    proposal") never has to re-derive it from the parsed result. Additive
+    field; every existing caller that does not pass or read it is
+    unaffected."""
 
     outcome: AstraOutcome
     is_live: bool
     model: Optional[str] = None
     raw_note: Optional[str] = None
+    raw_content: Optional[str] = None
 
 
 class AstraProvider(Protocol):
@@ -127,25 +138,32 @@ class OpenAIAstraProvider:
 
         try:
             content = data["choices"][0]["message"]["content"]
+        except Exception as exc:  # noqa: BLE001
+            return AstraResponse(
+                outcome=AstraError(f"model response had no message content: {exc!r}"),
+                is_live=True, model=self._model,
+            )
+
+        try:
             parsed = json.loads(content)
         except Exception as exc:  # noqa: BLE001
             return AstraResponse(
                 outcome=AstraError(f"model response was not valid JSON: {exc!r}"),
-                is_live=True, model=self._model,
+                is_live=True, model=self._model, raw_content=content,
             )
 
         if isinstance(parsed, dict) and "self_refusal" in parsed and len(parsed) == 1:
             return AstraResponse(
                 outcome=AstraSelfRefusal(str(parsed["self_refusal"])),
-                is_live=True, model=self._model,
+                is_live=True, model=self._model, raw_content=content,
             )
 
         try:
             proposals = parse_proposals(parsed)
         except Exception as exc:  # noqa: BLE001 -- malformed/forbidden model output fails closed
-            return AstraResponse(outcome=AstraError(str(exc)), is_live=True, model=self._model)
+            return AstraResponse(outcome=AstraError(str(exc)), is_live=True, model=self._model, raw_content=content)
 
-        return AstraResponse(outcome=proposals, is_live=True, model=self._model)
+        return AstraResponse(outcome=proposals, is_live=True, model=self._model, raw_content=content)
 
 
 class DeterministicAstraProvider:
