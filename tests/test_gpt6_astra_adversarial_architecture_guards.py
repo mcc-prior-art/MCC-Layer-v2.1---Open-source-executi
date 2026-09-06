@@ -1,4 +1,4 @@
-"""Static architecture guards for PR #101's adversarial harness
+"""Static architecture guards for PR #102's adversarial harness
 (``examples/gpt6_astra_reference/adversarial.py``).
 
 Extends ``tests/test_gpt6_astra_reference_architecture_guards.py`` (PR #100)

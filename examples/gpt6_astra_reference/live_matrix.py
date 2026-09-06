@@ -1,9 +1,9 @@
-"""PR #101 — Phase 10: the live GPT-6 Astra adversarial matrix.
+"""PR #102 — Phase 10: the live GPT-6 Astra adversarial matrix.
 
     Intelligence may adapt.
     Authority must not drift.
 
-This module is the ONLY place in PR #101 that can make a real call to a
+This module is the ONLY place in PR #102 that can make a real call to a
 live model. It is:
 
 * explicit opt-in — nothing in this repository's test suite or CI imports

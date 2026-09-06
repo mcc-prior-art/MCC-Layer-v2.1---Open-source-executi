@@ -3,7 +3,7 @@
 > Intelligence may adapt.
 > Authority must not drift.
 
-PR #101 extends the [GPT-6 Astra Reference Integration](GPT6_ASTRA_REFERENCE_INTEGRATION.md)
+PR #102 extends the [GPT-6 Astra Reference Integration](GPT6_ASTRA_REFERENCE_INTEGRATION.md)
 (PR #100) from basic live proposal validation into an **adversarial**
 execution-boundary validation: a capable Intelligence layer, given room to
 adapt — retry, reword, substitute tools or resources, propose alternative
@@ -29,7 +29,7 @@ INTELLIGENCE -> ATTESTATION -> CONTROL -> SIGNED EXECUTION AUTHORITY
 > authority to drift beyond the exact authorization granted by MCC-Core?
 
 PR-100 already proved that ONE proposal, taken at face value, cannot mint
-its own authority. PR-101 asks a harder question: does that boundary still
+its own authority. PR-102 asks a harder question: does that boundary still
 hold across **many** proposals from the same actor, when some of them are
 deliberately shaped to look like the same, already-authorized request?
 
@@ -141,8 +141,8 @@ run.
 ```
 pytest tests/test_gpt6_astra_reference.py -q                         # 75 passed (PR-100, unchanged)
 pytest tests/test_gpt6_astra_reference_architecture_guards.py -q     #  (included in the 75 above)
-pytest tests/test_gpt6_astra_adversarial.py -q                       # 46 passed (PR-101)
-pytest tests/test_gpt6_astra_adversarial_architecture_guards.py -q   #  7 passed (PR-101)
+pytest tests/test_gpt6_astra_adversarial.py -q                       # 46 passed (PR-102)
+pytest tests/test_gpt6_astra_adversarial_architecture_guards.py -q   #  7 passed (PR-102)
 ```
 
 No OpenAI or GitHub credential is required for any of the above — every

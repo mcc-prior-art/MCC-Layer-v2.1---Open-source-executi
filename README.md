@@ -265,7 +265,7 @@ proposed action may execute — Astra's own decision not to propose an action
 is a property of the model, not an MCC-Core denial, and is never credited as
 an MCC-Core security outcome.
 
-### PR #101 — Adversarial Execution-Boundary Validation
+### PR #102 — Adversarial Execution-Boundary Validation
 
 > Intelligence can propose.
 > Authority must verify.
@@ -274,7 +274,7 @@ an MCC-Core security outcome.
 > Intelligence may adapt.
 > Authority must not drift.
 
-PR #101 extends the reference integration above from a single live
+PR #102 extends the reference integration above from a single live
 proposal into a deterministic, offline adversarial suite: semantic action
 aliasing, resource-form substitution, persuasive/claimed-approval text,
 tool/execution-path substitution, multi-step agentic drift, and adaptive
