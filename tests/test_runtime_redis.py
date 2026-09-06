@@ -142,9 +142,11 @@ def test_idempotency_cross_instance(tmp_path):
     reg_b = RedisIdempotencyRegistry(shared, namespace=ns)
     first = run(reg_a.reserve("op-1", binding="payload-hash-A"))
     assert first.status == ReserveStatus.RESERVED
-    # B sees the in-flight reservation; a conflicting binding cannot win.
+    # B sees the in-flight reservation under a DIFFERENT binding -- a
+    # distinct logical operation presenting the same key is a
+    # BINDING_CONFLICT, never merely a duplicate.
     conflict = run(reg_b.reserve("op-1", binding="payload-hash-B"))
-    assert conflict.status in (ReserveStatus.DUPLICATE_INFLIGHT, ReserveStatus.DUPLICATE_EXECUTED)
+    assert conflict.status == ReserveStatus.BINDING_CONFLICT
     assert not conflict.ok
 
 

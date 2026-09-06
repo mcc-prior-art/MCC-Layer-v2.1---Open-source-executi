@@ -50,6 +50,17 @@ class GitHubActuatorDisabledError(Exception):
     is ever made when this is raised."""
 
 
+class ResourceBindingError(Exception):
+    """Raised BEFORE any external call when the authorized resource does not
+    exactly match the actuator's own configured destination repository --
+    the deployment-misconfiguration class this guards against is an
+    authorization that says repository A while the actuator's own
+    configuration/credentials target repository B. This is deliberately a
+    plain equality check (no normalization, no case-folding, no alias
+    table) -- see ``models.require_canonical_resource`` for the identical
+    discipline applied one layer earlier, at the proposal boundary."""
+
+
 @dataclass(frozen=True)
 class GitHubActuatorConfig:
     mode: str
@@ -96,6 +107,10 @@ class GitHubIssueActuator:
     def __init__(self, config: GitHubActuatorConfig) -> None:
         self._config = config
 
+    @property
+    def config(self) -> GitHubActuatorConfig:
+        return self._config
+
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "GitHubIssueActuator":
         return cls(GitHubActuatorConfig.from_env(env))
@@ -131,7 +146,78 @@ class GitHubIssueActuator:
             return resp.json()
 
 
+class ResourceBoundActuator:
+    """Wraps a :class:`GitHubIssueActuator` (or any ``async def (action,
+    payload)`` upstream callable) with an explicit, synchronous,
+    pre-external-call check that the resource this call was AUTHORIZED for
+    exactly matches the actuator's OWN configured destination.
+
+    This deliberately does not thread ``resource`` through the generic
+    ``gateway.governance_service.Upstream`` contract (``(action, payload) ->
+    Any``, shared by every other governed executor in this repository) --
+    doing so would change a call signature many unrelated actuators rely on.
+    Instead the authorized resource is captured once, at construction time
+    (the caller already knows it -- it is the resource a mandate/token was
+    just verified against), so the check runs with zero change to the
+    upstream call shape and therefore zero risk to any other actuator.
+
+    Raises :class:`ResourceBindingError` synchronously, before awaiting
+    anything, so no external call is ever attempted on a mismatch (test
+    scenario 20)."""
+
+    def __init__(self, actuator: GitHubIssueActuator, *, authorized_resource: str) -> None:
+        self._actuator = actuator
+        self._authorized_resource = authorized_resource
+
+    async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
+        configured = self._actuator.config.repo
+        if self._authorized_resource != configured:
+            raise ResourceBindingError(
+                f"authorized resource {self._authorized_resource!r} does not match this "
+                f"actuator's configured destination {configured!r}; refusing before any "
+                "external call"
+            )
+        return await self._actuator(action, payload)
+
+
+#: The exact, greppable marker reconciliation searches for in an issue body.
+#: The real GitHub "create issue" API has no idempotency-key parameter (it is
+#: not, in general, a safely-retriable endpoint) -- embedding the logical
+#: operation's id in the body is the only way this reference actuator gives
+#: reconciliation something to search for. This is the honest boundary: it
+#: proves "an issue whose body names this exact logical_operation_id exists",
+#: not "GitHub deduplicated the create for us".
+LOGICAL_OPERATION_MARKER_PREFIX = "<!-- mcc-logical-operation-id: "
+LOGICAL_OPERATION_MARKER_SUFFIX = " -->"
+
+
+def logical_operation_marker(logical_operation_id: str) -> str:
+    return f"{LOGICAL_OPERATION_MARKER_PREFIX}{logical_operation_id}{LOGICAL_OPERATION_MARKER_SUFFIX}"
+
+
+class LogicalOperationMarkerActuator:
+    """Wraps an upstream ``async def (action, payload)`` callable, appending
+    the exact, greppable ``logical_operation_marker`` to the issue body
+    before delegating -- purely so reconciliation (see
+    ``reconciliation.py``) has independent, positive external evidence to
+    search for later. Never changes ``title``; never invents an operation id
+    on its own (the id is always supplied by the caller, the same one bound
+    into the token's ``idempotency_key`` -- see ``models.py``)."""
+
+    def __init__(self, actuator, *, logical_operation_id: str) -> None:
+        self._actuator = actuator
+        self._logical_operation_id = logical_operation_id
+
+    async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
+        marked = dict(payload)
+        body = marked.get("body", "")
+        marked["body"] = f"{body}\n\n{logical_operation_marker(self._logical_operation_id)}"
+        return await self._actuator(action, marked)
+
+
 __all__ = [
     "GitHubActuatorConfig", "GitHubActuatorConfigError", "GitHubActuatorDisabledError",
-    "GitHubIssueActuator", "DISABLED", "LIVE",
+    "GitHubIssueActuator", "ResourceBindingError", "ResourceBoundActuator",
+    "LOGICAL_OPERATION_MARKER_PREFIX", "LOGICAL_OPERATION_MARKER_SUFFIX",
+    "logical_operation_marker", "LogicalOperationMarkerActuator", "DISABLED", "LIVE",
 ]

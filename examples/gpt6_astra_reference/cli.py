@@ -27,13 +27,19 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import uuid
 
 from mcc_attester_service import AssessmentResult
 
 from .astra_provider import AstraProvider, AstraResponse, DeterministicAstraProvider, OpenAIAstraProvider
 from .evidence import RunTrace, TerminalStatus, classify_exec_outcome
-from .github_actuator import GitHubActuatorConfig, GitHubIssueActuator
-from .models import AstraError, AstraProposalError, AstraSelfRefusal, require_canonical_proposal
+from .github_actuator import (
+    GitHubActuatorConfig, GitHubIssueActuator, LogicalOperationMarkerActuator, ResourceBoundActuator,
+)
+from .models import (
+    AstraError, AstraProposalError, AstraSelfRefusal, require_canonical_proposal,
+    require_logical_operation_id,
+)
 from .pipeline import (
     AuthorityDeniedError,
     attestation_fingerprint, authority_fingerprint,
@@ -107,6 +113,29 @@ def _mock_actuator_env(stack: LocalAstraDemoStack) -> dict:
         "MCC_ASTRA_GITHUB_REPO": stack.demo_repo,
         "MCC_ASTRA_GITHUB_BASE_URL": stack.github_base_url,
     }
+
+
+def _new_logical_operation_id() -> str:
+    """A fresh opaque logical-operation id for one protected-action request.
+    Never derived from the proposal's own content (that would make it just
+    another spelling of payload_hash, which Round 17 explicitly forbids as
+    the logical-operation identity) -- this models the caller/orchestrator
+    driving the request minting a genuinely independent identifier, exactly
+    as ``models.require_logical_operation_id`` requires one be supplied."""
+    return uuid.uuid4().hex
+
+
+def _governed_actuator(stack: LocalAstraDemoStack, *, authorized_resource: str,
+                       logical_operation_id: str) -> "_CountingActuator":
+    """Builds the real (disabled-by-default, here explicitly enabled against
+    the local mock) actuator wrapped with the two pre-external-call guards
+    Round 17 adds: resource-binding (test scenario 20) and the
+    logical-operation marker reconciliation searches for (test scenario 8) --
+    both checked/applied strictly BEFORE the real actuator's own HTTP call."""
+    raw = GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack)))
+    bound = ResourceBoundActuator(raw, authorized_resource=authorized_resource)
+    marked = LogicalOperationMarkerActuator(bound, logical_operation_id=logical_operation_id)
+    return _CountingActuator(marked)
 
 
 def _build_astra_provider(*, live_astra: bool) -> AstraProvider:
@@ -214,15 +243,17 @@ async def run_positive(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("positive", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource,
+                                      logical_operation_id=logical_operation_id)
         stack.upstream = counting
 
         canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
         att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
         outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-            attestation=att.raw_attestation,
+            attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
         )
         terminal = TerminalStatus.EXECUTED if outcome.status == "EXECUTED" else classify_exec_outcome(outcome.reason)
         issues = recorded_issues()
@@ -247,15 +278,17 @@ async def run_wrong_scope(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("wrong-scope", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource,
+                                      logical_operation_id=logical_operation_id)
         stack.upstream = counting
 
         canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
         att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
         outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-            attestation=att.raw_attestation,
+            attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
         )
         terminal = classify_exec_outcome(outcome.reason)
         return RunTrace(
@@ -306,21 +339,25 @@ async def run_autonomous_expansion(*, live_astra: bool = False) -> RunTrace:
                 AstraResponse(outcome=AstraError(str(exc)), is_live=resp.is_live, model=resp.model),
             )
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        primary_logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
+        extra_logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
+
+        counting = _governed_actuator(stack, authorized_resource=primary.resource,
+                                      logical_operation_id=primary_logical_operation_id)
         stack.upstream = counting
 
         canonical = stack.profiles.for_action(primary.action).canonical_payload(primary.payload)
         att_primary = await obtain_attestation(stack.attester, proposal=primary, canonical_payload=canonical)
         primary_outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=primary,
-            attestation=att_primary.raw_attestation,
+            attestation=att_primary.raw_attestation, logical_operation_id=primary_logical_operation_id,
         )
 
         canonical_extra = stack.profiles.for_action(extra.action).canonical_payload(extra.payload)
         att_extra = await obtain_attestation(stack.attester, proposal=extra, canonical_payload=canonical_extra)
         extra_outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=extra,
-            attestation=att_extra.raw_attestation,
+            attestation=att_extra.raw_attestation, logical_operation_id=extra_logical_operation_id,
         )
 
         extra_terminal = classify_exec_outcome(extra_outcome.reason)
@@ -357,8 +394,10 @@ async def run_tamper(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("tamper", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource,
+                                      logical_operation_id=logical_operation_id)
         stack.upstream = counting
 
         canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
@@ -366,7 +405,7 @@ async def run_tamper(*, live_astra: bool = False) -> RunTrace:
         try:
             issued = await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("tamper", resp, proposal, att, exc, counting)
@@ -396,8 +435,10 @@ async def run_replay(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("replay", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource,
+                                      logical_operation_id=logical_operation_id)
         stack.upstream = counting
 
         canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
@@ -405,7 +446,7 @@ async def run_replay(*, live_astra: bool = False) -> RunTrace:
         try:
             issued = await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("replay", resp, proposal, att, exc, counting)
@@ -442,8 +483,10 @@ async def run_expired(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("expired", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource,
+                                      logical_operation_id=logical_operation_id)
         stack.upstream = counting
 
         canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
@@ -451,7 +494,7 @@ async def run_expired(*, live_astra: bool = False) -> RunTrace:
         try:
             issued = await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("expired", resp, proposal, att, exc, counting)

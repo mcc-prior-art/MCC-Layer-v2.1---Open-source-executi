@@ -66,31 +66,54 @@ out of order:
 ```
 a. validate the decision token + exact operation binding   (ExecutionGate)
 b. consume the one-time nonce                               (ExecutionGate)
-c. atomically reserve the idempotency key                   (IdempotencyRegistry)
+c. atomically admit the logical operation                   (IdempotencyRegistry)
 d. atomically reserve velocity / aggregate capacity         (VelocityRegistry)
 e. durably record the pre-enforcement decision              (audit-before-actuation)
-f. execute                                                  (the executor / forward)
-g. record the execution outcome                             (audit)
-h. finalize the idempotency state -> EXECUTED               (IdempotencyRegistry)
+f. durably commit dispatch ownership -- the point of no return (IdempotencyRegistry)
+g. execute                                                  (the executor / forward)
+h. durably record the outcome: EXECUTED, or UNKNOWN on any exception or
+   unconfirmed-success persistence failure                  (audit + IdempotencyRegistry)
 ```
 
-Any **indeterminate infrastructure failure before (f)** — a registry that
-cannot reserve, an audit write that cannot be confirmed — fails closed: the
-operation does not run and every capacity already reserved is released. An
-executor failure at (f) marks the idempotency key `FAILED` (freed for a
-deliberate retry) and reports fail-closed; it never silently finalizes.
+Any **indeterminate infrastructure failure strictly before (f)** — a registry
+that cannot admit, an audit write that cannot be confirmed, a velocity
+reservation that fails — fails closed: the operation does not run and every
+capacity/logical-operation reservation already held is released (safe,
+because no external call could possibly have been attempted yet). Once (f)
+has durably committed, a raise, timeout, disconnect, or persistence failure
+at (g)/(h) is **never** treated as safe to release: the operation moves to
+`UNKNOWN` and stays there, blocking any further admission, until
+independently verified positive evidence resolves it (see
+``docs/DURABLE_OPERATION_SAFETY.md`` — this is the Round 17 fix for the
+exact defect class of releasing ownership after an ambiguous post-dispatch
+failure).
 
 ### Idempotency lifecycle
 
 ```
-(absent) --reserve--> RESERVED --execute--> EXECUTED   (terminal: never again)
-                          |
-                          +--fail / release--> (absent)  (retryable)
+(absent) --reserve--> RESERVED --commit_dispatch--> DISPATCH_OWNED
+                          |                                |
+                          +--release--> (absent)            +--mark_executed--> EXECUTED   (terminal)
+                          (retryable; pre-dispatch only)     +--mark_unknown-----> UNKNOWN
+                                                                                     |
+                                                                    resolve_unknown  |  (positive external
+                                                                    (reconciliation) |   evidence only)
+                                                                                     v
+                                                                                  EXECUTED
 ```
 
-`RESERVED` carries a TTL, so a crashed executor's reservation is recovered when
-the TTL lapses (stale-RESERVED recovery). `EXECUTED` is durable and survives
-restarts, so a completed operation cannot re-run after a process bounce.
+Only `RESERVED` — the pre-dispatch state — carries a TTL, so a crashed
+holder's reservation is recovered when the TTL lapses (stale-RESERVED
+recovery) precisely because no external call could have happened yet.
+`DISPATCH_OWNED`, `UNKNOWN`, and `EXECUTED` carry no such TTL and never
+expire back into an admittable state: `EXECUTED` is durable and survives
+restarts (a completed operation cannot re-run after a process bounce), and
+`UNKNOWN` is equally durable — it blocks every further admission attempt,
+however freshly and validly authorized, until reconciliation (never a blind
+retry) resolves it. Every state-mutating call is fenced by the exact
+generation token `reserve` issued, so a stale/superseded caller can never
+mutate a newer generation's record. Full detail, the durability model, and
+the exactly-once safety argument: ``docs/DURABLE_OPERATION_SAFETY.md``.
 
 ---
 

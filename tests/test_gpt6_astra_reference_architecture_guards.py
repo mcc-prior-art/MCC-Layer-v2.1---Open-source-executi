@@ -108,6 +108,34 @@ def test_github_actuator_module_never_imports_astra_provider():
     assert not any("astra_provider" in m for m in imported_modules)
 
 
+#: Round 17, test scenario 22: the Astra-facing/reference request path must
+#: never expose a capability to reset logical-operation state, release
+#: ownership, delete an UNKNOWN record, force a retry, overwrite a binding,
+#: alter trust/policy, or mint/sign authority. Checked as substrings of every
+#: function/method name DEFINED anywhere in this package (case-insensitive) --
+#: a name containing one of these is presumed to be exactly the kind of
+#: privileged operation this boundary must never carry.
+_FORBIDDEN_NAME_FRAGMENTS = (
+    "reset_logical", "reset_operation", "force_retry", "force_redispatch",
+    "release_ownership", "release_operation", "delete_unknown", "delete_operation",
+    "overwrite_binding", "set_trust", "mint_token", "sign_token", "issue_token",
+    "bypass_gate", "skip_gate", "clear_idempotency",
+)
+
+
+def test_astra_package_exposes_no_privileged_reset_or_bypass_capability():
+    for path in _all_py_files():
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                lowered = node.name.lower()
+                hit = [f for f in _FORBIDDEN_NAME_FRAGMENTS if f in lowered]
+                assert not hit, (
+                    f"{path.name}::{node.name} looks like a privileged reset/bypass "
+                    f"capability ({hit}) -- the Astra-facing layer must never expose one"
+                )
+
+
 def test_pipeline_module_never_imports_the_actuator_directly():
     """The orchestration layer wires the actuator in only as
     ``GovernanceService.upstream`` (a plain callable supplied by the

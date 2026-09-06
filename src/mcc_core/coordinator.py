@@ -5,17 +5,26 @@ executed operation, so the ordering cannot drift:
 
     a. validate the decision token and its exact payload/operation binding
     b. consume the one-time nonce
-    c. atomically reserve the idempotency key
+    c. atomically admit the logical operation (idempotency key bound to the
+       EXACT action + resource + canonical payload_hash — not payload_hash
+       alone; a mismatch on any of the three is a BINDING_CONFLICT)
     d. atomically reserve velocity / aggregate capacity
     e. durably record the pre-enforcement decision (audit-before-actuation)
-    f. execute
-    g. record the execution outcome
-    h. finalize the idempotency state (EXECUTED)
+    f. durably commit dispatch ownership of the logical operation — the
+       point of no return; nothing after this may release the key back to
+       an admittable state
+    g. execute
+    h. durably record the outcome: EXECUTED on confirmed success, UNKNOWN on
+       any exception, timeout, or failure to durably persist success
 
 Steps (a) and (b) are the execution gate. Any indeterminate infrastructure
-failure *before* execution — a registry that cannot reserve, an audit write
-that cannot be confirmed — fails closed: the operation does not run, and any
-capacity already reserved is released.
+failure strictly *before* step (f) — a registry that cannot admit, an audit
+write that cannot be confirmed, a velocity reservation that fails — fails
+closed: the operation does not run, and any capacity/logical-operation
+reservation already held is released (safe, because no external call could
+possibly have been attempted yet). Once step (f) has durably committed,
+failure is never again treated as "safe to release" — see
+``docs/DURABLE_OPERATION_SAFETY.md``.
 """
 
 from __future__ import annotations
@@ -28,13 +37,16 @@ from .audit import AuditLog
 from .core import Verdict
 from .idempotency import ReserveStatus
 from .profiles import ProfileRegistry
+from .signing import hash_document
 from .velocity import VelocityLimit, VelocityOutcome
 
 
 class ActuationStatus(str, Enum):
-    EXECUTED = "EXECUTED"        # ran and finalized
-    BLOCKED = "BLOCKED"          # refused before execution (fail-closed)
-    EXECUTION_FAILED = "EXECUTION_FAILED"  # executor raised; idempotency freed for retry
+    EXECUTED = "EXECUTED"        # ran and durably confirmed
+    BLOCKED = "BLOCKED"          # refused before dispatch commitment (fail-closed; safe to retry)
+    EXECUTION_FAILED = "EXECUTION_FAILED"  # outcome indeterminate (UNKNOWN); ownership
+    # retained, NOT freed for retry -- the external side effect may have happened. Resolving
+    # this requires independent positive evidence (reconciliation), never a fresh dispatch.
 
 
 @dataclass(frozen=True)
@@ -213,13 +225,22 @@ class EnforcementCoordinator:
                 return ActuationResult(ActuationStatus.BLOCKED, reason)
 
         # Authoritative operation identity comes from the (now-verified) token.
+        # The logical-operation binding is the exact (action, resource,
+        # payload_hash) triple -- NOT payload_hash alone -- so the same
+        # idempotency_key can never be silently reused for a different
+        # action or a different resource; either is a BINDING_CONFLICT,
+        # rejected before any reservation or execution.
         idem_key = token.get("idempotency_key")
-        binding_ref = str(token.get("payload_hash", ""))
+        payload_hash = str(token.get("payload_hash", ""))
         actor_id = token.get("actor_id")
         resource_id = token.get("resource_id")
         policy_scope = token.get("policy_id")
+        binding_ref = hash_document({
+            "action": action, "resource": resource_id, "payload_hash": payload_hash,
+        })
+        idem_fence: Optional[str] = None
 
-        # (c) atomically reserve the idempotency key.
+        # (c) atomically admit the logical operation.
         if idem_key:
             reserved = await self.idempotency.reserve(idem_key, binding=binding_ref)
             if not reserved.ok:
@@ -230,8 +251,14 @@ class EnforcementCoordinator:
                     status=reserved.status.value,
                     reason=reserved.reason,
                 )
-                # ERROR is a fail-closed infra outcome; DUPLICATE_* are correct denials.
+                # ERROR/BINDING_CONFLICT are fail-closed infra/contract outcomes;
+                # DUPLICATE_* (INFLIGHT/UNKNOWN/EXECUTED) are correct denials --
+                # in particular DUPLICATE_UNKNOWN means a fresh, independently
+                # valid authorization for this same logical operation must NOT
+                # trigger a second actuation while the prior attempt's outcome
+                # is unresolved (AUTHORIZED != SAFE_TO_ACTUATE).
                 return ActuationResult(ActuationStatus.BLOCKED, reason=reserved.reason)
+            idem_fence = reserved.fence
 
         # (d) atomically reserve velocity / aggregate capacity.
         profile = self.profiles.for_action(action)
@@ -248,7 +275,10 @@ class EnforcementCoordinator:
             if outcome.reserved:
                 reserved_limits.append(limit)
             if not outcome.ok:
-                await self._release(reserved_limits, descriptor, idem_key, now)
+                # Pre-dispatch: no external call has been attempted, so
+                # releasing everything reserved (including the logical
+                # operation) back to an admittable state is safe.
+                await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
                 self._record(
                     kind="velocity_block",
                     action=action,
@@ -275,39 +305,89 @@ class EnforcementCoordinator:
             resource_id=resource_id,
             transaction_id=token.get("transaction_id"),
             idempotency_key=idem_key,
-            payload_hash=binding_ref,
+            payload_hash=payload_hash,
+            operation_binding=binding_ref,
             policy_hash=token.get("policy_hash"),
             decision=token.get("decision"),
             evidence_digest=token.get("evidence_digest"),
         )
         if pre_ref is None:
             # Cannot confirm the pre-actuation record -> indeterminate before
-            # execution -> fail closed and release everything reserved.
-            await self._release(reserved_limits, descriptor, idem_key, now)
+            # execution -> fail closed and release everything reserved. Still
+            # pre-dispatch (the durable dispatch boundary is the NEXT step),
+            # so releasing is safe -- zero actuator calls have occurred.
+            await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
             return ActuationResult(
                 ActuationStatus.BLOCKED, "audit-before-actuation failed; fail-closed"
             )
 
-        # (f) execute.
+        # (f) durably commit dispatch ownership -- THE point of no return.
+        # From here on, no failure (exception, timeout, disconnect, process
+        # crash) may release the logical operation for another admission:
+        # the external side effect may already be in flight or complete by
+        # the time any failure is observed. If this commitment itself cannot
+        # be confirmed, nothing has been dispatched yet, so it is still safe
+        # to release and fail closed.
+        if idem_key:
+            committed = await self.idempotency.commit_dispatch(idem_key, fence=idem_fence)
+            if not committed:
+                await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
+                self._record(
+                    kind="actuation_rejected", action=action, idempotency_key=idem_key,
+                    reason="durable dispatch ownership commit failed; fail-closed",
+                )
+                return ActuationResult(
+                    ActuationStatus.BLOCKED, "durable dispatch ownership commit failed; fail-closed",
+                )
+
+        # (g) execute.
         try:
             execution = await executor()
         except Exception as exc:  # noqa: BLE001 - any executor failure is indeterminate
-            # The execution outcome is unknown. Free the idempotency key for a
-            # deliberate retry, record the failure, and report fail-closed.
+            # Durable dispatch ownership was already committed: the external
+            # call may have been sent (or even completed) despite the raise.
+            # The operation moves to UNKNOWN -- NOT released, NOT retryable --
+            # and stays there until independently verified evidence
+            # (reconciliation) proves the outcome one way or the other.
             if idem_key:
-                await self.idempotency.mark_failed(idem_key)
+                await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
             self._record(
-                kind="actuation_failed",
+                kind="actuation_unknown",
                 action=action,
                 idempotency_key=idem_key,
                 audit_ref=pre_ref,
                 reason=f"{type(exc).__name__}: {exc}",
             )
             return ActuationResult(
-                ActuationStatus.EXECUTION_FAILED, "execution failed", audit_ref=pre_ref
+                ActuationStatus.EXECUTION_FAILED,
+                "execution outcome unknown after dispatch; ownership retained pending reconciliation",
+                audit_ref=pre_ref,
             )
 
-        # (g) record the execution outcome.
+        # (h) durably record the outcome. Only a CONFIRMED durable EXECUTED
+        # write is reported as EXECUTED -- if the executor succeeded but this
+        # registry cannot durably persist that fact, the honest answer is
+        # UNKNOWN (never a false EXECUTED, and never retry-eligible either).
+        result_ref = hash_document({"execution": _safe_execution_marker(execution)})
+        if idem_key:
+            finalized = await self.idempotency.mark_executed(
+                idem_key, fence=idem_fence, binding=binding_ref, result_ref=result_ref,
+            )
+            if not finalized:
+                await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
+                self._record(
+                    kind="actuation_unknown",
+                    action=action,
+                    idempotency_key=idem_key,
+                    audit_ref=pre_ref,
+                    reason="durable EXECUTED persistence failed after external success",
+                )
+                return ActuationResult(
+                    ActuationStatus.EXECUTION_FAILED,
+                    "execution succeeded but durable EXECUTED persistence failed; outcome UNKNOWN",
+                    audit_ref=pre_ref,
+                )
+
         self._record(
             kind="actuation_result",
             action=action,
@@ -315,17 +395,32 @@ class EnforcementCoordinator:
             audit_ref=pre_ref,
             status="EXECUTED",
         )
-        # (h) finalize the idempotency state.
-        if idem_key:
-            await self.idempotency.mark_executed(idem_key, binding=binding_ref)
 
         return ActuationResult(
             ActuationStatus.EXECUTED, "executed", decision=Verdict(token.get("decision")),
             audit_ref=pre_ref, execution=execution,
         )
 
-    async def _release(self, limits, descriptor, idem_key, now) -> None:
+    async def _release(self, limits, descriptor, idem_key, idem_fence, now) -> None:
+        """Release capacity reserved so far. Only ever called BEFORE the
+        durable dispatch boundary (step f) -- releasing the logical
+        operation here is safe because no external call could have been
+        attempted yet."""
         for limit in limits:
             await self.velocity.release(limit, descriptor, now=now)
-        if idem_key:
-            await self.idempotency.release(idem_key)
+        if idem_key and idem_fence is not None:
+            await self.idempotency.release(idem_key, fence=idem_fence)
+
+
+def _safe_execution_marker(execution: Any) -> Any:
+    """A JSON-hashable marker for the execution result, used only to bind
+    the durable EXECUTED record to *this* outcome for reconciliation/status
+    purposes -- never the raw result itself (which may carry upstream
+    response content out of scope for the audit chain)."""
+    if execution is None or isinstance(execution, (str, int, float, bool)):
+        return execution
+    if isinstance(execution, dict):
+        return {str(k): _safe_execution_marker(v) for k, v in sorted(execution.items(), key=lambda kv: str(kv[0]))}
+    if isinstance(execution, (list, tuple)):
+        return [_safe_execution_marker(v) for v in execution]
+    return repr(execution)

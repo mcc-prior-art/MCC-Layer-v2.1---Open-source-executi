@@ -1,9 +1,13 @@
-"""Thirty-eight targeted, hand-authored security-critical mutations (PR #71,
+"""Thirty-nine targeted, hand-authored security-critical mutations (PR #71,
 Workstream J; extended post-merge-review to close a disclosed mutation-
 testing gap -- see the ``gate-*-fail-open`` block below; extended again by
 PR-5 to cover the PR-1->4 attestation-to-execution chain, which the
 original 26 entirely predate -- see the trailing block below that and
-``docs/ATTESTATION_INDEPENDENT_ASSURANCE.md``'s gap matrix).
+``docs/ATTESTATION_INDEPENDENT_ASSURANCE.md``'s gap matrix; extended once
+more (Round 17, durable logical-operation safety) with
+``idempotency-unsafe-release-after-dispatch``, targeting the exact defect
+class Astra's Round 16/17 inspection identified -- see
+``docs/DURABLE_OPERATION_SAFETY.md``).
 
 Unlike generic mutation testing (which mutates arbitrary operators across a
 whole codebase and requires heavy tuning to separate meaningful mutants
@@ -143,11 +147,47 @@ DEFECTS: List[Defect] = [
     ),
     Defect(
         id="idempotency-duplicate-allowed",
-        description="The in-memory idempotency registry no longer rejects a duplicate reservation of an already-executed key.",
+        description="The in-memory idempotency registry no longer rejects a duplicate reservation of an already-executed (or in-flight, or UNKNOWN, or binding-conflicting) key.",
         file_path="src/mcc_core/idempotency.py",
-        find='        state, held = _decode(encoded)\n        if state == IdempotencyState.EXECUTED:\n            return ReserveResult(ReserveStatus.DUPLICATE_EXECUTED, "operation already executed", held)\n        return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", held)',
-        replace='        state, held = _decode(encoded)\n        return ReserveResult(ReserveStatus.RESERVED, "MUTATED: duplicate check disabled", held)',
+        find=(
+            '        state, generation, held_binding, _ = _decode(encoded)\n'
+            '        if held_binding != binding:\n'
+            '            return ReserveResult(ReserveStatus.BINDING_CONFLICT, "logical operation bound to a different "\n'
+            '                                  "action/resource/payload", held_binding)\n'
+            '        if state == IdempotencyState.EXECUTED:\n'
+            '            return ReserveResult(ReserveStatus.DUPLICATE_EXECUTED, "operation already executed", held_binding)\n'
+            '        if state == IdempotencyState.UNKNOWN:\n'
+            '            return ReserveResult(ReserveStatus.DUPLICATE_UNKNOWN,\n'
+            '                                  "operation outcome UNKNOWN; requires reconciliation, not retry", held_binding)\n'
+            '        return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", held_binding)'
+        ),
+        replace=(
+            '        state, generation, held_binding, _ = _decode(encoded)\n'
+            '        return ReserveResult(ReserveStatus.RESERVED, "MUTATED: duplicate check disabled", held_binding, fence=generation)'
+        ),
         detector_tests=("tests/test_idempotency.py::test_duplicate_reservation_denied",),
+    ),
+    Defect(
+        id="idempotency-unsafe-release-after-dispatch",
+        description=(
+            "The coordinator releases (frees for retry) the logical operation on ANY executor "
+            "exception, instead of marking it UNKNOWN -- reintroducing the exact Round 16/17 "
+            "defect class Astra identified: an ambiguous post-dispatch failure must never "
+            "release ownership for another actuation attempt."
+        ),
+        file_path="src/mcc_core/coordinator.py",
+        find=(
+            '            if idem_key:\n'
+            '                await self.idempotency.mark_unknown(idem_key, fence=idem_fence)'
+        ),
+        replace=(
+            '            if idem_key:\n'
+            '                await self.idempotency.release(idem_key, fence=idem_fence)  # MUTATED: unsafe release'
+        ),
+        detector_tests=(
+            "tests/test_coordinator.py::test_execution_exception_marks_unknown_not_released",
+            "tests/test_coordinator.py::test_fresh_authorization_for_unknown_operation_blocks_second_actuation",
+        ),
     ),
     Defect(
         id="challenge-replay-allowed",
@@ -418,8 +458,8 @@ DEFECTS: List[Defect] = [
 
 DEFECT_IDS = tuple(d.id for d in DEFECTS)
 
-assert len(DEFECT_IDS) == 38, f"expected exactly 38 targeted defects, found {len(DEFECT_IDS)}"
-assert len(set(DEFECT_IDS)) == 38, "defect ids must be unique"
+assert len(DEFECT_IDS) == 39, f"expected exactly 39 targeted defects, found {len(DEFECT_IDS)}"
+assert len(set(DEFECT_IDS)) == 39, "defect ids must be unique"
 
 GATE_FAIL_OPEN_DEFECT_IDS = tuple(d.id for d in DEFECTS if d.id == "gate-fail-open" or d.id.startswith("gate-") and d.id.endswith("-fail-open"))
 assert len(GATE_FAIL_OPEN_DEFECT_IDS) == 14, (

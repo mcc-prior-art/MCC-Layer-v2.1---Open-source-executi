@@ -200,9 +200,42 @@ def require_canonical_proposal(
     return proposal
 
 
+class MissingLogicalOperationIdError(Exception):
+    """Raised before MCC governance is ever invoked for a protected,
+    real-side-effecting action (e.g. ``create_github_issue``) whose request
+    did not carry an explicit ``logical_operation_id``.
+
+    ``logical_operation_id`` is a REQUEST-layer concept, distinct from
+    ``AstraProposal`` -- an Intelligence provider proposes an action/resource/
+    payload; it never mints or supplies the logical-operation identity (that
+    would be exactly the kind of trusted-identifier authority
+    ``FORBIDDEN_TRUSTED_FIELDS`` already refuses one layer down, at the
+    execution-token boundary). The caller driving the request (the CLI/
+    reference harness here; an orchestrator in a real deployment) supplies
+    it, and it is threaded, unchanged, into the signed decision token's
+    ``idempotency_key`` -- see ``pipeline.issue_authority`` /
+    ``pipeline.run_positive_path``. This function refuses to silently
+    synthesize one: a missing id is a hard, fail-closed error raised BEFORE
+    any attestation/authority/gate call, never a generated fallback."""
+
+
+def require_logical_operation_id(logical_operation_id: Optional[str]) -> str:
+    """Fail-closed contract check for the Astra-facing request path: a
+    protected action's request must carry a non-empty, non-whitespace
+    ``logical_operation_id`` string. Returns it unchanged on success."""
+    if not isinstance(logical_operation_id, str) or not logical_operation_id.strip():
+        raise MissingLogicalOperationIdError(
+            "a protected action's request must carry an explicit, non-empty "
+            "logical_operation_id -- none was supplied, and none is ever "
+            "silently synthesized"
+        )
+    return logical_operation_id
+
+
 __all__ = [
     "AstraProposal", "AstraSelfRefusal", "AstraError", "AstraOutcome",
     "AstraProposalError", "AstraNonCanonicalActionError", "AstraNonCanonicalResourceError",
-    "FORBIDDEN_TRUSTED_FIELDS", "parse_proposal", "parse_proposals",
-    "require_canonical_action", "require_canonical_resource", "require_canonical_proposal",
+    "MissingLogicalOperationIdError", "FORBIDDEN_TRUSTED_FIELDS",
+    "parse_proposal", "parse_proposals", "require_canonical_action",
+    "require_canonical_resource", "require_canonical_proposal", "require_logical_operation_id",
 ]

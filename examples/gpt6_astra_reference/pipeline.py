@@ -70,14 +70,23 @@ async def obtain_attestation(
 
 async def run_positive_path(
     service: GovernanceService, *, mandate: Any, actor: str, proposal: AstraProposal,
-    attestation: Optional[Dict[str, Any]],
+    attestation: Optional[Dict[str, Any]], logical_operation_id: Optional[str] = None,
 ) -> ExecOutcome:
     """The single supported public path. Used whenever a scenario needs
     exactly one governed call — positive, wrong-scope, and
-    autonomous-scope-expansion."""
+    autonomous-scope-expansion.
+
+    ``logical_operation_id`` becomes the signed token's ``idempotency_key`` —
+    the durable logical-operation identity ``EnforcementCoordinator`` binds
+    to the exact (action, resource, payload_hash) triple (Round 17: see
+    ``docs/DURABLE_OPERATION_SAFETY.md``). Optional here because not every
+    action this pipeline exercises is a real external side effect requiring
+    that protection; ``cli.py`` enforces it (via
+    ``models.require_logical_operation_id``) for the one action that is
+    (``create_github_issue``), before this function is ever called."""
     return await service.execute_with_mandate(
         mandate=mandate, actor=actor, action=proposal.action, resource=proposal.resource,
-        context=proposal.payload, attestation=attestation,
+        context=proposal.payload, attestation=attestation, idempotency_key=logical_operation_id,
     )
 
 
@@ -106,7 +115,7 @@ class AuthorityDeniedError(Exception):
 
 async def issue_authority(
     service: GovernanceService, *, mandate: Any, actor: str, proposal: AstraProposal,
-    attestation: Optional[Dict[str, Any]],
+    attestation: Optional[Dict[str, Any]], logical_operation_id: Optional[str] = None,
 ) -> IssuedAuthority:
     """Reproduces ``GovernanceService.execute_with_mandate``'s OWN sequence
     up to (and including) token issuance, stopping BEFORE
@@ -168,7 +177,7 @@ async def issue_authority(
         payload=forward_context, constraints=decision.constraints,
         actor_id=actor, resource_id=proposal.resource,
         auth_claims=auth_claims, mandate_id=decision.mandate_id,
-        evidence_digest=evidence_digest,
+        evidence_digest=evidence_digest, idempotency_key=logical_operation_id,
     )
     return IssuedAuthority(token=token, canonical_payload=forward_context, evidence_digest=evidence_digest)
 

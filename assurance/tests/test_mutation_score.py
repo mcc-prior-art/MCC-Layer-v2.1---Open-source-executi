@@ -1,10 +1,16 @@
-"""Workstream J -- Mutation Testing (PR #71; extended by PR-5).
+"""Workstream J -- Mutation Testing (PR #71; extended by PR-5; extended by
+Round 17).
 
 A thin wrapper, like ``test_formal_model.py``: this does not touch the
 live SUT (no ``sut`` fixture). It runs the real mutation harness
-(``mutation.harness.run_all_mutants``) against all 38 targeted defects and
+(``mutation.harness.run_all_mutants``) against all 39 targeted defects and
 asserts 100% detection, so ``python -m assurance run`` surfaces the
 mutation score in the same evidence bundle as every other workstream.
+
+Round 17 added one more: ``idempotency-unsafe-release-after-dispatch``,
+reintroducing the exact Round 16/17 defect Astra identified (releasing,
+instead of marking UNKNOWN, the logical operation after a post-dispatch
+executor exception) -- see ``docs/DURABLE_OPERATION_SAFETY.md``.
 
 The original 26 = 13 hand-picked security defects + a later addition: an
 exhaustive sweep of all 14 ``GateResult(False, ...)`` fail-open sites in
@@ -28,7 +34,7 @@ well-formed edit).
 
 Each mutant boots its own isolated repo copy and runs real pytest
 subprocesses (see ``mutation/harness.py``), so this is slower than the
-rest of the suite (~60-90s for all 38, several of the new PR-5 mutants'
+rest of the suite (~60-90s for all 39, several of the new PR-5 mutants'
 detector tests being real multi-process assurance E2E tests) --
 deliberately not folded into a tighter loop, since a mutation result
 silently downgraded to "good enough" would defeat the entire point of
@@ -51,4 +57,4 @@ def test_j1_every_targeted_defect_is_detected():
         f"(not caught by their detector tests):\n{survived_detail}"
     )
     assert report.mutation_score == 1.0
-    assert report.total == 38
+    assert report.total == 39

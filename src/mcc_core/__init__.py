@@ -48,9 +48,11 @@ _EXPORTS: dict[str, str] = {
     # gate
     "ExecutionGate": "gate", "GateResult": "gate",
     # idempotency
-    "IdempotencyConfigError": "idempotency", "IdempotencyState": "idempotency",
-    "InMemoryIdempotencyRegistry": "idempotency", "RedisIdempotencyRegistry": "idempotency",
-    "ReserveResult": "idempotency", "ReserveStatus": "idempotency",
+    "IdempotencyBackendUnavailable": "idempotency", "IdempotencyConfigError": "idempotency",
+    "IdempotencyState": "idempotency", "InMemoryIdempotencyRegistry": "idempotency",
+    "ReconcileResult": "idempotency", "ReconcileStatus": "idempotency",
+    "RedisIdempotencyRegistry": "idempotency", "ReserveResult": "idempotency",
+    "ReserveStatus": "idempotency", "StateRecord": "idempotency",
     "idempotency_registry_from_env": "idempotency",
     # mandate
     "InMemoryRevocationRegistry": "mandate", "MandateAuthority": "mandate",
@@ -159,12 +161,16 @@ if TYPE_CHECKING:  # help static type-checkers see the re-exported names
     )
     from .gate import ExecutionGate, GateResult  # noqa: F401
     from .idempotency import (  # noqa: F401
+        IdempotencyBackendUnavailable,
         IdempotencyConfigError,
         IdempotencyState,
         InMemoryIdempotencyRegistry,
+        ReconcileResult,
+        ReconcileStatus,
         RedisIdempotencyRegistry,
         ReserveResult,
         ReserveStatus,
+        StateRecord,
         idempotency_registry_from_env,
     )
     from .mandate import (  # noqa: F401

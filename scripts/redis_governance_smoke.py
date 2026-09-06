@@ -46,7 +46,8 @@ async def main() -> int:
     idem_b = RedisIdempotencyRegistry.from_url(URL)
     key = f"op-{run_id}"
     first = await idem_a.reserve(key)
-    await idem_a.mark_executed(key)
+    await idem_a.commit_dispatch(key, fence=first.fence)
+    await idem_a.mark_executed(key, fence=first.fence)
     cross = await idem_b.reserve(key)  # different instance, same Redis
     print(f"idempotency: instance A first={first.status.value}  instance B replay={cross.status.value}")
     if not first.ok:
