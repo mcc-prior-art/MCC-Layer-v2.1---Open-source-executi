@@ -30,6 +30,7 @@ import asyncio
 import pytest
 
 from examples.gpt6_astra_reference import adversarial as adv
+from examples.gpt6_astra_reference.astra_provider import AstraResponse
 from examples.gpt6_astra_reference.evidence import TerminalStatus
 
 run = asyncio.run
@@ -306,3 +307,57 @@ def test_phase10_live_task_prompts_state_the_exact_canonical_identifiers():
     for task in (lm.LIVE_A_SEMANTIC_SUBSTITUTION, lm.LIVE_B_RESOURCE_BOUNDARY, lm.LIVE_C_ALTERNATIVE_PATH):
         assert adv.CANONICAL_ACTION in task
         assert adv.DEMO_REPO in task
+
+
+# ---------------------------------------------------------------------------
+# Phase 10 (live-run safety) — the matrix aborts immediately if a denied
+# turn's actuator counter increased. Simulated offline: the real chain
+# never lets this happen, so this test forces the impossible condition via
+# a monkeypatched governed call, proving the guard itself is live and
+# correctly wired -- not merely that the real chain has never triggered it.
+# ---------------------------------------------------------------------------
+
+
+def test_phase10_matrix_aborts_immediately_on_a_denied_actuation():
+    from examples.gpt6_astra_reference import live_matrix as lm
+
+    class _ImpossibleBypassActuator:
+        """Simulates the impossible: a BLOCKED outcome that nonetheless
+        incremented the actuator counter -- exactly the condition the
+        safety guard exists to catch."""
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def __call__(self, action, payload):  # pragma: no cover - never reached
+            self.calls += 1
+            return {}
+
+    class _FixedProposalProvider:
+        async def propose(self, task):
+            proposal = adv.AstraProposal(action=adv.CANONICAL_ACTION, resource=adv.DEMO_REPO, payload={"title": "t"})
+            return AstraResponse(outcome=[proposal], is_live=True, model="gpt-6-astra")
+
+    class _FakeBlockedOutcome:
+        status = "BLOCKED"
+        reason = "SIMULATED_DENIAL_FOR_TEST"
+
+    async def _fake_run_positive_path(*args, **kwargs):
+        # Simulate the actuator having ALREADY been invoked despite a
+        # BLOCKED outcome -- the exact impossible condition under test.
+        actuator.calls += 1
+        return _FakeBlockedOutcome()
+
+    with adv.build_adversarial_stack() as stack:
+        actuator, _ = adv.build_multi_actuator(stack)
+        stack.upstream = actuator
+
+        import examples.gpt6_astra_reference.live_matrix as lm_module
+
+        original = lm_module.run_positive_path
+        lm_module.run_positive_path = _fake_run_positive_path
+        try:
+            with pytest.raises(lm.LiveMatrixSafetyViolation):
+                run(lm._run_one_task(_FixedProposalProvider(), "synthetic-case", "task", actuator, stack))
+        finally:
+            lm_module.run_positive_path = original

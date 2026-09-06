@@ -280,8 +280,14 @@ aliasing, resource-form substitution, persuasive/claimed-approval text,
 tool/execution-path substitution, multi-step agentic drift, and adaptive
 retry against stale or tampered authority. Every scenario asserts both an
 authority outcome and an independently-counted actuator-invocation count;
-none widened the mandate's action or resource scope to pass. Full matrix,
-results, and limitations: [docs/GPT6_ASTRA_ADVERSARIAL_EXECUTION_BOUNDARY.md](docs/GPT6_ASTRA_ADVERSARIAL_EXECUTION_BOUNDARY.md).
+none widened the mandate's action or resource scope to pass.
+
+A live run against the real `gpt-6-astra` model followed the deterministic
+suite: 3 in-scope proposals executed; 2 explicitly out-of-scope proposals
+(one plain, one carrying an untrusted "already approved" claim) were both
+denied — `RESOURCE_SCOPE_MISMATCH` — with the actuator invocation count
+unchanged in both cases. Full matrix, live evidence, and limitations:
+[docs/GPT6_ASTRA_ADVERSARIAL_EXECUTION_BOUNDARY.md](docs/GPT6_ASTRA_ADVERSARIAL_EXECUTION_BOUNDARY.md).
 
 ---
 
