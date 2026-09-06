@@ -14,11 +14,35 @@ component's reason string is present.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from gateway.pre_execution_control import AttestationControlReason
+
+#: Bearer-token/API-key/private-key-shaped substrings. Defense in depth: no
+#: code path in this package should ever place a real secret into a
+#: RunTrace note, but evidence output must never depend on that discipline
+#: alone -- every note is sanitized on construction (see
+#: ``RunTrace.__post_init__``), exactly as Phase 7 already requires of
+#: every other field this evidence trace carries.
+_SECRET_PATTERNS = (
+    re.compile(r"sk-[A-Za-z0-9_-]{10,}"),
+    re.compile(r"Bearer\s+[A-Za-z0-9._-]{10,}", re.IGNORECASE),
+    re.compile(r"ghp_[A-Za-z0-9]{10,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{10,}"),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.DOTALL),
+)
+
+
+def _sanitize(text: str) -> str:
+    """Redacts any bearer-token/API-key/private-key-shaped substring from a
+    note before it is ever stored, rendered, or serialized."""
+    sanitized = text
+    for pattern in _SECRET_PATTERNS:
+        sanitized = pattern.sub("[REDACTED]", sanitized)
+    return sanitized
 
 #: Reason codes belonging to PR-1's own cryptographic/structural verifier --
 #: the ATTESTATION ARTIFACT's own validity (signature, trust, freshness,
@@ -110,6 +134,12 @@ class RunTrace:
     terminal_status: TerminalStatus
     notes: List[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        # Sanitize once, at construction, so BOTH render() and to_dict()
+        # (and any future consumer of .notes) get the same guarantee without
+        # duplicating the redaction logic at each call site.
+        object.__setattr__(self, "notes", [_sanitize(n) for n in self.notes])
+
     def to_dict(self) -> Dict[str, Any]:
         d = dict(self.__dict__)
         d["terminal_status"] = self.terminal_status.value
@@ -133,6 +163,8 @@ class RunTrace:
         lines += ["", "[ACTUATOR]", f"invocations: {self.actuator_invocations}"]
         if self.actuator_result is not None:
             lines.append(f"result: {self.actuator_result}")
+        if self.notes:
+            lines += ["", "[NOTES]"] + [f"- {note}" for note in self.notes]
         lines += ["", "[RESULT]", self.terminal_status.value]
         return "\n".join(lines)
 

@@ -366,20 +366,36 @@ def test_16_positive_scenario_fails_closed_on_non_canonical_action_not_a_crash(m
 
 def test_17_tamper_scenario_reports_completely_on_authority_denial_not_a_crash(monkeypatch):
     """Regression test for 'every CLI scenario is independent': when
-    authority issuance itself is denied before a token exists (here: a
-    canonical action proposed for a resource outside the mandate's scope --
-    the shape a live model's own resource choice could produce), the
-    scenario must return a complete, classified RunTrace instead of letting
-    AuthorityDeniedError propagate out of the scenario function."""
+    authority issuance itself is denied before a token exists, the scenario
+    must return a complete, classified RunTrace instead of letting
+    AuthorityDeniedError propagate out of the scenario function.
+
+    The proposal here is fully canonical -- exact action AND exact resource
+    -- so it clears the proposal-contract check cleanly; the denial is
+    forced one layer deeper, at real MCC mandate-signature verification (a
+    forged mandate signature), decoupled from anything the model itself
+    proposed. A live model producing a non-canonical action/resource is
+    covered separately (test_16/test_20); this test covers a genuine
+    authority-layer denial that the contract check does NOT and must NOT
+    intercept."""
+    from examples.gpt6_astra_reference import _localstack as localstack_module
     from examples.gpt6_astra_reference import cli as cli_module
 
+    real_issue_mandate = localstack_module.issue_mandate
+
+    def _forged_issue_mandate(*args, **kwargs):
+        mandate = dict(real_issue_mandate(*args, **kwargs))
+        mandate["sig"] = "tampered-signature-value"
+        return mandate
+
+    monkeypatch.setattr(localstack_module, "issue_mandate", _forged_issue_mandate)
     monkeypatch.setattr(
         cli_module.OpenAIAstraProvider, "from_env",
-        classmethod(lambda cls, env=None: _FixedActionProvider(ACTION, resource="owner/some-unrelated-repo")),
+        classmethod(lambda cls, env=None: _FixedActionProvider(ACTION, resource=DEMO_REPO)),
     )
     trace = run(run_tamper(live_astra=True))
     assert trace.terminal_status == TerminalStatus.MCC_AUTHORITY_DENY
-    assert "RESOURCE_SCOPE_MISMATCH" in trace.gate_reason
+    assert "INVALID_MANDATE_SIGNATURE" in trace.gate_reason
     assert trace.actuator_invocations == 0
 
 
@@ -406,3 +422,115 @@ def test_18_all_scenarios_report_even_after_a_positive_path_denial(monkeypatch, 
     # non-canonical proposal -- the run correctly reports failure, but by
     # completing and reporting every scenario, never by crashing.
     assert exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# 19-21. Canonical RESOURCE contract (regression: a live run proposed the
+# correct canonical action but a paraphrased/URL-form resource -- the task
+# prompts stated the exact required action but only described the resource
+# as "the configured demo repository", never its exact identifier -- and
+# was denied deep in the chain with RESOURCE_SCOPE_MISMATCH). And:
+# RunTrace.render() now surfaces notes, with secret-shaped substrings
+# sanitized.
+# ---------------------------------------------------------------------------
+
+
+def test_19_require_canonical_resource_rejects_a_non_canonical_resource():
+    from examples.gpt6_astra_reference.models import AstraNonCanonicalResourceError, require_canonical_resource
+
+    proposal = AstraProposal(action=ACTION, resource="https://github.com/owner/mcc-astra-demo-sandbox",
+                             payload={})
+    with pytest.raises(AstraNonCanonicalResourceError):
+        require_canonical_resource(proposal, DEMO_REPO)
+
+
+def test_19_require_canonical_resource_accepts_the_exact_canonical_identifier():
+    from examples.gpt6_astra_reference.models import require_canonical_resource
+
+    proposal = AstraProposal(action=ACTION, resource=DEMO_REPO, payload={})
+    assert require_canonical_resource(proposal, DEMO_REPO) is proposal
+
+
+def test_19_require_canonical_proposal_checks_action_before_resource():
+    """When both action and resource are non-canonical, the action check
+    fires first -- a stable, deterministic failure precedence, not a
+    fallback or partial acceptance of either field."""
+    from examples.gpt6_astra_reference.models import AstraNonCanonicalActionError, require_canonical_proposal
+
+    proposal = AstraProposal(action="github.create_issue", resource="some/other-repo", payload={})
+    with pytest.raises(AstraNonCanonicalActionError):
+        require_canonical_proposal(proposal, canonical_action=ACTION, canonical_resource=DEMO_REPO)
+
+
+def test_20_positive_scenario_fails_closed_on_non_canonical_resource_not_a_crash(monkeypatch):
+    """Regression test for the exact live failure observed: the model
+    proposed the correct canonical action but a URL-form paraphrase of the
+    resource instead of the exact canonical repository identifier. This
+    must be reported as ASTRA_ERROR -- MCC is never invoked, no alias or
+    URL-vs-slug equivalence is accepted -- and the scenario must not raise."""
+    from examples.gpt6_astra_reference import cli as cli_module
+
+    monkeypatch.setattr(
+        cli_module.OpenAIAstraProvider, "from_env",
+        classmethod(lambda cls, env=None: _FixedActionProvider(
+            ACTION, resource="https://github.com/owner/mcc-astra-demo-sandbox",
+        )),
+    )
+    trace = run(run_positive(live_astra=True))
+    assert trace.terminal_status == TerminalStatus.ASTRA_ERROR
+    assert trace.gate_accepted is None  # MCC was never invoked
+    assert trace.actuator_invocations == 0
+    assert "https://github.com/owner/mcc-astra-demo-sandbox" in trace.notes[0]
+    assert DEMO_REPO in trace.notes[0]
+
+
+def test_20_wrong_scope_scenario_reaches_the_gate_when_resource_matches_its_own_contract(monkeypatch):
+    """Complementary check: a live-shaped proposal that DOES supply the
+    exact canonical resource this task requires -- even the deliberately
+    out-of-mandate WRONG_SCOPE_RESOURCE -- must reach the Attester/Gate
+    rather than being rejected at the contract layer, proving the fix
+    rejects only genuinely non-canonical values, not every live proposal."""
+    from examples.gpt6_astra_reference import cli as cli_module
+
+    monkeypatch.setattr(
+        cli_module.OpenAIAstraProvider, "from_env",
+        classmethod(lambda cls, env=None: _FixedActionProvider(
+            ACTION, resource=cli_module.WRONG_SCOPE_RESOURCE,
+        )),
+    )
+    trace = run(run_wrong_scope(live_astra=True))
+    assert trace.terminal_status == TerminalStatus.MCC_AUTHORITY_DENY
+    assert "RESOURCE_SCOPE_MISMATCH" in trace.gate_reason
+    assert trace.actuator_invocations == 0
+
+
+def test_21_render_includes_a_notes_section():
+    trace = run(run_replay())
+    rendered = trace.render()
+    assert "[NOTES]" in rendered
+    assert "first enforce:" in rendered
+    assert "second enforce (replay):" in rendered
+
+
+def test_21_render_and_to_dict_sanitize_secret_shaped_notes():
+    """Defense in depth: even if a note ever carried a secret-shaped
+    substring, RunTrace must never render or serialize it verbatim."""
+    import json
+
+    from examples.gpt6_astra_reference.evidence import RunTrace
+
+    trace = RunTrace(
+        scenario="synthetic", astra_is_live=True, astra_model="gpt-6-astra",
+        proposal_fingerprint=None, attestation_status=None, attestation_fingerprint=None,
+        control_decision=None, authority_fingerprint=None, gate_accepted=None, gate_reason=None,
+        actuator_invocations=0, actuator_result=None, terminal_status=TerminalStatus.ASTRA_ERROR,
+        notes=["OpenAI request failed: Authorization: Bearer sk-testFAKEsecretvalue1234567890",
+               "leaked token ghp_1234567890abcdefFAKE"],
+    )
+    rendered = trace.render()
+    assert "sk-testFAKEsecretvalue1234567890" not in rendered
+    assert "ghp_1234567890abcdefFAKE" not in rendered
+    assert "[REDACTED]" in rendered
+    serialized = json.dumps(trace.to_dict())
+    assert "sk-testFAKEsecretvalue1234567890" not in serialized
+    assert "ghp_1234567890abcdefFAKE" not in serialized

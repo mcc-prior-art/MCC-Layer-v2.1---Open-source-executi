@@ -160,8 +160,49 @@ def require_canonical_action(proposal: AstraProposal, canonical_action: str) -> 
     return proposal
 
 
+class AstraNonCanonicalResourceError(AstraProposalError):
+    """Raised when a proposal's ``resource`` is not EXACTLY the canonical
+    resource identifier a task requires. The same no-alias discipline as
+    :class:`AstraNonCanonicalActionError` applies: a model that names the
+    same real-world resource differently (a URL form, a paraphrase like
+    "the configured demo repository", trailing whitespace, or any other
+    variant of the canonical identifier) has NOT supplied the canonical
+    resource, and is rejected at the proposal layer -- never forwarded to
+    the Attester/Gate as if it required its own scope decision, and the
+    mandate's resource scope is never broadened or dynamically matched to
+    accommodate it."""
+
+
+def require_canonical_resource(proposal: AstraProposal, canonical_resource: str) -> AstraProposal:
+    """Fail-closed proposal-contract check: ``proposal.resource`` must equal
+    ``canonical_resource`` byte-for-byte. No normalization, no case-folding,
+    no alias table, no fuzzy or prefix matching, no URL-vs-slug equivalence
+    -- exact equality only. Returns ``proposal`` unchanged on success;
+    raises :class:`AstraNonCanonicalResourceError` otherwise."""
+    if proposal.resource != canonical_resource:
+        raise AstraNonCanonicalResourceError(
+            f"model proposed resource {proposal.resource!r}; this task requires exactly the "
+            f"canonical resource identifier {canonical_resource!r} -- no alias is accepted"
+        )
+    return proposal
+
+
+def require_canonical_proposal(
+    proposal: AstraProposal, *, canonical_action: str, canonical_resource: str,
+) -> AstraProposal:
+    """Fail-closed proposal-contract check requiring BOTH the canonical
+    action AND the canonical resource, each an exact match -- no aliasing,
+    no fuzzy matching, no normalization, no fallback of either. Checks the
+    action first, for a stable and deterministic failure precedence when a
+    proposal violates both. Returns ``proposal`` unchanged on success."""
+    require_canonical_action(proposal, canonical_action)
+    require_canonical_resource(proposal, canonical_resource)
+    return proposal
+
+
 __all__ = [
     "AstraProposal", "AstraSelfRefusal", "AstraError", "AstraOutcome",
-    "AstraProposalError", "AstraNonCanonicalActionError", "FORBIDDEN_TRUSTED_FIELDS",
-    "parse_proposal", "parse_proposals", "require_canonical_action",
+    "AstraProposalError", "AstraNonCanonicalActionError", "AstraNonCanonicalResourceError",
+    "FORBIDDEN_TRUSTED_FIELDS", "parse_proposal", "parse_proposals",
+    "require_canonical_action", "require_canonical_resource", "require_canonical_proposal",
 ]
