@@ -147,12 +147,32 @@ class MCCProposalService:
 
     async def get_operation_status(self, *, tenant_id: str, logical_operation_id: str) -> OperationStatusV1:
         """Read-only. Performs zero state writes and calls no actuator.
-        Precedence (Section 8):
 
-          1. durable execution backend uncertain -> UNAVAILABLE
-          2. durable execution record exists -> its exact state, verbatim
-          3. else a proposal record exists -> PROPOSED
-          4. else -> NOT_FOUND
+        Ownership-gated precedence (tenant isolation -- Section 5/7):
+
+          1. tenant-scoped proposal ownership lookup uncertain -> UNAVAILABLE
+             (cannot prove ownership; never disclose)
+          2. no tenant-scoped proposal record for this identity -> NOT_FOUND,
+             WITHOUT ever consulting the durable execution registry. The
+             durable registry is globally keyed (it has no tenant dimension,
+             matching the unmodified EnforcementCoordinator), so it is never
+             read at all unless this tenant has already proven ownership of
+             ``logical_operation_id`` via its own proposal record -- a tenant
+             that never proposed this identity can neither observe another
+             tenant's durable state nor infer that it exists.
+          3. ownership established; durable execution backend uncertain ->
+             UNAVAILABLE
+          4. ownership established; durable execution record exists AND its
+             binding matches this tenant's own registered binding -> the
+             durable record's exact state, verbatim (two tenants may
+             legitimately reuse the same raw id with different bindings --
+             see step 4a)
+          4a. ownership established; durable execution record exists but its
+             binding does NOT match this tenant's own registered binding ->
+             that durable record belongs to a different registrant that
+             reused the same id; never disclosed -> falls through to 5
+          5. ownership established; no (disclosable) durable record ->
+             PROPOSED
         """
         if not isinstance(tenant_id, str) or not tenant_id.strip():
             raise ValueError("tenant_id must be a non-empty authenticated identity")
@@ -163,6 +183,21 @@ class MCCProposalService:
                 detail="invalid logical_operation_id",
             )
 
+        # 1-2. Ownership gate: only a tenant that has itself registered a
+        # proposal for this exact logical_operation_id may have durable
+        # execution state composed into its response.
+        try:
+            record = await self._proposals.get(tenant_id=tenant_id, logical_operation_id=logical_operation_id)
+        except ProposalBackendUnavailable as exc:
+            return OperationStatusV1.of(
+                logical_operation_id=logical_operation_id, status=OperationStatusValue.UNAVAILABLE,
+                detail=f"proposal backend unavailable: {exc}",
+            )
+        if record is None:
+            return OperationStatusV1.of(logical_operation_id=logical_operation_id, status=OperationStatusValue.NOT_FOUND)
+
+        # 3-5. Ownership established -- the durable execution registry (if
+        # configured) is now safe to consult and compose.
         if self._durable is not None:
             try:
                 state = await self._durable.get_state(logical_operation_id)
@@ -171,7 +206,25 @@ class MCCProposalService:
                     logical_operation_id=logical_operation_id, status=OperationStatusValue.UNAVAILABLE,
                     detail=f"durable execution backend unavailable: {exc}",
                 )
-            if state is not None:
+            if state is not None and state.binding == record.binding:
+                # Section 4/16: two tenants may independently register the
+                # SAME logical_operation_id with DIFFERENT bindings (this is
+                # explicitly permitted, not a conflict). The durable
+                # execution registry is still a single global-keyed record
+                # per raw logical_operation_id, so "this tenant owns a
+                # proposal for this id" alone cannot tell which tenant's
+                # binding a given durable record belongs to. The durable
+                # registry's own ``binding`` (computed identically --
+                # ``hash_document({action, resource, payload_hash})`` -- by
+                # both ``mcc_proposal.binding.compute_proposal_binding`` and
+                # ``EnforcementCoordinator``'s ``binding_ref``) is the proof:
+                # only when it matches THIS tenant's own registered binding
+                # is the durable record for the operation this tenant
+                # actually proposed. A mismatch means the durable record
+                # belongs to a different registrant that reused the same raw
+                # id with a different action/resource/payload -- it is never
+                # disclosed, and this tenant's status falls through to its
+                # own proposal-only view below.
                 mapped = _DURABLE_STATE_MAP.get(state.state)
                 if mapped is None:  # pragma: no cover - defensive; never mask as NOT_FOUND/PROPOSED
                     return OperationStatusV1.of(
@@ -182,19 +235,10 @@ class MCCProposalService:
                     logical_operation_id=logical_operation_id, status=mapped, proposal_binding=state.binding,
                 )
 
-        try:
-            record = await self._proposals.get(tenant_id=tenant_id, logical_operation_id=logical_operation_id)
-        except ProposalBackendUnavailable as exc:
-            return OperationStatusV1.of(
-                logical_operation_id=logical_operation_id, status=OperationStatusValue.UNAVAILABLE,
-                detail=f"proposal backend unavailable: {exc}",
-            )
-        if record is not None:
-            return OperationStatusV1.of(
-                logical_operation_id=logical_operation_id, status=OperationStatusValue.PROPOSED,
-                proposal_binding=record.binding,
-            )
-        return OperationStatusV1.of(logical_operation_id=logical_operation_id, status=OperationStatusValue.NOT_FOUND)
+        return OperationStatusV1.of(
+            logical_operation_id=logical_operation_id, status=OperationStatusValue.PROPOSED,
+            proposal_binding=record.binding,
+        )
 
 
 __all__ = ["MCCProposalService"]

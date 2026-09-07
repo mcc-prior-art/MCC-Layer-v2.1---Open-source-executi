@@ -18,6 +18,7 @@ from mcc_proposal import (
     OperationStatusValue,
     ProposalBackendUnavailable,
 )
+from mcc_proposal.binding import compute_proposal_binding
 
 run = asyncio.run
 
@@ -30,6 +31,21 @@ BASE = {
 def service(**kwargs) -> MCCProposalService:
     kwargs.setdefault("proposals", InMemoryProposalRegistry())
     return MCCProposalService(**kwargs)
+
+
+def real_binding(*, action=BASE["action"], resource=BASE["resource"], payload=BASE["payload"]) -> str:
+    """The exact binding a real ``EnforcementCoordinator`` dispatch of this
+    action/resource/payload would compute for its idempotency ``reserve``
+    call -- identical formula to ``compute_proposal_binding`` (both are
+    ``hash_document({action, resource, payload_hash})``). Tests that
+    simulate "this tenant's proposed operation actually reached durable
+    execution" must reserve under THIS binding, not an arbitrary string --
+    otherwise the tenant-isolation binding-match gate in
+    ``get_operation_status`` correctly treats it as belonging to a
+    different registrant and refuses to disclose it."""
+    return compute_proposal_binding(
+        action=action, resource=resource, payload=payload, profiles=ProfileRegistry.default_pilot(),
+    )
 
 
 # -- A-E: mandatory logical_operation_id ------------------------------------ #
@@ -152,7 +168,7 @@ def test_r_to_u_durable_states_map_verbatim(transition, expected):
     svc = service(durable_execution_state=idem)
     run(svc.submit_proposal(tenant_id="t", request={"logical_operation_id": "op-ru", **BASE}))
 
-    reserve = run(idem.reserve("op-ru", binding="whatever"))
+    reserve = run(idem.reserve("op-ru", binding=real_binding()))
     if transition == "reserved":
         s = run(svc.get_operation_status(tenant_id="t", logical_operation_id="op-ru"))
         assert s.status == expected
@@ -192,7 +208,14 @@ class _DownProposals:
 
 
 def test_w_durable_backend_uncertainty_is_unavailable_never_not_found():
+    """Tenant-isolation remediation: durable-backend uncertainty is only ever
+    UNAVAILABLE for an operation THIS tenant has proven ownership of via its
+    own proposal record (see test_tenant_status_isolation.py for the
+    complementary case: uncertainty for a NON-owned id is NOT_FOUND, never
+    UNAVAILABLE, so backend downtime cannot itself disclose that some other
+    tenant's identity exists)."""
     svc = service(durable_execution_state=_DownIdempotency())
+    run(svc.submit_proposal(tenant_id="t", request={"logical_operation_id": "op-any", **BASE}))
     s = run(svc.get_operation_status(tenant_id="t", logical_operation_id="op-any"))
     assert s.status == OperationStatusValue.UNAVAILABLE.value
     assert s.status != OperationStatusValue.NOT_FOUND.value
@@ -217,7 +240,7 @@ def test_y_unknown_never_causes_retry_or_reservation():
     idem = _CountingIdempotency()
     svc = service(durable_execution_state=idem)
     run(svc.submit_proposal(tenant_id="t", request={"logical_operation_id": "op-y", **BASE}))
-    reserve = run(idem.reserve("op-y", binding="b"))
+    reserve = run(idem.reserve("op-y", binding=real_binding()))
     calls["reserve"] = 0  # reset after the direct test-setup call above
     run(idem.commit_dispatch("op-y", fence=reserve.fence))
     run(idem.mark_unknown("op-y", fence=reserve.fence))
@@ -379,6 +402,7 @@ def test_as_restart_does_not_mint_a_new_logical_identity():
 
 def test_at_backend_outage_never_becomes_not_found_or_safe_to_retry():
     svc = service(durable_execution_state=_DownIdempotency())
+    run(svc.submit_proposal(tenant_id="t", request={"logical_operation_id": "op-outage", **BASE}))
     s = run(svc.get_operation_status(tenant_id="t", logical_operation_id="op-outage"))
     assert s.status not in (OperationStatusValue.NOT_FOUND.value,)
     assert s.status == OperationStatusValue.UNAVAILABLE.value

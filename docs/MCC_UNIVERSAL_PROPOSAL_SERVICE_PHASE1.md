@@ -175,37 +175,59 @@ from `actor` or any other payload/request field. Two tenants can use the
 identical `logical_operation_id` with different bindings with zero
 collision, and neither can read, infer the existence of, or conflict with
 the other's operation (`tests/test_mcc_proposal_service.py::test_ak_*`,
-`test_al_*`; cross-adapter parity tests reuse one shared tenant precisely
-to prove the *opposite* — identity across adapters *within* one tenant).
+`test_al_*`, `tests/test_proposal_service_tenant_status_isolation.py`;
+cross-adapter parity tests reuse one shared tenant precisely to prove the
+*opposite* — identity across adapters *within* one tenant).
 
-**Known limitation (documented, not a Phase-1 regression):** the *durable
-execution* registry (`mcc_core.idempotency`) that status composition reads
-from is architecture-wide global-keyed — it has no tenant dimension today,
-because `EnforcementCoordinator` itself has none. Two different tenants
-that happened to choose the identical `logical_operation_id` **and** that
-operation was actually dispatched for real execution would observe the
-same durable-execution state through this endpoint. This is a pre-existing
-property of the whole idempotency subsystem, not something this phase
-introduces or could safely fix without touching the protected coordinator
-(explicitly out of scope). Operators should treat `logical_operation_id`
-as required to be globally unique (e.g. a UUID), exactly as the existing
-system already implicitly assumes.
+**Cross-tenant status disclosure (closed).** The *durable execution*
+registry (`mcc_core.idempotency`) is architecture-wide global-keyed — it has
+no tenant dimension, because `EnforcementCoordinator` itself has none (left
+unmodified, out of scope). `get_operation_status` therefore never consults
+it on `tenant_id` alone: see Section 6 for the ownership-gated algorithm
+that makes this safe without touching the coordinator, adding a second
+execution registry, or weakening `UNKNOWN` semantics.
 
 ## 6. Status composition (`MCCProposalService.get_operation_status`)
 
-Precedence, in order:
+Ownership-gated precedence, in order:
 
-1. Durable execution backend cannot definitively answer → `UNAVAILABLE`.
-2. A durable execution record exists → its exact state, verbatim
-   (`RESERVED`/`DISPATCH_OWNED`/`UNKNOWN`/`EXECUTED`).
-3. Otherwise, a proposal record exists → `PROPOSED`.
-4. Otherwise → `NOT_FOUND`.
+1. Tenant-scoped proposal **ownership** lookup (`ProposalRegistry.get(tenant_id, ...)`,
+   already tenant-scoped) cannot definitively answer → `UNAVAILABLE` (cannot
+   prove ownership; never disclose).
+2. No tenant-scoped proposal record for this identity → `NOT_FOUND`,
+   **without ever consulting the durable execution registry** — a tenant
+   that never proposed this identity can neither observe another tenant's
+   durable state nor infer that it exists, regardless of whether the
+   durable backend is up or down.
+3. Ownership established; durable execution backend cannot definitively
+   answer → `UNAVAILABLE`.
+4. Ownership established; a durable execution record exists **and its
+   `binding` matches this tenant's own registered binding** → the record's
+   exact state, verbatim (`RESERVED`/`DISPATCH_OWNED`/`UNKNOWN`/`EXECUTED`).
+5. Ownership established; a durable execution record exists but its
+   `binding` does **not** match this tenant's own registered binding → that
+   record belongs to a different registrant that reused the same raw id
+   with a different action/resource/payload (Section 3/5 explicitly permit
+   this); never disclosed, falls through to 6.
+6. Otherwise → `PROPOSED` (this tenant's own registered binding).
+
+The binding comparison in step 4/5 is what makes ownership alone
+insufficient to prove *which* tenant's operation a shared, globally-keyed
+durable record belongs to when two tenants legitimately reused the same
+`logical_operation_id`: `mcc_proposal.binding.compute_proposal_binding` and
+`EnforcementCoordinator`'s own `binding_ref` are the **identical**
+`hash_document({action, resource, payload_hash})` formula, so a match is
+proof the durable record is for the exact operation this tenant proposed,
+and a mismatch is proof it is not.
 
 `UNKNOWN` is never mapped to `NOT_FOUND` or `PROPOSED`; backend
-`UNAVAILABLE` is never mapped to `NOT_FOUND`. Status lookup performs **zero
-state writes** and calls **zero actuators** — proven by spy-based tests
-(`_ExplodingDurable`, a stub that raises `AssertionError` on any method
-other than `get_state`).
+`UNAVAILABLE` is never mapped to `NOT_FOUND` **for an operation this tenant
+owns** (for an operation it does not own, backend uncertainty is `NOT_FOUND`
+like everything else about that identity — never `UNAVAILABLE`, which would
+itself disclose that *something* is tracked under that id). Status lookup
+performs **zero state writes** and calls **zero actuators** — proven by
+spy-based tests (`_ExplodingDurable`, a stub that raises `AssertionError` on
+any method other than `get_state`).
 
 The Gateway wires `MCCProposalService`'s `durable_execution_state` to
 `governance.coordinator.idempotency` — the literal registry instance the
@@ -355,9 +377,12 @@ stays exactly where it is today.
 * Real execution: Phase 1 stops at the proposal boundary. A future phase
   wires a *verified* authority decision on top of an accepted proposal —
   through the existing Gate/coordinator, never a second one.
-* Cross-tenant durable-execution isolation (Section 5's documented
-  limitation) — would require touching `mcc_core.idempotency`'s keying,
-  explicitly out of this phase's scope.
+* Cross-tenant status disclosure is closed (Section 6's ownership + binding
+  gate) without touching `mcc_core.idempotency`'s keying. A true per-tenant
+  *durable execution* namespace (rather than ownership-gated read access to
+  one global registry) would still require touching the coordinator's own
+  keying — explicitly out of this phase's scope, and unnecessary for the
+  disclosure guarantee Phase 1 makes.
 * The official `mcp` PyPI SDK, pending explicit dependency approval.
 * Deploying the MCP HTTP transport anywhere (`build_mcp_http_app` exists
   and is tested, but is not started by any process in this phase).

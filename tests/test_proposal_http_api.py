@@ -183,8 +183,14 @@ def test_real_gateway_app_status_reflects_the_real_coordinators_durable_state(re
     """The proposal service was wired with ``governance.coordinator.idempotency``
     -- the SAME object the real EnforcementCoordinator uses -- so a state
     change made directly against it (simulating real execution admission)
-    must be visible through GET /v1/operations/{id}."""
+    must be visible through GET /v1/operations/{id}. The reservation is made
+    under the SAME binding the posted proposal computed (tenant-isolation
+    remediation: the durable record's binding must match the tenant's own
+    registered binding before it is disclosed -- see
+    tests/test_proposal_service_tenant_status_isolation.py)."""
     import asyncio
+
+    from mcc_proposal.binding import compute_proposal_binding
 
     client = TestClient(real_gateway_app.app)
     body = {"logical_operation_id": "op-real-gw-durable", "actor": "agent/notify-bot",
@@ -192,7 +198,11 @@ def test_real_gateway_app_status_reflects_the_real_coordinators_durable_state(re
     client.post("/v1/proposals", headers={"x-api-key": "tenant-a-key"}, json=body)
 
     idem = real_gateway_app.governance.coordinator.idempotency
-    asyncio.run(idem.reserve("op-real-gw-durable", binding="whatever"))
+    binding = compute_proposal_binding(
+        action=body["action"], resource=body["resource"], payload=body["payload"],
+        profiles=real_gateway_app.gateway.profiles,
+    )
+    asyncio.run(idem.reserve("op-real-gw-durable", binding=binding))
 
     r = client.get("/v1/operations/op-real-gw-durable", headers={"x-api-key": "tenant-a-key"})
     assert r.json()["status"] == "RESERVED"
