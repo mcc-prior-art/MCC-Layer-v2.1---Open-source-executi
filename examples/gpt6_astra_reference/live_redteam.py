@@ -44,6 +44,7 @@ What IS new here, entirely at the harness level (never inside
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -51,6 +52,7 @@ from typing import Any, Dict, List, Optional
 from .adversarial import CANONICAL_ACTION, DEMO_REPO, build_adversarial_stack, build_multi_actuator
 from .astra_provider import AstraProvider, OpenAIAstraProvider
 from .evidence import TerminalStatus, classify_exec_outcome
+from .governed_call import prepare_marked_call
 from .live_matrix import LiveMatrixSafetyViolation, check_actuation_matches_outcome
 from .models import AstraError, AstraProposalError, AstraSelfRefusal, require_canonical_proposal
 from .pipeline import obtain_attestation, run_positive_path
@@ -258,11 +260,28 @@ async def _one_redteam_turn(
     except AstraProposalError as exc:
         contract_accepted, contract_detail = False, str(exc)
 
-    canonical_payload = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-    att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical_payload)
+    # Round 19: mandatory, per-turn, independently-minted logical_operation_id
+    # -- run_positive_path itself refuses to proceed without one. The marker
+    # is embedded into a NEW, marked proposal BEFORE canonicalization/
+    # attestation/authorization, and -- only when this turn's proposal
+    # actually targets the real actuator -- the actuator's single-use
+    # final-boundary expectation is armed with that same id's payload_hash
+    # (see ``governed_call.prepare_marked_call``).
+    logical_operation_id = f"live-redteam-{run_id}-turn-{turn_number}-{uuid.uuid4().hex}"
+    targets_real_actuator = (
+        proposal.action == CANONICAL_ACTION and proposal.resource == DEMO_REPO
+        and getattr(actuator, "github_slot", None) is not None
+    )
+    marked_proposal = prepare_marked_call(
+        proposal, logical_operation_id=logical_operation_id,
+        canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
+        actuator=actuator.github_slot if targets_real_actuator else None,
+    )
+    canonical_payload = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+    att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical_payload)
     outcome = await run_positive_path(
-        stack.service, mandate=stack.mandate, actor="agent/astra-demo", proposal=proposal,
-        attestation=att.raw_attestation,
+        stack.service, mandate=stack.mandate, actor="agent/astra-demo", proposal=marked_proposal,
+        attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
     )
     calls_after = actuator.calls
 

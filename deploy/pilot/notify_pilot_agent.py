@@ -64,7 +64,8 @@ def main() -> int:
     for expected, actor, payload in scenarios:
         payload = dict(payload, correlation_id=_corr(expected.lower()))
         d = client.evaluate(actor_id=actor, action="send_notification",
-                            resource="crm", payload=payload)
+                            resource="crm", payload=payload,
+                            idempotency_key=payload["correlation_id"])
         print(f"\n--- Scenario: {expected} ---")
         print(f"  proposed action    : send_notification  by {actor}")
         print(f"  proposed payload   : {payload}")

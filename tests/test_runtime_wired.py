@@ -11,6 +11,7 @@ deployment/governance property, asserted in RUNTIME_VALIDATION_RECORD.md.)
 """
 
 import asyncio
+import itertools
 import json
 import time
 
@@ -18,6 +19,8 @@ import pytest
 
 import main
 from mcc_core import SigningKey, issue_vote
+
+_idem_counter = itertools.count(1)
 
 run = asyncio.run
 FUTURE = 4_000_000_000
@@ -66,10 +69,17 @@ def _votes(evals, ch, *, verdicts=None, payload=None, actor=None, resource=None,
         nonce=nonce if nonce is not None else ch.nonce) for i in range(n)]
 
 
-def _decide(mcc, ch, votes, *, amount=100, resource="res-1", sid="s1"):
+def _decide(mcc, ch, votes, *, amount=100, resource="res-1", sid="s1", idem=None):
+    # Round 25: a stable logical-operation identity is now mandatory for any
+    # decision that reaches actuation. Each call gets its own fresh key by
+    # default (auto-generated here, in the TEST HARNESS -- never inside
+    # main.py/the coordinator itself) so existing scenarios that don't care
+    # about idempotency specifically continue to exercise the SAME quorum/
+    # challenge/gate behavior they always did.
+    idem = idem if idem is not None else f"auto-idem-{next(_idem_counter)}"
     return run(mcc.evaluate("t", main.EvaluateRequest(
         session_id=sid, intent="send_payment", args={"amount": amount}, resource=resource,
-        challenge_id=ch.challenge_id if ch else None, votes=votes)))
+        challenge_id=ch.challenge_id if ch else None, votes=votes, idempotency_key=idem)))
 
 
 # ---- The one path that authorizes ----

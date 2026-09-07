@@ -56,10 +56,12 @@ def _authorized_execute(sut) -> None:
     r = httpx.post(
         f"{sut.gateway_url}/consensus/execute", headers={"x-api-key": sut.api_key},
         json={"actor": ACTOR, "action": ACTION, "resource": RESOURCE, "context": payload,
-              "votes": votes, "challenge_id": ch["challenge_id"]},
+              "votes": votes, "challenge_id": ch["challenge_id"],
+              "idempotency_key": f"ckpt-{uuid.uuid4()}"},
         timeout=10.0,
     )
     r.raise_for_status()
+    assert r.json()["status"] == "EXECUTED", r.json()
 
 
 @pytest.fixture(scope="module")

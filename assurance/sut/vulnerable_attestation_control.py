@@ -216,13 +216,13 @@ def run_negative_control_scenario() -> Dict[str, Any]:
             mandate=real_mandate, actor="agent/negative-control-bot", action=action, resource=resource,
             context={"recipient": "negative-control-target", "message": "negative-control-probe",
                      "correlation_id": "negative-control-probe"},
-            attestation=forged,
+            attestation=forged, idempotency_key="op-negative-control",
         )
         vuln_outcome = await vuln_service.execute_with_mandate(
             mandate=vuln_mandate, actor="agent/negative-control-bot", action=action, resource=resource,
             context={"recipient": "negative-control-target", "message": "negative-control-probe",
                      "correlation_id": "negative-control-probe"},
-            attestation=forged,
+            attestation=forged, idempotency_key="op-negative-control",
         )
         return real_outcome, vuln_outcome
 

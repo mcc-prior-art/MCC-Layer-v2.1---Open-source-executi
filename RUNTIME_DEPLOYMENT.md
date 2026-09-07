@@ -126,6 +126,7 @@ TTL.
 | `MCC_IDEMPOTENCY_BACKEND=redis` / `MCC_VELOCITY_BACKEND=redis` with no `MCC_REDIS_URL` | startup error, not a silent in-memory downgrade |
 | `MCC_ENV=pilot` with missing/invalid/empty `MCC_TRUST_CONFIG` | startup refused (`TrustConfigError`); no fallback to a development key |
 | `MCC_DEPLOYMENT_MODE=enforcement` with `MCC_NONCE_BACKEND=memory` (explicit or default) | startup error (`NonceConfigError`), not a silent downgrade to volatile replay state |
+| `MCC_DEPLOYMENT_MODE=enforcement` with `MCC_IDEMPOTENCY_BACKEND=memory` (explicit or default) | startup error (`IdempotencyConfigError`); no silent downgrade to per-process, non-durable logical-operation state |
 | `MCC_DEPLOYMENT_MODE=enforcement` with `MCC_REVOCATION_BACKEND=memory` (explicit or default) | startup error (`RevocationConfigError`); a revoked-but-not-yet-expired mandate must not become valid again after a restart or on an instance that never observed the revocation |
 | `MCC_DEPLOYMENT_MODE=enforcement` for `python -m mcc_attester_service` with no/invalid/test `MCC_ATTESTER_PROVIDER_CLASS` | startup refused (`AttesterServiceConfigError`); the `DeterministicTestProvider` is never silently substituted |
 | Unknown issuer / unknown kid / disabled issuer / expired or revoked key | mandate verification denies with the specific trust status |
@@ -133,7 +134,7 @@ TTL.
 | Governed execution with unverifiable mandate/approval | BLOCKED before the upstream is reached (no second execution path) |
 | Velocity registry unavailable | capacity unreservable → operation blocked (no over-spend) |
 | Audit-before-actuation write cannot be confirmed | operation blocked, reserved capacity released |
-| Executor fails after reservation | idempotency key freed (`FAILED`, retryable); reported fail-closed, never finalized |
+| Executor raises after durable dispatch commitment, or succeeds but `EXECUTED` cannot be durably persisted | idempotency key marked `UNKNOWN` (never freed/released); reported fail-closed as `EXECUTION_FAILED`; blocks every further admission on that key until independently verified positive evidence resolves it (see `docs/DURABLE_OPERATION_SAFETY.md`) |
 | Substituted actor / resource / transaction / beneficiary / amount / currency | `BINDING_MISMATCH` or `PAYLOAD_HASH_MISMATCH` → rejected at the gate |
 | Token expired / nbf in future / wrong audience / unknown kid / any hash mismatch | rejected at the gate |
 

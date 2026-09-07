@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
@@ -58,6 +59,10 @@ class CanonicalProposal:
     action: str
     resource: str
     payload: Dict[str, Any]
+    # A stable logical-operation identity for this proposal, generated here
+    # (never by the gateway/coordinator -- Round 25 made this mandatory at
+    # EnforcementCoordinator.enforce()). Fresh per proposal by default.
+    idempotency_key: str = field(default_factory=lambda: f"interop-{uuid.uuid4().hex}")
 
     def hash(self) -> str:
         from mcc_core.signing import canonical_bytes, sha256_hex
@@ -304,7 +309,7 @@ def run_common_scenarios(proof: AdapterProof, gw: SharedGovernedGateway) -> Adap
     prop = proof.proposal_for("ALLOW")
     c = _client(gw.base_url)
     d = c.evaluate(actor_id=prop.actor_id, action=prop.action, resource=prop.resource,
-                   payload=prop.payload)
+                   payload=prop.payload, idempotency_key=prop.idempotency_key)
     before = len(recorded_receipts())
     result = c.execute(d, _consensus(c, d, gw))
     executed = result.executed and len(recorded_receipts()) == 1 and before == 0
@@ -320,7 +325,8 @@ def run_common_scenarios(proof: AdapterProof, gw: SharedGovernedGateway) -> Adap
     verdict = None
     try:
         d = c.evaluate(actor_id=prop.actor_id, action=prop.action,
-                       resource=prop.resource, payload=prop.payload)
+                       resource=prop.resource, payload=prop.payload,
+                       idempotency_key=prop.idempotency_key)
         verdict = d.verdict.value
         if verdict == "DENY":
             denied = True
@@ -336,7 +342,7 @@ def run_common_scenarios(proof: AdapterProof, gw: SharedGovernedGateway) -> Adap
     prop = proof.proposal_for("REPLAY")
     c = _client(gw.base_url)
     d = c.evaluate(actor_id=prop.actor_id, action=prop.action, resource=prop.resource,
-                   payload=prop.payload)
+                   payload=prop.payload, idempotency_key=prop.idempotency_key)
     material = _consensus(c, d, gw)
     first = c.execute(d, material)
     replay_blocked = False
@@ -354,7 +360,7 @@ def run_common_scenarios(proof: AdapterProof, gw: SharedGovernedGateway) -> Adap
     prop = proof.proposal_for("MISMATCH")
     c = _client(gw.base_url)
     d = c.evaluate(actor_id=prop.actor_id, action=prop.action, resource=prop.resource,
-                   payload=prop.payload)
+                   payload=prop.payload, idempotency_key=prop.idempotency_key)
     rejected = False
     try:
         c.execute(d, _consensus(c, d, gw, tamper="payload"))
@@ -368,7 +374,7 @@ def run_common_scenarios(proof: AdapterProof, gw: SharedGovernedGateway) -> Adap
     prop = proof.proposal_for("AUDIT")
     c = _client(gw.base_url)
     d = c.evaluate(actor_id=prop.actor_id, action=prop.action, resource=prop.resource,
-                   payload=prop.payload)
+                   payload=prop.payload, idempotency_key=prop.idempotency_key)
     r = c.execute(d, _consensus(c, d, gw))
     chain_valid = bool(c.verify_audit_chain().get("valid"))
     record("AUDIT", ok=(r.executed and chain_valid and d.audit_id is not None),
@@ -382,7 +388,8 @@ def run_common_scenarios(proof: AdapterProof, gw: SharedGovernedGateway) -> Adap
     failed_closed = False
     try:
         dead.evaluate(actor_id=prop.actor_id, action=prop.action,
-                      resource=prop.resource, payload=prop.payload)
+                      resource=prop.resource, payload=prop.payload,
+                      idempotency_key=prop.idempotency_key)
     except MCCError:
         failed_closed = True
     record("GATEWAY_UNAVAILABLE", ok=(failed_closed and recorded_receipts() == []),
@@ -393,7 +400,7 @@ def run_common_scenarios(proof: AdapterProof, gw: SharedGovernedGateway) -> Adap
     prop = proof.proposal_for("INVALID_OR_EXPIRED")
     c = _client(gw.base_url)
     d = c.evaluate(actor_id=prop.actor_id, action=prop.action, resource=prop.resource,
-                   payload=prop.payload)
+                   payload=prop.payload, idempotency_key=prop.idempotency_key)
     rejected = False
     try:
         c.execute(d, _consensus(c, d, gw, not_after=1))  # not_after in the past

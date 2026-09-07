@@ -72,9 +72,13 @@ class ClinicStack:
         ch = self.client.issue_challenge(actor=ACTOR, action=action, resource=CLINIC,
                                          context=d.forward_context)
         qv = self.votes(action=action, context=context, nonce=ch["nonce"], votes_count=votes_count)
+        # Round 25: a stable logical-operation identity is now mandatory for
+        # actuation -- the test's own correlation_id is a natural one.
+        idem = f"op-{context.get('correlation_id', ch['nonce'])}"
         out = self.client.execute_with_consensus(
             votes=qv["votes"], actor=ACTOR, action=action, resource=CLINIC,
-            context=qv["authorized_context"], nonce=ch["nonce"], challenge_id=ch["challenge_id"])
+            context=qv["authorized_context"], nonce=ch["nonce"], challenge_id=ch["challenge_id"],
+            idempotency_key=idem)
         return d, qv, out
 
     def close(self):
@@ -154,12 +158,14 @@ def test_escalate_refund_requires_single_use_approval(stack):
     granted = stack.client.approve(appr["request_id"])
     first = stack.client.execute_with_approval(
         appr["request_id"], mandate=granted["mandate"], actor=ACTOR, action="refund_request",
-        resource=CLINIC, context=ctx)
+        resource=CLINIC, context=ctx, idempotency_key="op-c-refund-a")
     assert first.executed
-    # Replay of the same approval must fail (single-use).
+    # Replay of the same approval must fail (single-use) -- a distinct
+    # idempotency key so the replay is blocked by the intended single-use
+    # APPROVAL consumption, not an unrelated idempotency duplicate.
     second = stack.client.execute_with_approval(
         appr["request_id"], mandate=granted["mandate"], actor=ACTOR, action="refund_request",
-        resource=CLINIC, context=ctx)
+        resource=CLINIC, context=ctx, idempotency_key="op-c-refund-b")
     assert not second.executed
     assert len(clinic.recorded_actions()) == 1  # executed exactly once
 

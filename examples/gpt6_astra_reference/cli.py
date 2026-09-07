@@ -27,13 +27,18 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import uuid
 
 from mcc_attester_service import AssessmentResult
 
 from .astra_provider import AstraProvider, AstraResponse, DeterministicAstraProvider, OpenAIAstraProvider
 from .evidence import RunTrace, TerminalStatus, classify_exec_outcome
-from .github_actuator import GitHubActuatorConfig, GitHubIssueActuator
-from .models import AstraError, AstraProposalError, AstraSelfRefusal, require_canonical_proposal
+from .github_actuator import GitHubActuatorConfig, GitHubIssueActuator, VerifiedDispatchSlot
+from .governed_call import prepare_marked_call
+from .models import (
+    AstraError, AstraProposalError, AstraSelfRefusal, require_canonical_proposal,
+    require_logical_operation_id,
+)
 from .pipeline import (
     AuthorityDeniedError,
     attestation_fingerprint, authority_fingerprint,
@@ -96,6 +101,12 @@ class _CountingActuator:
         self._actuator = actuator
         self.calls = 0
 
+    def expect(self, *, action: str, resource: str, payload_hash: str) -> None:
+        """Forwards to the wrapped ``VerifiedDispatchSlot`` — see
+        ``governed_call.prepare_marked_call``, the one place this is called,
+        immediately before every governed call this CLI makes."""
+        self._actuator.expect(action=action, resource=resource, payload_hash=payload_hash)
+
     async def __call__(self, action: str, payload):
         self.calls += 1
         return await self._actuator(action, payload)
@@ -107,6 +118,34 @@ def _mock_actuator_env(stack: LocalAstraDemoStack) -> dict:
         "MCC_ASTRA_GITHUB_REPO": stack.demo_repo,
         "MCC_ASTRA_GITHUB_BASE_URL": stack.github_base_url,
     }
+
+
+def _new_logical_operation_id() -> str:
+    """A fresh opaque logical-operation id for one protected-action request.
+    Never derived from the proposal's own content (that would make it just
+    another spelling of payload_hash, which Round 17 explicitly forbids as
+    the logical-operation identity) -- this models the caller/orchestrator
+    driving the request minting a genuinely independent identifier, exactly
+    as ``models.require_logical_operation_id`` requires one be supplied."""
+    return uuid.uuid4().hex
+
+
+def _governed_actuator(stack: LocalAstraDemoStack, *, authorized_resource: str) -> "_CountingActuator":
+    """Builds the real (disabled-by-default, here explicitly enabled against
+    the local mock) actuator wrapped in a ``VerifiedDispatchSlot``, which
+    itself guarantees BOTH pre-external-call guards this reference
+    integration adds: resource-binding (Round 17 scenario 20) and the final
+    payload-binding proof (Round 19/21 requirement 1) -- checked strictly
+    BEFORE the real actuator's own HTTP call, and (Round 21) invocation-
+    local: each governed call installs its OWN independently-bound,
+    single-shot verifier, never a shared mutable one a later call could
+    accidentally inherit. The logical-operation marker/schema themselves are
+    applied BEFORE authorization by ``governed_call.prepare_marked_call``,
+    which also arms this slot immediately before every governed call — see
+    that module for why."""
+    raw = GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack)))
+    slot = VerifiedDispatchSlot(raw, authorized_resource=authorized_resource)
+    return _CountingActuator(slot)
 
 
 def _build_astra_provider(*, live_astra: bool) -> AstraProvider:
@@ -214,15 +253,21 @@ async def run_positive(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("positive", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource)
         stack.upstream = counting
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal = prepare_marked_call(
+            proposal, logical_operation_id=logical_operation_id,
+            canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
+            actuator=counting,
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         outcome = await run_positive_path(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-            attestation=att.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+            attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
         )
         terminal = TerminalStatus.EXECUTED if outcome.status == "EXECUTED" else classify_exec_outcome(outcome.reason)
         issues = recorded_issues()
@@ -247,15 +292,21 @@ async def run_wrong_scope(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("wrong-scope", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource)
         stack.upstream = counting
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal = prepare_marked_call(
+            proposal, logical_operation_id=logical_operation_id,
+            canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
+            actuator=counting,
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         outcome = await run_positive_path(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-            attestation=att.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+            attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
         )
         terminal = classify_exec_outcome(outcome.reason)
         return RunTrace(
@@ -306,21 +357,52 @@ async def run_autonomous_expansion(*, live_astra: bool = False) -> RunTrace:
                 AstraResponse(outcome=AstraError(str(exc)), is_live=resp.is_live, model=resp.model),
             )
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        primary_logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
+        extra_logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
+
+        # Round 19 requirement 2: the actuator is shared across this
+        # scenario's two governed calls (primary, then the unauthorized
+        # extra action), but each call now mints its OWN marked proposal and
+        # arms its OWN single-use expectation on the actuator immediately
+        # before that specific call -- see ``governed_call.prepare_marked_call``.
+        # There is no mutable, settable marker/identity left on the actuator
+        # for the second call to silently inherit from the first: the
+        # logical_operation_id used for durable admission (the id passed to
+        # run_positive_path), the reconciliation marker (embedded into the
+        # proposal's own payload before this call), and the actuator's
+        # armed expectation are always the SAME single id, per call.
+        counting = _governed_actuator(stack, authorized_resource=primary.resource)
         stack.upstream = counting
 
-        canonical = stack.profiles.for_action(primary.action).canonical_payload(primary.payload)
-        att_primary = await obtain_attestation(stack.attester, proposal=primary, canonical_payload=canonical)
+        marked_primary = prepare_marked_call(
+            primary, logical_operation_id=primary_logical_operation_id,
+            canonical_payload_fn=stack.profiles.for_action(primary.action).canonical_payload,
+            actuator=counting,
+        )
+        canonical = stack.profiles.for_action(marked_primary.action).canonical_payload(marked_primary.payload)
+        att_primary = await obtain_attestation(stack.attester, proposal=marked_primary, canonical_payload=canonical)
         primary_outcome = await run_positive_path(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=primary,
-            attestation=att_primary.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_primary,
+            attestation=att_primary.raw_attestation, logical_operation_id=primary_logical_operation_id,
         )
 
-        canonical_extra = stack.profiles.for_action(extra.action).canonical_payload(extra.payload)
-        att_extra = await obtain_attestation(stack.attester, proposal=extra, canonical_payload=canonical_extra)
+        # The extra action is never authorized (outside the mandate's action
+        # scope) and never reaches the real GitHub actuator -- so this call
+        # is armed with ``actuator=None``: nothing on the shared actuator is
+        # touched for it, and in particular the primary call's expectation
+        # (already consumed by its own __call__, or still armed if the
+        # primary call never actually reached the actuator) can never be
+        # reused or overwritten by this call.
+        marked_extra = prepare_marked_call(
+            extra, logical_operation_id=extra_logical_operation_id,
+            canonical_payload_fn=stack.profiles.for_action(extra.action).canonical_payload,
+            actuator=None,
+        )
+        canonical_extra = stack.profiles.for_action(marked_extra.action).canonical_payload(marked_extra.payload)
+        att_extra = await obtain_attestation(stack.attester, proposal=marked_extra, canonical_payload=canonical_extra)
         extra_outcome = await run_positive_path(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=extra,
-            attestation=att_extra.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_extra,
+            attestation=att_extra.raw_attestation, logical_operation_id=extra_logical_operation_id,
         )
 
         extra_terminal = classify_exec_outcome(extra_outcome.reason)
@@ -357,21 +439,34 @@ async def run_tamper(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("tamper", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource)
         stack.upstream = counting
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal = prepare_marked_call(
+            proposal, logical_operation_id=logical_operation_id,
+            canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
+            actuator=None,  # armed below with the REAL issued token instead
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         try:
             issued = await issue_authority(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("tamper", resp, proposal, att, exc, counting)
         tampered_payload = dict(issued.canonical_payload)
         tampered_payload["title"] = "TAMPERED — this title was never authorized"
+        # Round 19: armed with the REAL, signed token's own action/payload_hash
+        # -- if the Gate's own binding check somehow did not already block this
+        # tampered payload, the actuator's final-boundary check still would.
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
+        )
         outcome = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
             action=proposal.action, payload=tampered_payload, attestation=att.raw_attestation,
@@ -396,22 +491,40 @@ async def run_replay(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("replay", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource)
         stack.upstream = counting
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal = prepare_marked_call(
+            proposal, logical_operation_id=logical_operation_id,
+            canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
+            actuator=None,  # armed below, per enforce_authority call, with the real token
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         try:
             issued = await issue_authority(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("replay", resp, proposal, att, exc, counting)
+        # Round 19: re-armed before EACH enforce_authority call (the
+        # expectation is single-use) -- both presentations of this same,
+        # never-tampered token are proven bound to the exact payload GitHub
+        # would receive, even though only the first is expected to reach it.
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
+        )
         first = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
             action=proposal.action, attestation=att.raw_attestation,
+        )
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
         )
         second = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
@@ -442,20 +555,30 @@ async def run_expired(*, live_astra: bool = False) -> RunTrace:
         if kind != "proposals":
             return _non_proposal_trace("expired", resp)
         proposal = resp.outcome[0]
+        logical_operation_id = require_logical_operation_id(_new_logical_operation_id())
 
-        counting = _CountingActuator(GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack))))
+        counting = _governed_actuator(stack, authorized_resource=proposal.resource)
         stack.upstream = counting
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal = prepare_marked_call(
+            proposal, logical_operation_id=logical_operation_id,
+            canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
+            actuator=None,  # armed below, with the real token, right before enforce_authority
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         try:
             issued = await issue_authority(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("expired", resp, proposal, att, exc, counting)
         await asyncio.sleep(1.5)  # let the token's real validity window elapse
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
+        )
         outcome = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
             action=proposal.action, attestation=att.raw_attestation,

@@ -38,6 +38,17 @@ from mcc_core import (
 )
 
 from .pre_execution_control import PreExecutionControl
+
+
+def _missing_logical_operation_id(idempotency_key: Optional[str]) -> bool:
+    """Round 25 remediation — transport-layer defense-in-depth ONLY: the real,
+    unavoidable enforcement point is ``EnforcementCoordinator.enforce()``
+    itself (it fails closed on a missing/empty/whitespace idempotency_key
+    regardless of what happens here). This early check exists purely so an
+    execution request without a usable logical-operation identity is
+    rejected before any authority is spent minting a signed token, never as
+    a substitute for the coordinator's own check."""
+    return not isinstance(idempotency_key, str) or not idempotency_key.strip()
 from .trust import TrustSet
 
 # An upstream executor performs the real side effect for governed execution.
@@ -220,6 +231,17 @@ class GovernanceService:
         if blocked is not None:
             return blocked
 
+        # Round 25 remediation — defense-in-depth only (see
+        # ``_missing_logical_operation_id``): the coordinator itself is the
+        # authoritative, unavoidable enforcement point for this invariant.
+        if _missing_logical_operation_id(idempotency_key):
+            return ExecOutcome(
+                "BLOCKED",
+                "MISSING_LOGICAL_OPERATION_ID: a valid, non-empty idempotency_key "
+                "is required for protected execution; fail-closed",
+                decision=decision.verdict.value,
+            )
+
         auth_claims = dict(profile.auth_claims(forward_context))
         if extra_auth_claims:
             auth_claims.update(extra_auth_claims)
@@ -389,6 +411,16 @@ class GovernanceService:
         )
         if blocked is not None:
             return blocked
+
+        # Round 25 remediation — defense-in-depth only; see
+        # ``_missing_logical_operation_id`` / execute_with_mandate.
+        if _missing_logical_operation_id(idempotency_key):
+            return ExecOutcome(
+                "BLOCKED",
+                "MISSING_LOGICAL_OPERATION_ID: a valid, non-empty idempotency_key "
+                "is required for protected execution; fail-closed",
+                decision=result.verdict.value,
+            )
 
         auth_claims = dict(profile.auth_claims(canonical))
         auth_claims["consensus"] = result.summary()

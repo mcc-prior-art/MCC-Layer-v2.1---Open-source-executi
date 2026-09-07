@@ -34,21 +34,34 @@ real process-level fault injection).
 ``egress_proxy``'s receipt-verifying executor (see
 ``pilot_notify.governed_upstream.receipt_verifying_upstream``) never reports
 ``executed=true`` without an independently confirmed receipt. Concretely,
-this collapses the caller-visible surface: a transport failure between
-``DISPATCHED`` and receipt confirmation is reported synchronously, within
-the SAME request/response cycle, as ``executed=false`` (outcome
-``UPSTREAM_ERROR``) -- the caller never sees a distinct, persistent
-"unknown, come back later" status over the API. ``EXECUTION_UNKNOWN`` is a
-real internal possibility (a request may have reached the upstream before
-the connection dropped) but is never a DIRECTLY OBSERVABLE terminal state of
-this implementation; it resolves eagerly to "not executed, safe to retry"
-(the idempotency registry's RESERVED/EXECUTED/FAILED lifecycle then permits
-exactly one further attempt on the same idempotency key). ``RECONCILED`` in
-THIS implementation is therefore reached implicitly, via a fresh retry, not
-via an explicit reconciliation endpoint or a separate caller-visible status.
-``assurance/tests/test_execution_atomicity.py`` verifies this behavior
-directly rather than assuming the full 8-state surface is independently
-observable -- see ``ASSUMPTIONS_AND_LIMITS.md``.
+this collapses the caller-visible surface WITHIN ONE request/response cycle:
+a transport failure between ``DISPATCHED`` and receipt confirmation is
+reported synchronously, as ``executed=false`` (outcome ``UPSTREAM_ERROR``)
+-- the caller never sees a distinct, persistent "unknown, come back later"
+status inline in that response. ``EXECUTION_UNKNOWN`` is a real internal
+possibility (a request may have reached the upstream before the connection
+dropped) but is never a directly observable terminal state OF THAT ONE
+RESPONSE; it resolves eagerly to "not executed" -- see
+``ASSUMPTIONS_AND_LIMITS.md``.
+
+Round 17 correction (previously this note also claimed the SAME
+idempotency key "then permits exactly one further attempt" -- that was
+the exact defect class Astra's Round 16/17 inspection identified, and it is
+no longer true): internally, the coordinator now durably parks that
+operation at ``EXECUTION_UNKNOWN`` (``mcc_core.idempotency.IdempotencyState.
+UNKNOWN``) rather than releasing it, and a SUBSEQUENT presentation of the
+SAME idempotency key -- however freshly and validly authorized -- is
+BLOCKED, not re-admitted. ``RECONCILED`` is reached only via independently
+verified positive evidence for that exact operation (see
+``examples/gpt6_astra_reference/reconciliation.py`` for the one actuator
+this repository ships with such a reconciliation path), or via a
+genuinely NEW logical operation (a different idempotency key, a deliberate
+caller/operator decision) -- never implicitly, via a blind retry of the
+ambiguous one. ``assurance/tests/test_execution_atomicity.py``
+(``test_b6_retry_with_same_idempotency_key_after_fault_stays_blocked`` /
+``test_b6b_a_deliberate_new_logical_operation_can_still_succeed``) verifies
+this directly. See ``docs/DURABLE_OPERATION_SAFETY.md`` for the full state
+machine and durability model.
 """
 
 from __future__ import annotations

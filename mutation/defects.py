@@ -1,9 +1,16 @@
-"""Thirty-eight targeted, hand-authored security-critical mutations (PR #71,
+"""Thirty-nine targeted, hand-authored security-critical mutations (PR #71,
 Workstream J; extended post-merge-review to close a disclosed mutation-
 testing gap -- see the ``gate-*-fail-open`` block below; extended again by
 PR-5 to cover the PR-1->4 attestation-to-execution chain, which the
 original 26 entirely predate -- see the trailing block below that and
-``docs/ATTESTATION_INDEPENDENT_ASSURANCE.md``'s gap matrix).
+``docs/ATTESTATION_INDEPENDENT_ASSURANCE.md``'s gap matrix; extended once
+more (Round 17/18, durable logical-operation safety) with
+``idempotency-reserve-reopens-pending-states``, targeting the exact defect
+class Astra's Round 16-18 inspections identified -- a mutation that
+genuinely reopens execution eligibility for an unresolved (DISPATCH_OWNED/
+UNKNOWN) operation, replacing an earlier Round 17 mutation the Round 18
+inspection found could only be caught on a harmless state-label technicality
+-- see ``docs/DURABLE_OPERATION_SAFETY.md``).
 
 Unlike generic mutation testing (which mutates arbitrary operators across a
 whole codebase and requires heavy tuning to separate meaningful mutants
@@ -143,11 +150,59 @@ DEFECTS: List[Defect] = [
     ),
     Defect(
         id="idempotency-duplicate-allowed",
-        description="The in-memory idempotency registry no longer rejects a duplicate reservation of an already-executed key.",
+        description="The in-memory idempotency registry no longer rejects a duplicate reservation of an already-executed (or in-flight, or UNKNOWN, or binding-conflicting) key.",
         file_path="src/mcc_core/idempotency.py",
-        find='        state, held = _decode(encoded)\n        if state == IdempotencyState.EXECUTED:\n            return ReserveResult(ReserveStatus.DUPLICATE_EXECUTED, "operation already executed", held)\n        return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", held)',
-        replace='        state, held = _decode(encoded)\n        return ReserveResult(ReserveStatus.RESERVED, "MUTATED: duplicate check disabled", held)',
+        find=(
+            '        state, generation, held_binding, _ = _decode(encoded)\n'
+            '        if held_binding != binding:\n'
+            '            return ReserveResult(ReserveStatus.BINDING_CONFLICT, "logical operation bound to a different "\n'
+            '                                  "action/resource/payload", held_binding)\n'
+            '        if state == IdempotencyState.EXECUTED:\n'
+            '            return ReserveResult(ReserveStatus.DUPLICATE_EXECUTED, "operation already executed", held_binding)\n'
+            '        if state == IdempotencyState.UNKNOWN:\n'
+            '            return ReserveResult(ReserveStatus.DUPLICATE_UNKNOWN,\n'
+            '                                  "operation outcome UNKNOWN; requires reconciliation, not retry", held_binding)\n'
+            '        return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", held_binding)'
+        ),
+        replace=(
+            '        state, generation, held_binding, _ = _decode(encoded)\n'
+            '        return ReserveResult(ReserveStatus.RESERVED, "MUTATED: duplicate check disabled", held_binding, fence=generation)'
+        ),
         detector_tests=("tests/test_idempotency.py::test_duplicate_reservation_denied",),
+    ),
+    Defect(
+        id="idempotency-reserve-reopens-pending-states",
+        description=(
+            "The idempotency registry's reserve() treats DISPATCH_OWNED, UNKNOWN, and "
+            "in-flight RESERVED records as available for a fresh reservation (only EXECUTED "
+            "is still protected) -- genuinely reopening execution eligibility for an operation "
+            "whose actuation outcome is not yet durably confirmed, letting a fresh authorization "
+            "actually reach and invoke the executor a second time. This replaces Round 17's "
+            "'unsafe-release' mutation, which mutated the coordinator to call the (already "
+            "correctly fenced) release() after dispatch -- release() itself refuses to act "
+            "outside RESERVED regardless, so that mutation could only ever be caught on a "
+            "harmless state-LABEL technicality (DISPATCH_OWNED instead of UNKNOWN), never by "
+            "proving a real duplicate actuation -- see Round 18 requirement 8 and "
+            "docs/DURABLE_OPERATION_SAFETY.md."
+        ),
+        file_path="src/mcc_core/idempotency.py",
+        find=(
+            '        if state == IdempotencyState.UNKNOWN:\n'
+            '            return ReserveResult(ReserveStatus.DUPLICATE_UNKNOWN,\n'
+            '                                  "operation outcome UNKNOWN; requires reconciliation, not retry", held_binding)\n'
+            '        return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", held_binding)'
+        ),
+        replace=(
+            '        # MUTATED: DISPATCH_OWNED/UNKNOWN/in-flight RESERVED all reopened for reservation\n'
+            '        generation = uuid.uuid4().hex\n'
+            '        self._store[key] = (_encode(IdempotencyState.RESERVED, generation, binding), now + DEFAULT_RESERVATION_TTL_SECONDS)\n'
+            '        return ReserveResult(ReserveStatus.RESERVED, "MUTATED: pending states reopened", held_binding, fence=generation)'
+        ),
+        detector_tests=(
+            "tests/test_idempotency.py::test_unknown_blocks_reservation_pending_reconciliation",
+            "tests/test_idempotency.py::test_concurrent_duplicate_exactly_one_winner",
+            "tests/test_coordinator.py::test_no_second_actuator_invocation_after_ambiguous_first_attempt",
+        ),
     ),
     Defect(
         id="challenge-replay-allowed",
@@ -418,8 +473,8 @@ DEFECTS: List[Defect] = [
 
 DEFECT_IDS = tuple(d.id for d in DEFECTS)
 
-assert len(DEFECT_IDS) == 38, f"expected exactly 38 targeted defects, found {len(DEFECT_IDS)}"
-assert len(set(DEFECT_IDS)) == 38, "defect ids must be unique"
+assert len(DEFECT_IDS) == 39, f"expected exactly 39 targeted defects, found {len(DEFECT_IDS)}"
+assert len(set(DEFECT_IDS)) == 39, "defect ids must be unique"
 
 GATE_FAIL_OPEN_DEFECT_IDS = tuple(d.id for d in DEFECTS if d.id == "gate-fail-open" or d.id.startswith("gate-") and d.id.endswith("-fail-open"))
 assert len(GATE_FAIL_OPEN_DEFECT_IDS) == 14, (

@@ -9,6 +9,7 @@ configured.
 """
 
 import asyncio
+import itertools
 import json
 import os
 import tempfile
@@ -36,6 +37,7 @@ from tests._fakeredis import DownRedis, FakeRedis
 
 run = asyncio.run
 FUTURE = 4_000_000_000
+_idem_counter = itertools.count(1)
 
 
 # ---------- shared-Redis runtime fixture ----------
@@ -88,10 +90,15 @@ def _votes(evals, ch, *, amount=100):
             for i in range(3)]
 
 
-def _decide(mcc, ch, votes, *, amount=100, resource="res-1", sid="s1"):
+def _decide(mcc, ch, votes, *, amount=100, resource="res-1", sid="s1", idem=None):
+    # Round 25: mandatory logical-operation identity -- auto-generated here in
+    # the TEST HARNESS (never inside main.py/the coordinator) so scenarios
+    # that aren't specifically about idempotency keep exercising the same
+    # quorum/challenge/gate behavior as before.
+    idem = idem if idem is not None else f"auto-idem-{next(_idem_counter)}"
     return run(mcc.evaluate("t", main.EvaluateRequest(
         session_id=sid, intent="send_payment", args={"amount": amount}, resource=resource,
-        challenge_id=ch.challenge_id if ch else None, votes=votes)))
+        challenge_id=ch.challenge_id if ch else None, votes=votes, idempotency_key=idem)))
 
 
 # ---------- 5. live entrypoint uses Redis when configured ----------
@@ -142,9 +149,11 @@ def test_idempotency_cross_instance(tmp_path):
     reg_b = RedisIdempotencyRegistry(shared, namespace=ns)
     first = run(reg_a.reserve("op-1", binding="payload-hash-A"))
     assert first.status == ReserveStatus.RESERVED
-    # B sees the in-flight reservation; a conflicting binding cannot win.
+    # B sees the in-flight reservation under a DIFFERENT binding -- a
+    # distinct logical operation presenting the same key is a
+    # BINDING_CONFLICT, never merely a duplicate.
     conflict = run(reg_b.reserve("op-1", binding="payload-hash-B"))
-    assert conflict.status in (ReserveStatus.DUPLICATE_INFLIGHT, ReserveStatus.DUPLICATE_EXECUTED)
+    assert conflict.status == ReserveStatus.BINDING_CONFLICT
     assert not conflict.ok
 
 

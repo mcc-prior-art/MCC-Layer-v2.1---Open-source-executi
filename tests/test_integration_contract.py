@@ -76,7 +76,8 @@ def _allow_decision(h: NotifyPilotHarness, client: MCCClient):
     prop = DeterministicProvider(actor_id="agent/notify-bot", priority="normal",
                                  channel="email").propose(REQUEST)
     d = client.evaluate(actor_id=prop.actor_id, action=prop.action,
-                        resource=prop.resource, payload=prop.payload)
+                        resource=prop.resource, payload=prop.payload,
+                        idempotency_key=prop.idempotency_key)
     assert d.verdict.value == "ALLOW"
     return d
 

@@ -33,6 +33,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -146,16 +147,24 @@ class AttestationSystemUnderTest:
     def execute_with_mandate_and_attestation(
         self, *, mandate: Dict[str, Any], attestation: Optional[Dict[str, Any]],
         actor: str, action: str = ATTESTED_ACTION, resource: str = ATTESTED_RESOURCE,
-        context: Dict[str, Any],
+        context: Dict[str, Any], idempotency_key: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Drive the real Gateway's ``POST /mandates/execute`` -- the SAME
         HTTP surface ``assurance/tests/test_mandate_containment.py`` already
         uses -- with an optional raw ``attestation`` document attached
         (PR-2's existing, unmodified HTTP field). Returns the raw JSON
-        response; callers decide what it means."""
+        response; callers decide what it means.
+
+        ``idempotency_key`` defaults to a fresh, unique value per call (never
+        reused unless a caller explicitly passes one) -- Round 25 made this a
+        mandatory logical-operation identity at the coordinator; callers whose
+        test is about something else entirely (attestation nonce replay,
+        payload substitution, ...) should not have to supply one just to
+        avoid an unrelated MISSING_LOGICAL_OPERATION_ID block."""
         body: Dict[str, Any] = {
             "mandate": mandate, "actor": actor, "action": action, "resource": resource,
             "context": context,
+            "idempotency_key": idempotency_key or f"assurance-auto-{uuid.uuid4()}",
         }
         if attestation is not None:
             body["attestation"] = attestation

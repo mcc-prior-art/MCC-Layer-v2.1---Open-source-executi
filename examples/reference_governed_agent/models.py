@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -19,10 +20,17 @@ class ProposedAction:
     actor_id: str
     resource: str
     payload: Dict[str, Any]
+    # A stable logical-operation identity for THIS proposal, generated here
+    # (client-side, at proposal time) -- never by MCC-Core itself (Round 25:
+    # ``EnforcementCoordinator.enforce()`` fails closed without one). A fresh
+    # value per proposal by default; a caller that wants an idempotent retry
+    # of the SAME logical operation passes its own.
+    idempotency_key: str = field(default_factory=lambda: f"idem-{uuid.uuid4().hex}")
 
     def to_dict(self) -> Dict[str, Any]:
         return {"action": self.action, "actor_id": self.actor_id,
-                "resource": self.resource, "payload": dict(self.payload)}
+                "resource": self.resource, "payload": dict(self.payload),
+                "idempotency_key": self.idempotency_key}
 
 
 @dataclass(frozen=True)

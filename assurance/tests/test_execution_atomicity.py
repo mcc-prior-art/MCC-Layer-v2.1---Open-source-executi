@@ -10,8 +10,11 @@ Two halves:
    authorization, before receipt confirmation), and the test observes --
    over real HTTP only -- that the actuator never reports ``executed=true``
    without a confirmed receipt, that no phantom receipt exists once the
-   sink comes back, and that a safe, idempotency-keyed retry then succeeds
-   EXACTLY once (no lost operation, no double execution).
+   sink comes back, and (Round 17) that the SAME idempotency key stays
+   blocked afterward -- an ambiguous post-dispatch fault must never release
+   logical-operation ownership for another attempt -- while a genuinely NEW
+   logical operation (a fresh idempotency key) can still succeed. See
+   ``docs/DURABLE_OPERATION_SAFETY.md``.
 """
 
 from __future__ import annotations
@@ -123,10 +126,18 @@ def test_b5_fault_injection_upstream_killed_mid_flight_never_reports_executed(su
     assert sut.notification_receipt_count() == 0
 
 
-def test_b6_retry_after_fault_recovery_executes_exactly_once(sut):
-    """After a transient upstream fault, the SAME idempotency key can be
-    retried (the first attempt FAILED, not EXECUTED) and must succeed
-    exactly once when the sink recovers -- no lost operation, no duplicate."""
+def test_b6_retry_with_same_idempotency_key_after_fault_stays_blocked(sut):
+    """Round 17 remediation: a transient upstream fault that occurs AFTER
+    durable dispatch commitment (the sink is killed mid-flight) leaves the
+    logical operation UNKNOWN, not released. A fresh, independently valid
+    authorization presenting the SAME idempotency key must therefore stay
+    blocked -- it must NEVER be silently re-admitted and re-actuated purely
+    because the caller retried. (This replaces the previous version of this
+    test, which asserted the opposite -- that the same key became
+    executable again after the fault -- exactly the class of defect Astra's
+    Round 16/17 inspection identified: an ambiguous post-dispatch failure
+    must not release logical-operation ownership for another attempt. See
+    ``docs/DURABLE_OPERATION_SAFETY.md``.)"""
     tx = str(uuid.uuid4())
     proposal = sut.propose_notification(transaction_id=tx, idempotency_key=tx)
     votes = sut.actuator_votes(
@@ -143,13 +154,52 @@ def test_b6_retry_after_fault_recovery_executes_exactly_once(sut):
 
     before_retry = sut.notification_receipt_count()
     retry_proposal = sut.propose_notification(transaction_id=tx, idempotency_key=tx)
-    assert retry_proposal["outcome"] == "CONSENSUS_REQUIRED"  # not permanently blocked by the failed attempt
     retry_votes = sut.actuator_votes(
         action="http.request", payload=sut.canonical_notification_action(retry_proposal),
         actor="agent/egress", resource="notify", nonce=retry_proposal["nonce"],
     )
     retry_result = sut.submit_notification_votes(retry_proposal, votes=retry_votes)
 
-    assert retry_result["outcome"] == "ALLOW"
-    assert retry_result["executed"] is True
+    # AUTHORIZED != SAFE_TO_ACTUATE: the retry is a fresh, independently
+    # valid authorization (its own nonce/consensus), yet the logical
+    # operation itself remains unresolved -- so it must be blocked/denied,
+    # never silently re-actuated.
+    assert retry_result["executed"] is False
+    assert retry_result["outcome"] != "ALLOW"
+    assert sut.notification_receipt_count() == before_retry  # zero additional side effects
+
+
+def test_b6b_a_deliberate_new_logical_operation_can_still_succeed(sut):
+    """Recovery from an unresolved fault is still possible -- but only via a
+    genuinely NEW logical operation (a fresh idempotency key the caller
+    deliberately mints), never a blind retry of the ambiguous one. This is
+    the operator-level analogue of ``reconciliation.py``'s discipline for
+    the GPT-6 Astra GitHub-issue actuator: recovery requires either
+    independently verified positive evidence for the SAME operation, or an
+    explicit decision to originate a NEW one."""
+    tx = str(uuid.uuid4())
+    proposal = sut.propose_notification(transaction_id=tx, idempotency_key=tx)
+    votes = sut.actuator_votes(
+        action="http.request", payload=sut.canonical_notification_action(proposal),
+        actor="agent/egress", resource="notify", nonce=proposal["nonce"],
+    )
+
+    sut.kill_notify()
+    try:
+        first = sut.submit_notification_votes(proposal, votes=votes)
+    finally:
+        sut.restart_notify()
+    assert first["executed"] is False
+
+    before_retry = sut.notification_receipt_count()
+    new_tx = str(uuid.uuid4())  # a deliberately NEW logical operation
+    fresh_proposal = sut.propose_notification(transaction_id=new_tx, idempotency_key=new_tx)
+    fresh_votes = sut.actuator_votes(
+        action="http.request", payload=sut.canonical_notification_action(fresh_proposal),
+        actor="agent/egress", resource="notify", nonce=fresh_proposal["nonce"],
+    )
+    fresh_result = sut.submit_notification_votes(fresh_proposal, votes=fresh_votes)
+
+    assert fresh_result["outcome"] == "ALLOW"
+    assert fresh_result["executed"] is True
     assert sut.notification_receipt_count() == before_retry + 1

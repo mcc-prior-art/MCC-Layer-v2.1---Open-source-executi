@@ -328,18 +328,17 @@ export class MccClient {
     requestId: string,
     mandate: Record<string, unknown>,
     correlationId: string,
+    idempotencyKey?: string,
   ): Promise<ExecOutcome> {
-    return this.postExecute(
-      `/approvals/${requestId}/execute`,
-      {
-        mandate,
-        actor: decision.actor,
-        action: decision.action,
-        resource: decision.resource,
-        context: decision.forwardContext,
-      },
-      correlationId,
-    );
+    const body: Record<string, unknown> = {
+      mandate,
+      actor: decision.actor,
+      action: decision.action,
+      resource: decision.resource,
+      context: decision.forwardContext,
+    };
+    if (idempotencyKey) body.idempotency_key = idempotencyKey;
+    return this.postExecute(`/approvals/${requestId}/execute`, body, correlationId);
   }
 
   // ---- readiness (a reachable process is not ready) ------------------------ //
@@ -447,9 +446,14 @@ export class MccClient {
     // unexpected/unknown verdict) fails closed: we never attempt execution for a
     // verdict we do not explicitly recognise as executable.
     if (decision.verdict === "ALLOW" || decision.verdict === "CONSTRAIN") {
+      // Round 25: EnforcementCoordinator now fails closed without a stable
+      // logical-operation identity. Default to the operation's own
+      // correlationId (already unique per proposal) when a caller doesn't
+      // supply its own -- never synthesized at the gateway/coordinator.
+      const idempotencyKey = opts.idempotencyKey ?? correlationId;
       return this.finishExecution(
         decision,
-        () => this.consensusExecute(decision, correlationId, opts.idempotencyKey),
+        () => this.consensusExecute(decision, correlationId, idempotencyKey),
         correlationId,
       );
     }
@@ -475,6 +479,7 @@ export class MccClient {
     requestId: string,
     mandate: Record<string, unknown>,
     correlationId: string,
+    opts: { idempotencyKey?: string } = {},
   ): Promise<GovernedOutcome> {
     const decision: Decision = {
       verdict: "ESCALATE",
@@ -488,9 +493,12 @@ export class MccClient {
       correlationId,
       raw: { context: proposal.context },
     };
+    // Round 25: default the logical-operation identity to correlationId when
+    // the caller doesn't supply its own (never synthesized at the gateway).
+    const idempotencyKey = opts.idempotencyKey ?? correlationId;
     return this.finishExecution(
       decision,
-      () => this.executeWithApproval(decision, requestId, mandate, correlationId),
+      () => this.executeWithApproval(decision, requestId, mandate, correlationId, idempotencyKey),
       correlationId,
       "APPROVED",
     );

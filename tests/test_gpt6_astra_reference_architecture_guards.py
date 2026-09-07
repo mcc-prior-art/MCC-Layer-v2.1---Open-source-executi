@@ -108,6 +108,34 @@ def test_github_actuator_module_never_imports_astra_provider():
     assert not any("astra_provider" in m for m in imported_modules)
 
 
+#: Round 17, test scenario 22: the Astra-facing/reference request path must
+#: never expose a capability to reset logical-operation state, release
+#: ownership, delete an UNKNOWN record, force a retry, overwrite a binding,
+#: alter trust/policy, or mint/sign authority. Checked as substrings of every
+#: function/method name DEFINED anywhere in this package (case-insensitive) --
+#: a name containing one of these is presumed to be exactly the kind of
+#: privileged operation this boundary must never carry.
+_FORBIDDEN_NAME_FRAGMENTS = (
+    "reset_logical", "reset_operation", "force_retry", "force_redispatch",
+    "release_ownership", "release_operation", "delete_unknown", "delete_operation",
+    "overwrite_binding", "set_trust", "mint_token", "sign_token", "issue_token",
+    "bypass_gate", "skip_gate", "clear_idempotency",
+)
+
+
+def test_astra_package_exposes_no_privileged_reset_or_bypass_capability():
+    for path in _all_py_files():
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                lowered = node.name.lower()
+                hit = [f for f in _FORBIDDEN_NAME_FRAGMENTS if f in lowered]
+                assert not hit, (
+                    f"{path.name}::{node.name} looks like a privileged reset/bypass "
+                    f"capability ({hit}) -- the Astra-facing layer must never expose one"
+                )
+
+
 def test_pipeline_module_never_imports_the_actuator_directly():
     """The orchestration layer wires the actuator in only as
     ``GovernanceService.upstream`` (a plain callable supplied by the
@@ -119,3 +147,71 @@ def test_pipeline_module_never_imports_the_actuator_directly():
         if isinstance(node, ast.ImportFrom) and node.module:
             imported_modules.add(node.module)
     assert not any("github_actuator" in m for m in imported_modules)
+
+
+def test_localstack_never_constructs_in_memory_idempotency_directly():
+    """Round 18 requirement 4: the stack must select its idempotency
+    backend through ``idempotency_registry_from_env`` (the same
+    enforcement-aware factory production code uses), never by calling
+    ``InMemoryIdempotencyRegistry()`` itself -- doing so would silently
+    bypass the enforcement-mode fail-closed gate entirely."""
+    tree = ast.parse((PKG_DIR / "_localstack.py").read_text(encoding="utf-8"))
+    called_names = set()
+    imported_names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            called_names.add(node.func.id)
+        if isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                imported_names.add(alias.asname or alias.name)
+    assert "InMemoryIdempotencyRegistry" not in called_names, (
+        "_localstack.py must not call InMemoryIdempotencyRegistry() directly"
+    )
+    assert "InMemoryIdempotencyRegistry" not in imported_names, (
+        "_localstack.py must not even import InMemoryIdempotencyRegistry -- "
+        "idempotency_registry_from_env is the only supported construction path"
+    )
+    assert "idempotency_registry_from_env" in imported_names
+
+
+def test_every_raw_github_issue_actuator_construction_is_resource_bound():
+    """Round 18/21: no alternative raw ``GitHubIssueActuator`` path may
+    bypass resource-binding and the final payload-binding proof
+    (``VerifiedDispatchSlot``, which unconditionally wraps a
+    ``ResourceBoundActuator`` internally). Every file in this package that
+    constructs a ``GitHubIssueActuator`` at all must ALSO import
+    ``VerifiedDispatchSlot`` -- a purely structural proxy for "wraps it",
+    cheap and stable against refactors, that would fail loudly the moment a
+    new raw construction site is added anywhere in this package without the
+    guard."""
+    sites = []
+    for path in _all_py_files():
+        if path.name == "github_actuator.py":
+            continue  # defines the class; does not construct/dispatch through it
+        text = path.read_text(encoding="utf-8")
+        tree = ast.parse(text, filename=str(path))
+        constructs = any(
+            isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id == "GitHubIssueActuator"
+            for node in ast.walk(tree)
+        )
+        if not constructs:
+            continue
+        sites.append(path.name)
+        imported_names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    imported_names.add(alias.asname or alias.name)
+        assert "VerifiedDispatchSlot" in imported_names, (
+            f"{path.name} constructs GitHubIssueActuator directly but does not import "
+            f"VerifiedDispatchSlot -- every raw construction site must wrap it (it itself "
+            f"unconditionally constructs a ResourceBoundActuator around whatever it wraps)"
+        )
+    # Sanity: this guard is only meaningful if it actually found the known
+    # construction sites -- a refactor that moved them without updating
+    # this test would otherwise silently pass on zero sites checked.
+    assert set(sites) == {"cli.py", "adversarial.py"}, (
+        f"expected raw GitHubIssueActuator construction in exactly cli.py and "
+        f"adversarial.py, found: {sorted(sites)} -- update this guard if that changed"
+    )

@@ -92,7 +92,8 @@ def _enforced_config(asut: AttestationSystemUnderTest) -> AttestationChainConfig
 def test_01_valid_full_chain_succeeds(asut, mandate):
     before = asut.gateway_notification_receipt_count()
     with AttestationChainPilot(_enforced_config(asut), evidence_dir="unused") as pilot:
-        outcome = pilot.submit(actor=ACTOR, context=_context(), mandate=mandate)
+        outcome = pilot.submit(actor=ACTOR, context=_context(), mandate=mandate,
+                               idempotency_key="op-test01-full-chain")
 
     assert outcome.execution.status == "EXECUTED", outcome.execution
     assert outcome.execution.decision == "ALLOW"

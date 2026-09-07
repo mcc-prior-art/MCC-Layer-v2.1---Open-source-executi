@@ -349,8 +349,8 @@ Explicitly fail-closed conditions this contract makes no exception for:
 - Missing decision token or missing audit correlation on an execute
   call — `NO_TOKEN`, refused.
 - Invalid or reused nonce — `NONCE_REJECTED`, refused.
-- Idempotency conflict — `DUPLICATE_INFLIGHT` / `DUPLICATE_EXECUTED`,
-  refused (§10).
+- Idempotency conflict — `DUPLICATE_INFLIGHT` / `DUPLICATE_UNKNOWN` /
+  `DUPLICATE_EXECUTED` / `BINDING_CONFLICT`, refused (§10).
 - Policy hash or payload hash mismatch — `POLICY_HASH_MISMATCH` /
   `PAYLOAD_HASH_MISMATCH`, refused.
 - Stale or revoked mandate — checked at authority-resolution time and again
@@ -364,19 +364,25 @@ Explicitly fail-closed conditions this contract makes no exception for:
   to an in-memory (and therefore non-cross-instance-safe) registry.
 - Any unrecognized error — the coordinator's own exception handling
   classifies unexpected failures as `BLOCKED` or, if the executor itself
-  raised after authorization was verified, `EXECUTION_FAILED` (§ next
+  raised after durable dispatch commitment, `EXECUTION_FAILED` (§ next
   paragraph) — never as success.
 
 `ActuationStatus` has exactly three values, and their meaning is precise:
 
-- `EXECUTED` — ran and finalized; the idempotency key is marked `EXECUTED`,
-  terminal.
-- `BLOCKED` — refused before execution; the upstream is never reached; any
-  idempotency reservation is released, not consumed.
-- `EXECUTION_FAILED` — the executor itself raised **after** authorization
-  was fully verified; the idempotency key is freed (`FAILED`) so a
-  deliberate retry is possible; the outcome is treated as **indeterminate**,
-  never assumed successful.
+- `EXECUTED` — ran and durably confirmed; the idempotency key is marked
+  `EXECUTED`, terminal.
+- `BLOCKED` — refused before durable dispatch commitment; the upstream is
+  never reached; any pre-dispatch idempotency reservation is released, not
+  consumed.
+- `EXECUTION_FAILED` — the outcome is **indeterminate (`UNKNOWN`)**, never
+  assumed successful. Reached two ways: the executor raised after durable
+  dispatch commitment (the external call may already be in flight or
+  complete despite the raise), or the executor succeeded but the registry
+  could not durably persist `EXECUTED`. Either way, the idempotency key is
+  **NOT** freed — it is marked `UNKNOWN` and stays there, blocking every
+  further admission attempt on that key, however freshly authorized, until
+  independently verified positive evidence resolves it (never a blind
+  retry). See `docs/DURABLE_OPERATION_SAFETY.md`.
 
 ## 10. Idempotency
 
@@ -396,14 +402,24 @@ authorization was separately re-verified.
   `transaction_id`/`actor_id`/`resource_id` and is signed into the Decision
   Token when one is issued; the coordinator's idempotency stage keys its
   registry on it directly.
-- **Lifecycle:** `RESERVED` → `EXECUTED` (terminal) or `RESERVED` →
-  `FAILED` (retryable). A `BLOCKED` outcome never consumes the key.
+- **Lifecycle:** `RESERVED` (pre-dispatch, TTL-bound) → `DISPATCH_OWNED`
+  (durable dispatch commitment; the point of no return) → `EXECUTED`
+  (terminal) or `UNKNOWN` (indeterminate; durable; blocks every further
+  admission attempt until independently verified positive evidence resolves
+  it — never a blind retry). A `BLOCKED` outcome refused strictly
+  *before* dispatch commitment releases the key, retryable; once
+  `DISPATCH_OWNED`, the key can never again be released for a fresh
+  admission — see `docs/DURABLE_OPERATION_SAFETY.md` for the full state
+  machine, fencing, and durability model.
 - **Duplicate/conflicting-duplicate behavior:** a second attempt with an
-  idempotency key already `RESERVED` returns `DUPLICATE_INFLIGHT`
-  (`"operation already reserved"`); already `EXECUTED` returns
-  `DUPLICATE_EXECUTED` (`"operation already executed"`). Both map to
-  `status: BLOCKED` at the HTTP layer — the upstream executor is never
-  called a second time for the same key.
+  idempotency key already `RESERVED`/`DISPATCH_OWNED` returns
+  `DUPLICATE_INFLIGHT` (`"operation already reserved"`); already `UNKNOWN`
+  returns `DUPLICATE_UNKNOWN` (`"operation outcome UNKNOWN; requires
+  reconciliation, not retry"`); already `EXECUTED` returns
+  `DUPLICATE_EXECUTED` (`"operation already executed"`); the same key bound
+  to a *different* action/resource/payload returns `BINDING_CONFLICT`. All
+  four map to `status: BLOCKED` at the HTTP layer — the upstream executor is
+  never called a second time for the same key.
 - **Cross-instance (Redis-backed) behavior:** when the deployment uses
   `RedisIdempotencyRegistry`, the reservation is atomic across every Gateway
   instance sharing that Redis — two instances racing the same key cannot
@@ -411,9 +427,9 @@ authorization was separately re-verified.
   is declared required and is unreachable, the registry does not silently
   degrade to in-memory.
 - **Audit linkage for repeated attempts:** every attempt — reserved,
-  duplicate-rejected, executed, or failed — writes its own audit entry
-  (§16); the audit chain shows the full history of an idempotency key, not
-  just its terminal state.
+  duplicate-rejected, dispatch-committed, executed, or resolved-unknown —
+  writes its own audit entry (§16); the audit chain shows the full history
+  of an idempotency key, not just its terminal state.
 
 Real, genuine example — a `/consensus/execute` call resubmitted with the
 same `idempotency_key` after the first attempt already executed:
@@ -659,7 +675,9 @@ pulled directly from `src/mcc_core/gate.py` and
 `POLICY_HASH_MISMATCH`, `ACTION_HASH_MISMATCH`, `PAYLOAD_HASH_MISMATCH`,
 `BINDING_MISMATCH`, `NONCE_REJECTED`, `GATE_ERROR`, `VERIFIED`,
 `DUPLICATE_INFLIGHT` (`"operation already reserved"`),
+`DUPLICATE_UNKNOWN` (`"operation outcome UNKNOWN; requires reconciliation, not retry"`),
 `DUPLICATE_EXECUTED` (`"operation already executed"`),
+`BINDING_CONFLICT` (`"logical operation bound to a different action/resource/payload"`),
 `CHALLENGE_NOT_OPEN: state <STATE>`.
 
 The `reason` field in `/evaluate` responses (decision refusals from the

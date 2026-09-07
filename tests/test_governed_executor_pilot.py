@@ -78,7 +78,8 @@ def _consensus_execute(harness, client, decision, *, tamper_votes_payload=None,
 def test_allow_executes_after_confirmed_receipt(hz):
     client = _client(hz)
     d = client.evaluate(actor_id="agent/notify-bot", action="send_notification",
-                        resource="crm", payload=_payload("corr-allow"))
+                        resource="crm", payload=_payload("corr-allow"),
+                        idempotency_key="op-corr-allow")
     assert d.verdict == Verdict.ALLOW
     result = _consensus_execute(hz, client, d)
     assert result.executed and result.status == "EXECUTED"
@@ -147,7 +148,8 @@ def test_deny_not_executed_no_receipt(hz):
 def test_constrain_executes_only_constrained_payload(hz):
     client = _client(hz)
     d = client.evaluate(actor_id="agent/notify-bot", action="send_notification",
-                        resource="crm", payload=_payload("corr-con", priority=9))
+                        resource="crm", payload=_payload("corr-con", priority=9),
+                        idempotency_key="op-corr-con")
     assert d.verdict == Verdict.CONSTRAIN
     assert d.authorized_payload["priority"] == 3          # clamped
     result = _consensus_execute(hz, client, d)
@@ -173,7 +175,8 @@ def test_altered_payload_rejected(hz):
 def test_replay_rejected(hz):
     client = _client(hz)
     d = client.evaluate(actor_id="agent/notify-bot", action="send_notification",
-                        resource="crm", payload=_payload("corr-replay"))
+                        resource="crm", payload=_payload("corr-replay"),
+                        idempotency_key="op-corr-replay")
     ch = client.issue_challenge(d)
     votes = hz.votes(action="send_notification", payload=d.authorized_payload,
                      actor=d.actor_id, nonce=ch["nonce"], resource=d.resource_id)
@@ -216,7 +219,8 @@ def test_missing_authorization_rejected(hz):
 def test_escalate_requires_approval_then_executes(hz):
     client = _client(hz)
     d = client.evaluate(actor_id="agent/unknown", action="send_notification",
-                        resource="crm", payload=_payload("corr-esc"))
+                        resource="crm", payload=_payload("corr-esc"),
+                        idempotency_key="op-corr-esc")
     assert d.verdict == Verdict.ESCALATE
     approval = client.request_approval(d)
     # Execution before approval is impossible (no granted mandate).

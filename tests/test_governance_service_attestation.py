@@ -212,7 +212,7 @@ def test_01_valid_mandate_and_valid_attestation_issues_token():
 
     out = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=context, attestation=att.to_dict(),
+        context=context, attestation=att.to_dict(), idempotency_key="op-test01",
     ))
     assert out.status == "EXECUTED"
     assert out.decision == "ALLOW"
@@ -319,7 +319,7 @@ def test_23_attestation_bound_to_constrained_payload_issues_token():
 
     out = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=original_context, attestation=att.to_dict(),
+        context=original_context, attestation=att.to_dict(), idempotency_key="op-test23",
     ))
     assert out.status == "EXECUTED"
     assert out.decision == "CONSTRAIN"
@@ -348,6 +348,7 @@ def test_24_unrelated_action_unaffected_by_attestation_requirement():
     out = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action="check_balance", resource=RESOURCE,
         context={}, attestation=None,  # no attestation supplied, and none required
+        idempotency_key="op-test24",
     ))
     assert out.status == "EXECUTED"
     assert out.decision == "ALLOW"
@@ -361,7 +362,7 @@ def test_24b_no_pre_execution_control_configured_is_fully_backward_compatible():
     context = _raw_context()
     out = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=context, attestation=None,
+        context=context, attestation=None, idempotency_key="op-test24b",
     ))
     assert out.status == "EXECUTED"
     assert out.decision == "ALLOW"
@@ -416,6 +417,7 @@ def test_27_consensus_execute_path_is_also_gated_by_attestation():
     out_ok = run(service.execute_with_consensus(
         votes=votes2, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, nonce="consensus-nonce-2", attestation=att.to_dict(),
+        idempotency_key="op-test27",
     ))
     assert out_ok.status == "EXECUTED"
 
@@ -445,7 +447,7 @@ def test_13_mandate_e2e_required_verified_attestation_yields_evidence_bound_exec
 
     out = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=context, attestation=raw,
+        context=context, attestation=raw, idempotency_key="op-test13",
     ))
     assert out.status == "EXECUTED"
     assert out.decision == "ALLOW"
@@ -487,6 +489,7 @@ def test_14_consensus_e2e_required_verified_attestation_yields_evidence_bound_ex
     out = run(service.execute_with_consensus(
         votes=votes, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, nonce="evd-consensus-op-nonce", attestation=raw,
+        idempotency_key="op-test14",
     ))
     assert out.status == "EXECUTED"
 
@@ -521,7 +524,7 @@ def test_15_approval_path_delegation_retains_evidence_binding():
 
     out = run(service.execute_with_approval(
         mandate=approved_mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=context, attestation=raw,
+        context=context, attestation=raw, idempotency_key="op-test15",
     ))
     assert out.status == "EXECUTED"
 
@@ -576,7 +579,7 @@ def test_17_constrain_rewrite_plus_evidence_binding_together_hold_exactly():
 
     out = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=original_context, attestation=raw,
+        context=original_context, attestation=raw, idempotency_key="op-test17",
     ))
     assert out.status == "EXECUTED"
     assert out.decision == "CONSTRAIN"
@@ -624,7 +627,7 @@ def test_action_with_no_requirement_issues_a_token_with_no_evidence_digest():
     )
     out = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action="check_balance", resource=RESOURCE,
-        context={}, attestation=None,
+        context={}, attestation=None, idempotency_key="op-no-requirement",
     ))
     assert out.status == "EXECUTED"
     record = _last_pre_actuation_record(service._test_audit)

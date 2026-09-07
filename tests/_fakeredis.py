@@ -116,16 +116,103 @@ class FakeRedis:
     async def sismember(self, key, member):
         return member in self.sets.get(key, set())
 
-    # --- scripting (velocity sliding-window reserve / release) ---
+    # --- scripting (velocity sliding-window reserve / release; idempotency
+    # durable-state CAS transitions) ---
     async def eval(self, script, numkeys, *args):
-        """Faithful Python equivalent of ``velocity._RESERVE_LUA`` /
-        ``velocity._RELEASE_LUA`` (atomic by virtue of running without
-        awaiting), backed by ``self.zsets`` standing in for a Redis ZSET."""
+        """Faithful Python equivalent of every Lua script the governance
+        registries use — ``velocity._RESERVE_LUA``/``_RELEASE_LUA`` (atomic
+        by virtue of running without awaiting, backed by ``self.zsets``
+        standing in for a Redis ZSET) and every
+        ``mcc_core.idempotency`` durable-state script (backed by ``self.kv``,
+        the same plain string store ``set``/``get``/``delete`` above use, so
+        two registries sharing this ``FakeRedis`` genuinely share state)."""
+        from mcc_core.idempotency import (
+            _COMMIT_DISPATCH_LUA, _MARK_EXECUTED_LUA, _MARK_UNKNOWN_LUA,
+            _RELEASE_LUA as _IDEM_RELEASE_LUA, _RESERVE_LUA as _IDEM_RESERVE_LUA,
+            _RESOLVE_UNKNOWN_LUA,
+        )
         from mcc_core.velocity import _RELEASE_LUA
 
         keys = list(args[:numkeys])
         a = list(args[numkeys:])
         (key,) = keys
+
+        if script in (
+            _IDEM_RESERVE_LUA, _COMMIT_DISPATCH_LUA, _MARK_EXECUTED_LUA,
+            _MARK_UNKNOWN_LUA, _IDEM_RELEASE_LUA, _RESOLVE_UNKNOWN_LUA,
+        ):
+            self._evict(key)
+            cur = self.kv.get(key)
+            cur_value = None if cur is None else cur[0]
+
+            if script == _IDEM_RESERVE_LUA:
+                binding, ttl_seconds, generation = a
+                if cur_value is None:
+                    self.kv[key] = (f"RESERVED|{generation}|{binding}|", self.clock() + int(ttl_seconds))
+                    return ["RESERVED", generation]
+                state, gen, held_binding = cur_value.split("|", 3)[:3]
+                if held_binding != binding:
+                    return ["BINDING_CONFLICT", gen, held_binding]
+                if state == "EXECUTED":
+                    return ["DUPLICATE_EXECUTED", gen]
+                if state == "UNKNOWN":
+                    return ["DUPLICATE_UNKNOWN", gen]
+                return ["DUPLICATE_INFLIGHT", gen]
+
+            if script == _COMMIT_DISPATCH_LUA:
+                (expected_gen,) = a
+                if cur_value is None:
+                    return 0
+                state, gen, binding = cur_value.split("|", 3)[:3]
+                if state != "RESERVED" or gen != expected_gen:
+                    return 0
+                self.kv[key] = (f"DISPATCH_OWNED|{gen}|{binding}|", None)
+                return 1
+
+            if script == _MARK_EXECUTED_LUA:
+                expected_gen, result_ref = a
+                if cur_value is None:
+                    return 0
+                state, gen, binding = cur_value.split("|", 3)[:3]
+                if state != "DISPATCH_OWNED" or gen != expected_gen:
+                    return 0
+                self.kv[key] = (f"EXECUTED|{gen}|{binding}|{result_ref}", None)
+                return 1
+
+            if script == _MARK_UNKNOWN_LUA:
+                (expected_gen,) = a
+                if cur_value is None:
+                    return 0
+                state, gen, binding = cur_value.split("|", 3)[:3]
+                if state != "DISPATCH_OWNED" or gen != expected_gen:
+                    return 0
+                self.kv[key] = (f"UNKNOWN|{gen}|{binding}|", None)
+                return 1
+
+            if script == _IDEM_RELEASE_LUA:
+                (expected_gen,) = a
+                if cur_value is None:
+                    return 1
+                state, gen = cur_value.split("|", 3)[:2]
+                if state != "RESERVED" or gen != expected_gen:
+                    return 0
+                del self.kv[key]
+                return 1
+
+            # _RESOLVE_UNKNOWN_LUA
+            expected_gen, result_ref = a
+            if cur_value is None:
+                return ["NOT_FOUND", ""]
+            state, gen, binding = cur_value.split("|", 3)[:3]
+            if gen != expected_gen:
+                return ["STALE_GENERATION", state]
+            if state == "EXECUTED":
+                return ["ALREADY_EXECUTED", state]
+            if state != "UNKNOWN" and state != "DISPATCH_OWNED":
+                return ["NOT_PENDING", state]
+            self.kv[key] = (f"EXECUTED|{gen}|{binding}|{result_ref}", None)
+            return ["RESOLVED", "EXECUTED"]
+
         z = self.zsets.setdefault(key, {})
 
         if script == _RELEASE_LUA:

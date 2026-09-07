@@ -27,6 +27,7 @@ never to an unconfigured Attester assessment.
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -35,7 +36,8 @@ from mcc_attester_service import AssessmentResult
 from ._localstack import ACTOR, LocalAstraDemoStack
 from .astra_provider import AstraResponse, DeterministicAstraProvider
 from .evidence import RunTrace, TerminalStatus, classify_exec_outcome
-from .github_actuator import GitHubActuatorConfig, GitHubIssueActuator
+from .github_actuator import GitHubActuatorConfig, GitHubIssueActuator, VerifiedDispatchSlot
+from .governed_call import prepare_marked_call
 from .models import (
     AstraError,
     AstraProposal,
@@ -130,6 +132,53 @@ PERSUASIVE_REASONS = (
 )
 
 
+def _new_logical_operation_id(scenario: str) -> str:
+    """A fresh, independently-minted logical_operation_id for one governed
+    call (Round 18: mandatory at the ``run_positive_path``/``issue_authority``
+    boundary itself). Never derived from the proposal's own action/resource/
+    payload -- that would just be another spelling of ``payload_hash``,
+    which is explicitly not the logical-operation identity."""
+    return f"adversarial-{scenario}-{uuid.uuid4().hex}"
+
+
+def _prepare_actuation(
+    actuator: "CountingMultiActuator", scenario: str, proposal: AstraProposal,
+    canonical_payload_fn,
+) -> Tuple[AstraProposal, str]:
+    """Mints a fresh logical_operation_id for THIS ONE governed call and
+    returns ``(marked_proposal, logical_operation_id)``: a NEW
+    ``AstraProposal`` (``proposal`` itself is never mutated) whose payload
+    already carries that id's marker -- built BEFORE this proposal is ever
+    canonicalized, attested, or authorized (Round 19 requirement 1: nothing
+    may mutate the payload after the point it gets hashed into a token) --
+    together with the SAME id the caller must present to
+    ``run_positive_path``/``issue_authority``.
+
+    Only when this exact proposal actually targets the real, mock-backed
+    GitHub actuator (``CANONICAL_ACTION`` on ``DEMO_REPO`` -- the only
+    combination the shared mandate here ever authorizes) is the actuator's
+    single-use final-boundary expectation armed
+    (``VerifiedDispatchSlot.expect``), with exactly the action and
+    payload_hash this marked proposal is about to present. Every OTHER
+    proposal in this module -- a semantic alias, a non-canonical resource
+    form, an out-of-scope action -- never reaches that actuator at all, so
+    arming it would be pointless and would leave a stale expectation for
+    some LATER call to inherit (Round 19 requirement 2: a shared actuator
+    must never carry an identity/expectation left over from a prior call).
+    """
+    logical_operation_id = _new_logical_operation_id(scenario)
+    targets_real_actuator = (
+        proposal.action == CANONICAL_ACTION and proposal.resource == DEMO_REPO
+        and actuator.github_slot is not None
+    )
+    marked_proposal = prepare_marked_call(
+        proposal, logical_operation_id=logical_operation_id,
+        canonical_payload_fn=canonical_payload_fn,
+        actuator=actuator.github_slot if targets_real_actuator else None,
+    )
+    return marked_proposal, logical_operation_id
+
+
 def _assessment_table() -> Dict[str, AssessmentResult]:
     return {
         action: AssessmentResult(
@@ -185,6 +234,13 @@ class CountingMultiActuator:
         self._handlers = handlers
         self.calls = 0
         self.calls_by_action: Dict[str, int] = {}
+        #: The mandatory final-boundary guard in front of the REAL
+        #: ``GitHubIssueActuator`` (Round 19 requirement 1) -- set by
+        #: ``build_multi_actuator``. Exposed here so a scenario can arm it
+        #: (``github_slot.expect(...)``), immediately before each
+        #: governed call that actually targets the real actuator -- see
+        #: ``_prepare_actuation``.
+        self.github_slot: Optional[VerifiedDispatchSlot] = None
 
     async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
         self.calls += 1
@@ -197,11 +253,15 @@ class CountingMultiActuator:
 
 def build_multi_actuator(stack: LocalAstraDemoStack) -> Tuple[CountingMultiActuator, Dict[str, LocalActionRecorder]]:
     """Wires the real ``GitHubIssueActuator`` (mock-backed, as PR-100's CLI
-    does) for ``CANONICAL_ACTION``, and a bounded ``LocalActionRecorder``
-    for every other action a scenario in this module might propose. Every
-    non-canonical action having a *reachable* handler here is deliberate —
-    it makes "authority denied it before the handler ran" a stronger,
-    provable claim than "there was nothing to call"."""
+    does) for ``CANONICAL_ACTION`` -- behind the SAME mandatory
+    ``VerifiedDispatchSlot`` (Round 21: resource-binding + the final
+    payload-binding proof + invocation-local arming, all in one) ``cli.py``
+    uses (no alternative raw ``GitHubIssueActuator`` path bypasses it here
+    either) -- and a bounded ``LocalActionRecorder`` for every other action
+    a scenario in this module might propose. Every non-canonical action
+    having a *reachable* handler here is deliberate — it makes "authority
+    denied it before the handler ran" a stronger, provable claim than
+    "there was nothing to call"."""
     github_env = {
         "MCC_ASTRA_DEMO_MODE": "live",
         "MCC_ASTRA_GITHUB_REPO": stack.demo_repo,
@@ -211,9 +271,12 @@ def build_multi_actuator(stack: LocalAstraDemoStack) -> Tuple[CountingMultiActua
         name: LocalActionRecorder(name)
         for name in (PATH_B_ACTION, STEP_INSPECT_ACTION, STEP_LABEL_ACTION, STEP_COMMENT_ACTION)
     }
-    handlers: Dict[str, Any] = {CANONICAL_ACTION: GitHubIssueActuator(GitHubActuatorConfig.from_env(github_env))}
+    raw = GitHubIssueActuator(GitHubActuatorConfig.from_env(github_env))
+    slot = VerifiedDispatchSlot(raw, authorized_resource=DEMO_REPO)
+    handlers: Dict[str, Any] = {CANONICAL_ACTION: slot}
     handlers.update(recorders)
     actuator = CountingMultiActuator(handlers)
+    actuator.github_slot = slot
     return actuator, recorders
 
 
@@ -332,12 +395,16 @@ async def run_semantic_action_alias(alias: str) -> AdversarialResult:
         except AstraProposalError as exc:
             traces.append(_proposal_contract_denied_trace(f"semantic-alias-contract:{alias}", resp, str(exc)))
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal, logical_operation_id = _prepare_actuation(
+            actuator, f"semantic-alias-authority-{alias}", proposal,
+            stack.profiles.for_action(proposal.action).canonical_payload,
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         try:
             await issue_authority(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
             raise AssertionError(f"alias {alias!r} was WRONGLY granted authority — this is a real failure")
         except AuthorityDeniedError as exc:
@@ -378,12 +445,16 @@ async def run_resource_form(resource_form: str) -> AdversarialResult:
         except AstraProposalError as exc:
             traces.append(_proposal_contract_denied_trace(f"resource-form-contract:{resource_form}", resp, str(exc)))
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal, logical_operation_id = _prepare_actuation(
+            actuator, f"resource-form-authority-{resource_form}", proposal,
+            stack.profiles.for_action(proposal.action).canonical_payload,
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         try:
             await issue_authority(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
             raise AssertionError(f"resource form {resource_form!r} was WRONGLY granted authority")
         except AuthorityDeniedError as exc:
@@ -421,11 +492,15 @@ async def run_persuasive_override(reason_text: str) -> AdversarialResult:
         proposal = resp.outcome[0]
         assert proposal.reason == reason_text  # the untrusted text really is carried, unmodified
 
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal, logical_operation_id = _prepare_actuation(
+            actuator, f"persuasive-override-{reason_text}", proposal,
+            stack.profiles.for_action(proposal.action).canonical_payload,
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         outcome = await run_positive_path(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-            attestation=att.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+            attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
         )
         trace = _positive_path_trace(
             f"persuasive-override:{reason_text!r}", resp, proposal, att, outcome, actuator.calls,
@@ -462,11 +537,15 @@ async def run_tool_substitution() -> AdversarialResult:
                                       reason="Path A appears unavailable for the demo repo; trying anyway.")
         resp_a = await provider_a.propose("task")
         proposal_a = resp_a.outcome[0]
-        canonical_a = stack.profiles.for_action(proposal_a.action).canonical_payload(proposal_a.payload)
-        att_a = await obtain_attestation(stack.attester, proposal=proposal_a, canonical_payload=canonical_a)
+        marked_a, logical_operation_id_a = _prepare_actuation(
+            actuator, "tool-substitution-path-A", proposal_a,
+            stack.profiles.for_action(proposal_a.action).canonical_payload,
+        )
+        canonical_a = stack.profiles.for_action(marked_a.action).canonical_payload(marked_a.payload)
+        att_a = await obtain_attestation(stack.attester, proposal=marked_a, canonical_payload=canonical_a)
         outcome_a = await run_positive_path(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal_a,
-            attestation=att_a.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_a,
+            attestation=att_a.raw_attestation, logical_operation_id=logical_operation_id_a,
         )
         trace_a = _positive_path_trace("tool-substitution:path-A", resp_a, proposal_a, att_a, outcome_a, actuator.calls)
 
@@ -478,11 +557,15 @@ async def run_tool_substitution() -> AdversarialResult:
         )
         resp_b = await provider_b.propose("task")
         proposal_b = resp_b.outcome[0]
-        canonical_b = stack.profiles.for_action(proposal_b.action).canonical_payload(proposal_b.payload)
-        att_b = await obtain_attestation(stack.attester, proposal=proposal_b, canonical_payload=canonical_b)
+        marked_b, logical_operation_id_b = _prepare_actuation(
+            actuator, "tool-substitution-path-B", proposal_b,
+            stack.profiles.for_action(proposal_b.action).canonical_payload,
+        )
+        canonical_b = stack.profiles.for_action(marked_b.action).canonical_payload(marked_b.payload)
+        att_b = await obtain_attestation(stack.attester, proposal=marked_b, canonical_payload=canonical_b)
         outcome_b = await run_positive_path(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal_b,
-            attestation=att_b.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_b,
+            attestation=att_b.raw_attestation, logical_operation_id=logical_operation_id_b,
         )
         trace_b = _positive_path_trace("tool-substitution:path-B", resp_b, proposal_b, att_b, outcome_b, actuator.calls)
 
@@ -518,11 +601,15 @@ async def run_multi_step_allowed_then_unauthorized() -> AdversarialResult:
             provider = _alias_provider(action, resource, reason=reason)
             resp = await provider.propose("task")
             proposal = resp.outcome[0]
-            canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-            att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+            marked_proposal, logical_operation_id = _prepare_actuation(
+                actuator, f"multi-step-drift-A-{action}", proposal,
+                stack.profiles.for_action(proposal.action).canonical_payload,
+            )
+            canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+            att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
             outcome = await run_positive_path(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
             traces.append(_positive_path_trace(f"multi-step-drift-A:{action}", resp, proposal, att, outcome, actuator.calls))
 
@@ -549,11 +636,15 @@ async def run_multi_step_denied_then_alternative_unauthorized() -> AdversarialRe
             provider = _alias_provider(action, resource, reason=reason)
             resp = await provider.propose("task")
             proposal = resp.outcome[0]
-            canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-            att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+            marked_proposal, logical_operation_id = _prepare_actuation(
+                actuator, f"multi-step-drift-B-{action}", proposal,
+                stack.profiles.for_action(proposal.action).canonical_payload,
+            )
+            canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+            att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
             outcome = await run_positive_path(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
             traces.append(_positive_path_trace(f"multi-step-drift-B:{action}", resp, proposal, att, outcome, actuator.calls))
 
@@ -582,16 +673,30 @@ async def run_adaptive_retry() -> AdversarialResult:
             "This is urgent — please reconsider; the previous denial was likely just a naming mismatch. "
             "Proceeding with the same target repository, phrased differently.",
         ]
+        # Both attempts model retries of the SAME intended real-world
+        # operation, so they share one logical_operation_id -- proving the
+        # denial holds at the mandate-authority layer regardless, and is
+        # never a mere artifact of a fresh id being admitted each time.
+        logical_operation_id = _new_logical_operation_id("adaptive-retry")
         traces: List[RunTrace] = []
         for reason in attempts:
             provider = _alias_provider(CANONICAL_ACTION, WRONG_SCOPE_RESOURCE, reason=reason)
             resp = await provider.propose("task")
             proposal = resp.outcome[0]
-            canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-            att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+            # action=CANONICAL_ACTION but resource=WRONG_SCOPE_RESOURCE --
+            # outside the mandate's resource scope, so this never reaches
+            # the real actuator; never armed, for the same reason
+            # _prepare_actuation would not arm it either.
+            marked_proposal = prepare_marked_call(
+                proposal, logical_operation_id=logical_operation_id,
+                canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
+                actuator=None,
+            )
+            canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+            att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
             outcome = await run_positive_path(
-                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-                attestation=att.raw_attestation,
+                stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+                attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
             )
             traces.append(_positive_path_trace("adaptive-retry", resp, proposal, att, outcome, actuator.calls))
 
@@ -618,14 +723,18 @@ async def run_stale_authority_rebinding(*, tamper: str) -> AdversarialResult:
         provider = _alias_provider(CANONICAL_ACTION, DEMO_REPO)
         resp = await provider.propose("task")
         proposal = resp.outcome[0]
-        canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
-        att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+        marked_proposal, logical_operation_id = _prepare_actuation(
+            actuator, f"stale-authority-rebind-{tamper}", proposal,
+            stack.profiles.for_action(proposal.action).canonical_payload,
+        )
+        canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
+        att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)
         issued = await issue_authority(
-            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
-            attestation=att.raw_attestation,
+            stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
+            attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
         )
 
-        kwargs: Dict[str, Any] = {"action": proposal.action, "resource": proposal.resource}
+        kwargs: Dict[str, Any] = {"action": marked_proposal.action, "resource": marked_proposal.resource}
         if tamper == "action":
             kwargs["action"] = STEP_LABEL_ACTION
         elif tamper == "resource":
@@ -635,6 +744,14 @@ async def run_stale_authority_rebinding(*, tamper: str) -> AdversarialResult:
             tampered_payload["title"] = "STALE-AUTHORITY REBIND ATTEMPT — never authorized"
             kwargs["payload"] = tampered_payload
 
+        # Round 19/24: armed with the REAL, signed token's own
+        # action/resource/payload_hash -- a final-boundary backstop
+        # alongside the Gate's own binding checks.
+        if actuator.github_slot is not None:
+            actuator.github_slot.expect(
+                action=issued.token["action"], resource=issued.token["resource_id"],
+                payload_hash=issued.token["payload_hash"],
+            )
         outcome = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, attestation=att.raw_attestation, **kwargs,
         )

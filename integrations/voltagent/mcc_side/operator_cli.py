@@ -53,6 +53,27 @@ def main() -> int:
     print(f"  actor / resource    : {actor} / {resource}")
     print(f"  correlation id      : {state.get('correlationId')}")
 
+    # Round 27: the coordinator's mandatory idempotency_key (Round 25) must be
+    # the EXACT stable identity established for the original logical
+    # operation -- never substituted, derived, or reconstructed. correlationId
+    # is that identity: it is recorded by the proposal-time scenario runner
+    # (pilot-cli.ts / clinic-cli.ts) into this same state file, once, before
+    # any operator action. ``request_id`` names the APPROVAL request instead
+    # -- a distinct object minted by a different subsystem (ApprovalService),
+    # at a different time, for a different purpose. It is never proven
+    # equivalent to the original logical operation, so it is never used as a
+    # fallback identity. A state file missing correlationId (legacy,
+    # malformed, or hand-edited) fails closed here -- before the approval is
+    # even granted, so nothing is approved OR executed for an operation whose
+    # original identity cannot be established.
+    correlation_id = state.get("correlationId")
+    if not isinstance(correlation_id, str) or not correlation_id.strip():
+        print(f"\nFAILED: escalation state at {state_path} is missing its original "
+              "logical_operation_id (correlationId); refusing to continue "
+              "(fail-closed) -- the approval request id is never substituted "
+              "for it.")
+        return 1
+
     with httpx.Client(timeout=15.0) as client:
         # 1. Operator grants the approval (mints a single-use mandate).
         r = client.post(f"{gateway}/approvals/{request_id}/approve", json={}, headers=op_h)
@@ -63,9 +84,11 @@ def main() -> int:
         mandate = granted.get("mandate")
         print(f"  approval state      : {granted.get('state')} (operator granted)")
 
-        # 2. Continue the governed execution of the ORIGINAL proposed action.
+        # 2. Continue the governed execution of the ORIGINAL proposed action,
+        # under the ORIGINAL logical_operation_id validated above.
         body = {"mandate": mandate, "actor": actor, "action": action,
-                "resource": resource, "context": context}
+                "resource": resource, "context": context,
+                "idempotency_key": correlation_id}
         r = client.post(f"{gateway}/approvals/{request_id}/execute", json=body, headers=agent_h)
         if r.status_code != 200:
             print(f"FAILED: execute returned HTTP {r.status_code}: {r.text[:200]}")

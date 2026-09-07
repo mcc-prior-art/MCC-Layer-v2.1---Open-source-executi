@@ -19,6 +19,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import itertools
+
 import httpx
 import pytest
 
@@ -34,6 +36,8 @@ from integrations.voltagent.mcc_side.evaluator_quorum import (  # noqa: E402
     build_quorum_app,
 )
 from tests._notify_harness import API_KEY, OPERATOR_KEY, NotifyPilotHarness, _free_port  # noqa: E402
+
+_idem_counter = itertools.count(1)
 
 
 class QuorumStack:
@@ -60,6 +64,11 @@ class QuorumStack:
 
     def govern(self, *, actor, action, resource, context, idempotency_key=None):
         """propose -> challenge -> quorum votes -> governed consensus execute."""
+        # Round 25: mandatory logical-operation identity -- auto-generated
+        # here in the TEST HARNESS (never inside the gateway/coordinator)
+        # for scenarios that aren't specifically about idempotency.
+        if idempotency_key is None:
+            idempotency_key = f"auto-idem-{next(_idem_counter)}"
         d = self.client.propose(identity=actor, action=action, resource_id=resource,
                                 actor_id=actor, context=context)
         ch = self.client.issue_challenge(actor=actor, action=action, resource=resource,
@@ -170,10 +179,12 @@ def test_replay_not_executed_twice(stack):
     qv = stack.vote(actor=actor, action=action, resource=resource, context=ctx, nonce=ch["nonce"])
     first = stack.client.execute_with_consensus(
         votes=qv["votes"], actor=actor, action=action, resource=resource,
-        context=qv["authorized_context"], nonce=ch["nonce"], challenge_id=ch["challenge_id"])
+        context=qv["authorized_context"], nonce=ch["nonce"], challenge_id=ch["challenge_id"],
+        idempotency_key="op-replay-test")
     second = stack.client.execute_with_consensus(
         votes=qv["votes"], actor=actor, action=action, resource=resource,
-        context=qv["authorized_context"], nonce=ch["nonce"], challenge_id=ch["challenge_id"])
+        context=qv["authorized_context"], nonce=ch["nonce"], challenge_id=ch["challenge_id"],
+        idempotency_key="op-replay-test")
     assert first.executed and not second.executed
     assert len(recorded_receipts()) == 1
 
@@ -190,6 +201,7 @@ def test_tampered_execute_payload_rejected(stack):
     tampered = dict(qv["authorized_context"], message="ALTERED-AFTER-VOTES")
     out = stack.client.execute_with_consensus(
         votes=qv["votes"], actor=actor, action=action, resource=resource,
-        context=tampered, nonce=ch["nonce"], challenge_id=ch["challenge_id"])
+        context=tampered, nonce=ch["nonce"], challenge_id=ch["challenge_id"],
+        idempotency_key="op-tamper-test")
     assert not out.executed
     assert recorded_receipts() == []
