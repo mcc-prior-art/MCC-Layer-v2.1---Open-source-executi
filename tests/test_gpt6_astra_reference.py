@@ -19,6 +19,7 @@ from examples.gpt6_astra_reference.astra_provider import AstraResponse, Determin
 from examples.gpt6_astra_reference.evidence import TerminalStatus, classify_exec_outcome
 from examples.gpt6_astra_reference.github_actuator import (
     GitHubActuatorConfig, GitHubActuatorConfigError, GitHubActuatorDisabledError, GitHubIssueActuator,
+    build_marked_payload,
 )
 from examples.gpt6_astra_reference.models import (
     AstraNonCanonicalActionError, AstraProposal, AstraProposalError, parse_proposal, require_canonical_action,
@@ -124,7 +125,10 @@ def test_5_actuator_not_called_when_authority_verification_fails():
         stack.upstream = counting_upstream
         bad_mandate = dict(stack.mandate)
         bad_mandate["sig"] = "tampered-signature-value"
-        proposal = AstraProposal(action=ACTION, resource=stack.demo_repo, payload={"title": "t", "body": "b"})
+        proposal = AstraProposal(
+            action=ACTION, resource=stack.demo_repo,
+            payload=build_marked_payload({"title": "t", "body": "b"}, logical_operation_id="op-test-5"),
+        )
         outcome = run(run_positive_path(
             stack.service, mandate=bad_mandate, actor=ACTOR, proposal=proposal, attestation=None,
             logical_operation_id="op-test-5",

@@ -33,9 +33,7 @@ from mcc_attester_service import AssessmentResult
 
 from .astra_provider import AstraProvider, AstraResponse, DeterministicAstraProvider, OpenAIAstraProvider
 from .evidence import RunTrace, TerminalStatus, classify_exec_outcome
-from .github_actuator import (
-    GitHubActuatorConfig, GitHubIssueActuator, ResourceBoundActuator, VerifiedFinalPayloadActuator,
-)
+from .github_actuator import GitHubActuatorConfig, GitHubIssueActuator, VerifiedDispatchSlot
 from .governed_call import prepare_marked_call
 from .models import (
     AstraError, AstraProposalError, AstraSelfRefusal, require_canonical_proposal,
@@ -104,7 +102,7 @@ class _CountingActuator:
         self.calls = 0
 
     def expect(self, *, action: str, payload_hash: str) -> None:
-        """Forwards to the wrapped ``VerifiedFinalPayloadActuator`` — see
+        """Forwards to the wrapped ``VerifiedDispatchSlot`` — see
         ``governed_call.prepare_marked_call``, the one place this is called,
         immediately before every governed call this CLI makes."""
         self._actuator.expect(action=action, payload_hash=payload_hash)
@@ -134,19 +132,20 @@ def _new_logical_operation_id() -> str:
 
 def _governed_actuator(stack: LocalAstraDemoStack, *, authorized_resource: str) -> "_CountingActuator":
     """Builds the real (disabled-by-default, here explicitly enabled against
-    the local mock) actuator wrapped with the pre-external-call guards this
-    reference integration adds: resource-binding (Round 17 scenario 20,
-    ``ResourceBoundActuator``) and the final payload-binding proof (Round 19
-    requirement 1, ``VerifiedFinalPayloadActuator``) -- both checked strictly
-    BEFORE the real actuator's own HTTP call. The logical-operation marker
-    itself is no longer applied by any actuator wrapper: it is embedded into
-    the payload BEFORE authorization by ``governed_call.prepare_marked_call``,
-    which also arms the ``VerifiedFinalPayloadActuator`` immediately before
-    every governed call — see that module for why."""
+    the local mock) actuator wrapped in a ``VerifiedDispatchSlot``, which
+    itself guarantees BOTH pre-external-call guards this reference
+    integration adds: resource-binding (Round 17 scenario 20) and the final
+    payload-binding proof (Round 19/21 requirement 1) -- checked strictly
+    BEFORE the real actuator's own HTTP call, and (Round 21) invocation-
+    local: each governed call installs its OWN independently-bound,
+    single-shot verifier, never a shared mutable one a later call could
+    accidentally inherit. The logical-operation marker/schema themselves are
+    applied BEFORE authorization by ``governed_call.prepare_marked_call``,
+    which also arms this slot immediately before every governed call — see
+    that module for why."""
     raw = GitHubIssueActuator(GitHubActuatorConfig.from_env(_mock_actuator_env(stack)))
-    bound = ResourceBoundActuator(raw, authorized_resource=authorized_resource)
-    verified = VerifiedFinalPayloadActuator(bound)
-    return _CountingActuator(verified)
+    slot = VerifiedDispatchSlot(raw, authorized_resource=authorized_resource)
+    return _CountingActuator(slot)
 
 
 def _build_astra_provider(*, live_astra: bool) -> AstraProvider:

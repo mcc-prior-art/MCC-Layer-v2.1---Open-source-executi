@@ -175,12 +175,12 @@ async def _run_one_task(provider: AstraProvider, case: str, task: str, actuator,
     logical_operation_id = f"live-matrix-{case}-{uuid.uuid4().hex}"
     targets_real_actuator = (
         proposal.action == CANONICAL_ACTION and proposal.resource == DEMO_REPO
-        and getattr(actuator, "github_verified", None) is not None
+        and getattr(actuator, "github_slot", None) is not None
     )
     marked_proposal = prepare_marked_call(
         proposal, logical_operation_id=logical_operation_id,
         canonical_payload_fn=stack.profiles.for_action(proposal.action).canonical_payload,
-        actuator=actuator.github_verified if targets_real_actuator else None,
+        actuator=actuator.github_slot if targets_real_actuator else None,
     )
     canonical = stack.profiles.for_action(marked_proposal.action).canonical_payload(marked_proposal.payload)
     att = await obtain_attestation(stack.attester, proposal=marked_proposal, canonical_payload=canonical)

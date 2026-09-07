@@ -36,9 +36,7 @@ from mcc_attester_service import AssessmentResult
 from ._localstack import ACTOR, LocalAstraDemoStack
 from .astra_provider import AstraResponse, DeterministicAstraProvider
 from .evidence import RunTrace, TerminalStatus, classify_exec_outcome
-from .github_actuator import (
-    GitHubActuatorConfig, GitHubIssueActuator, ResourceBoundActuator, VerifiedFinalPayloadActuator,
-)
+from .github_actuator import GitHubActuatorConfig, GitHubIssueActuator, VerifiedDispatchSlot
 from .governed_call import prepare_marked_call
 from .models import (
     AstraError,
@@ -160,7 +158,7 @@ def _prepare_actuation(
     GitHub actuator (``CANONICAL_ACTION`` on ``DEMO_REPO`` -- the only
     combination the shared mandate here ever authorizes) is the actuator's
     single-use final-boundary expectation armed
-    (``VerifiedFinalPayloadActuator.expect``), with exactly the action and
+    (``VerifiedDispatchSlot.expect``), with exactly the action and
     payload_hash this marked proposal is about to present. Every OTHER
     proposal in this module -- a semantic alias, a non-canonical resource
     form, an out-of-scope action -- never reaches that actuator at all, so
@@ -171,12 +169,12 @@ def _prepare_actuation(
     logical_operation_id = _new_logical_operation_id(scenario)
     targets_real_actuator = (
         proposal.action == CANONICAL_ACTION and proposal.resource == DEMO_REPO
-        and actuator.github_verified is not None
+        and actuator.github_slot is not None
     )
     marked_proposal = prepare_marked_call(
         proposal, logical_operation_id=logical_operation_id,
         canonical_payload_fn=canonical_payload_fn,
-        actuator=actuator.github_verified if targets_real_actuator else None,
+        actuator=actuator.github_slot if targets_real_actuator else None,
     )
     return marked_proposal, logical_operation_id
 
@@ -239,10 +237,10 @@ class CountingMultiActuator:
         #: The mandatory final-boundary guard in front of the REAL
         #: ``GitHubIssueActuator`` (Round 19 requirement 1) -- set by
         #: ``build_multi_actuator``. Exposed here so a scenario can arm it
-        #: (``github_verified.expect(...)``), immediately before each
+        #: (``github_slot.expect(...)``), immediately before each
         #: governed call that actually targets the real actuator -- see
         #: ``_prepare_actuation``.
-        self.github_verified: Optional[VerifiedFinalPayloadActuator] = None
+        self.github_slot: Optional[VerifiedDispatchSlot] = None
 
     async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
         self.calls += 1
@@ -256,14 +254,14 @@ class CountingMultiActuator:
 def build_multi_actuator(stack: LocalAstraDemoStack) -> Tuple[CountingMultiActuator, Dict[str, LocalActionRecorder]]:
     """Wires the real ``GitHubIssueActuator`` (mock-backed, as PR-100's CLI
     does) for ``CANONICAL_ACTION`` -- behind the SAME mandatory
-    ``ResourceBoundActuator``/``VerifiedFinalPayloadActuator`` guards
-    ``cli.py`` uses (Round 19 requirement 1: no alternative raw
-    ``GitHubIssueActuator`` path bypasses them here either) -- and a bounded
-    ``LocalActionRecorder`` for every other action a scenario in this
-    module might propose. Every non-canonical action having a *reachable*
-    handler here is deliberate — it makes "authority denied it before the
-    handler ran" a stronger, provable claim than "there was nothing to
-    call"."""
+    ``VerifiedDispatchSlot`` (Round 21: resource-binding + the final
+    payload-binding proof + invocation-local arming, all in one) ``cli.py``
+    uses (no alternative raw ``GitHubIssueActuator`` path bypasses it here
+    either) -- and a bounded ``LocalActionRecorder`` for every other action
+    a scenario in this module might propose. Every non-canonical action
+    having a *reachable* handler here is deliberate — it makes "authority
+    denied it before the handler ran" a stronger, provable claim than
+    "there was nothing to call"."""
     github_env = {
         "MCC_ASTRA_DEMO_MODE": "live",
         "MCC_ASTRA_GITHUB_REPO": stack.demo_repo,
@@ -274,12 +272,11 @@ def build_multi_actuator(stack: LocalAstraDemoStack) -> Tuple[CountingMultiActua
         for name in (PATH_B_ACTION, STEP_INSPECT_ACTION, STEP_LABEL_ACTION, STEP_COMMENT_ACTION)
     }
     raw = GitHubIssueActuator(GitHubActuatorConfig.from_env(github_env))
-    bound = ResourceBoundActuator(raw, authorized_resource=DEMO_REPO)
-    verified = VerifiedFinalPayloadActuator(bound)
-    handlers: Dict[str, Any] = {CANONICAL_ACTION: verified}
+    slot = VerifiedDispatchSlot(raw, authorized_resource=DEMO_REPO)
+    handlers: Dict[str, Any] = {CANONICAL_ACTION: slot}
     handlers.update(recorders)
     actuator = CountingMultiActuator(handlers)
-    actuator.github_verified = verified
+    actuator.github_slot = slot
     return actuator, recorders
 
 
@@ -749,8 +746,8 @@ async def run_stale_authority_rebinding(*, tamper: str) -> AdversarialResult:
 
         # Round 19: armed with the REAL, signed token's own action/payload_hash
         # -- a final-boundary backstop alongside the Gate's own binding checks.
-        if actuator.github_verified is not None:
-            actuator.github_verified.expect(
+        if actuator.github_slot is not None:
+            actuator.github_slot.expect(
                 action=issued.token["action"], payload_hash=issued.token["payload_hash"],
             )
         outcome = await enforce_authority(

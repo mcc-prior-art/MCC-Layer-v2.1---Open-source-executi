@@ -40,7 +40,40 @@ from gateway.governance_service import ExecOutcome, GovernanceService
 from mcc_attester_service import AttesterService
 from mcc_core.signing import hash_document
 
+from .issue_contract import (
+    GITHUB_ISSUE_ACTION,
+    require_coherent_marker_context,
+    validate_github_issue_request_payload,
+)
 from .models import AstraProposal, require_logical_operation_id
+
+
+def _require_github_issue_context_coherence(*, action: str, payload: Dict[str, Any], logical_operation_id: str) -> None:
+    """Round 21 requirement 3: validated independently at EVERY protected
+    reference boundary (``run_positive_path``/``issue_authority``/
+    ``enforce_authority``), never only inside the preparation helper
+    (``governed_call.prepare_marked_call``) -- a direct caller that
+    constructs its own proposal/payload and skips that helper cannot bypass
+    either check by doing so.
+
+    A no-op for every action other than the one real actuator this
+    reference integration ships (``issue_contract.GITHUB_ISSUE_ACTION``):
+    the strict schema and marker-context rules are specific to that one
+    action's request contract, not a generic property every proposal must
+    carry.
+
+    Raises :class:`~.issue_contract.GitHubIssuePayloadError` (unsupported
+    field / missing or malformed title / non-string body) or
+    :class:`~.issue_contract.MarkerSyntaxError` (missing/duplicate/malformed
+    marker) or :class:`~.issue_contract.OperationContextMismatchError` (a
+    single well-formed marker present, but naming a DIFFERENT
+    logical_operation_id than the one being presented here) -- all BEFORE
+    any attestation/authority/actuator call this boundary function is about
+    to make."""
+    if action != GITHUB_ISSUE_ACTION:
+        return
+    validate_github_issue_request_payload(payload)
+    require_coherent_marker_context(payload, logical_operation_id=logical_operation_id)
 
 
 @dataclass(frozen=True)
@@ -87,8 +120,19 @@ async def run_positive_path(
     without one. A missing or empty id raises
     :class:`~.models.MissingLogicalOperationIdError` synchronously, before
     any attestation/authority/gate call is made — the executor is never
-    reached."""
+    reached.
+
+    Round 21 requirement 3: for the one action this integration's real
+    actuator understands, this ALSO independently validates the strict
+    request schema and operation-context coherence (the payload's own
+    marker must name exactly this ``logical_operation_id``) — before any
+    attestation/authority/gate call — regardless of whether the caller
+    routed its proposal through ``governed_call.prepare_marked_call`` at
+    all."""
     require_logical_operation_id(logical_operation_id)
+    _require_github_issue_context_coherence(
+        action=proposal.action, payload=proposal.payload, logical_operation_id=logical_operation_id,
+    )
     return await service.execute_with_mandate(
         mandate=mandate, actor=actor, action=proposal.action, resource=proposal.resource,
         context=proposal.payload, attestation=attestation, idempotency_key=logical_operation_id,
@@ -142,8 +186,22 @@ async def issue_authority(
     :func:`run_positive_path` — before ANY of the trust/authority/Control
     calls below run. A missing or empty id raises
     :class:`~.models.MissingLogicalOperationIdError` immediately; no token
-    is ever issued."""
+    is ever issued.
+
+    Round 21 requirement 3: for the one action this integration's real
+    actuator understands, this ALSO independently validates the strict
+    request schema and operation-context coherence (the payload's own
+    marker must name exactly this ``logical_operation_id``) before ANY of
+    the trust/authority/Control calls below run, let alone token issuance —
+    regardless of whether the caller routed its proposal through
+    ``governed_call.prepare_marked_call`` at all. This is precisely what
+    closes the Round 20 counterexample where a genuinely signed token could
+    be minted with ``idempotency_key`` B for a payload whose marker actually
+    names a DIFFERENT operation A."""
     require_logical_operation_id(logical_operation_id)
+    _require_github_issue_context_coherence(
+        action=proposal.action, payload=proposal.payload, logical_operation_id=logical_operation_id,
+    )
     import time
 
     from mcc_core import MandateAuthority, MandateVerifier, Verdict
@@ -217,19 +275,33 @@ async def enforce_authority(
     re-verifies the token itself carries a non-empty ``idempotency_key``
     before doing anything else -- a hand-crafted or future alternate caller
     presenting a token without one is refused here too, before the
-    coordinator or the actuator is ever reached."""
+    coordinator or the actuator is ever reached.
+
+    Round 21 requirement 3/Blocker 2 counterexample B: the effective
+    payload about to be enforced (``payload`` if the caller overrode it,
+    else ``issued.canonical_payload``) is ALSO independently checked here
+    against the REAL, signed token's own ``idempotency_key`` — never a
+    caller-supplied id, never derived from the payload itself. This is the
+    check that catches a genuinely signed token for operation B being
+    presented alongside a payload whose marker actually names a DIFFERENT
+    operation A: the Gate's own hash check alone cannot catch this (the
+    hash can match perfectly fine), so this must be independent of it.
+    Reading the marker establishes no authority by itself; the real Gate
+    still verifies the token's signature/binding exactly as before."""
     require_logical_operation_id(issued.token.get("idempotency_key"))
+    effective_payload = payload if payload is not None else issued.canonical_payload
+    _require_github_issue_context_coherence(
+        action=action, payload=effective_payload,
+        logical_operation_id=issued.token.get("idempotency_key"),
+    )
 
     async def executor():
         if service.upstream is None:
             raise RuntimeError("no upstream configured")
-        effective_payload = payload if payload is not None else issued.canonical_payload
         return await service.upstream(action, effective_payload)
 
     result = await service.coordinator.enforce(
-        token=issued.token, action=action,
-        payload=payload if payload is not None else issued.canonical_payload,
-        executor=executor,
+        token=issued.token, action=action, payload=effective_payload, executor=executor,
         request_binding={"actor_id": actor, "resource_id": resource, "transaction_id": None},
         evidence=attestation,
     )

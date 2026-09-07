@@ -285,7 +285,10 @@ def test_reconciliation_never_creates_when_no_positive_evidence_exists():
     never itself authorize a retry, and never make any POST."""
     with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
         logical_operation_id = "op-never-happened"
-        proposal = AstraProposal(action=ACTION, resource=DEMO_REPO, payload={"title": "t", "body": "b"})
+        proposal = AstraProposal(
+            action=ACTION, resource=DEMO_REPO,
+            payload=build_marked_payload({"title": "t", "body": "b"}, logical_operation_id=logical_operation_id),
+        )
 
         async def always_raises(action, payload):
             raise TimeoutError("upstream never responded")
@@ -379,7 +382,10 @@ def test_dispatch_owned_without_evidence_stays_pending_never_reopens():
     DISPATCH_OWNED operation must not reopen admission."""
     with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
         logical_operation_id = "op-crash-no-evidence"
-        proposal = AstraProposal(action=ACTION, resource=DEMO_REPO, payload={"title": "t", "body": "b"})
+        proposal = AstraProposal(
+            action=ACTION, resource=DEMO_REPO,
+            payload=build_marked_payload({"title": "t", "body": "b"}, logical_operation_id=logical_operation_id),
+        )
         canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
         att = run(obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical))
         issued = run(issue_authority(
@@ -439,7 +445,10 @@ def test_reconciliation_rejects_foreign_operation_marker():
     candidate reconciliation could possibly match is the foreign one."""
     with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
         logical_operation_id = "op-real-6a"
-        proposal = AstraProposal(action=ACTION, resource=DEMO_REPO, payload={"title": "t", "body": "b"})
+        proposal = AstraProposal(
+            action=ACTION, resource=DEMO_REPO,
+            payload=build_marked_payload({"title": "t", "body": "b"}, logical_operation_id=logical_operation_id),
+        )
 
         async def always_raises(action, payload):
             raise TimeoutError("upstream never responded")

@@ -1,4 +1,4 @@
-# Durable Logical-Operation Safety (Rounds 17-19)
+# Durable Logical-Operation Safety (Rounds 17-21)
 
 ## The defect this closes
 
@@ -369,3 +369,133 @@ own verified authorization.
 |---|---|
 | Payload actually sent to GitHub could differ from the payload the Gate verified (marker appended post-verification by `LogicalOperationMarkerActuator`) | Marker embedded into the payload BEFORE canonicalization/attestation/hashing (`governed_call.prepare_marked_call` + `github_actuator.build_marked_payload`); `LogicalOperationMarkerActuator` removed; `VerifiedFinalPayloadActuator` proves action/payload_hash match the verified authorization immediately before the real HTTP POST, fail-closed on any mismatch or missing arming. |
 | A shared actuator instance could be reused across two logical operations without updating its marker/identity, risking drift | No mutable settable identity remains on the actuator; every governed call arms its own single-use expectation immediately before its own use (`governed_call.prepare_marked_call`); `run_autonomous_expansion`'s two calls now each carry their own coherent context. |
+
+## Round 21 — closing payload projection and operation-context enforcement
+
+Round 20's independent re-verification (executing real `DecisionEngine`/
+`ExecutionGate`/`EnforcementCoordinator`/actuator code) reproduced two
+remaining blocker classes on top of Round 19's fix. Both are closed here;
+every invariant listed under "What Round 19 preserved" above still holds,
+unchanged.
+
+### Blocker 1 — payload projection after final hash verification
+
+`GitHubIssueActuator.__call__` reconstructed a NEW `{"title": .., "body":
+..}` object before POSTing, regardless of what else the verified payload
+carried. A proposal payload could carry an additional authorized field
+(e.g. `labels`) that generic canonicalization retained (so it was signed
+into the token and checked by `VerifiedFinalPayloadActuator`), but that
+field silently disappeared at the actuator's own reconstruction step —
+confirmed live: calling the actuator directly with `{"title": "t", "body":
+"b", "labels": ["bug"]}` before this fix would have produced a 200 against
+the mock service using only `{"title": "t", "body": "b"}`; after the fix
+the SAME direct call sends `labels` through unprojected, and the mock
+service's own strict schema (`extra="forbid"`) now rejects it with 422 —
+proof the actuator no longer decides which fields survive the trip.
+
+**Fix:**
+
+1. **One explicit request schema.** `issue_contract.
+   validate_github_issue_request_payload` accepts EXACTLY `title`
+   (required, non-empty string) and `body` (optional, materialized to `""`
+   if absent) for `create_github_issue` — any other field is a hard
+   rejection, never silently discarded, and no value is ever coerced.
+2. **Validated before attestation/token issuance.** `governed_call.
+   prepare_marked_call` calls `issue_contract.
+   prepare_complete_github_issue_payload` (schema validation, THEN marker
+   embedding) before the proposal is ever canonicalized/attested/
+   authorized. The three protected boundaries (`pipeline.run_positive_path`
+   / `issue_authority` / `enforce_authority`) independently re-validate the
+   SAME schema — a direct caller that skips `prepare_marked_call` cannot
+   bypass it.
+3. **No post-verification field projection.** `GitHubIssueActuator.
+   __call__` now sends `json=dict(payload)` — the exact dict it was called
+   with, never a reconstruction from named fields. Combined with the strict
+   schema, an authorized field can never again silently disappear between
+   what was signed and what is serialized.
+4. **The expected action/hash stay independent of the candidate outbound
+   object.** Unchanged from Round 19: `VerifiedFinalPayloadActuator`'s
+   bound expectation always comes from the real signed token (two-step
+   path) or the pre-submission canonical hash (one-step path) — never
+   recomputed from the payload the check is evaluating.
+
+### Blocker 2 — operation id and marker not enforced as one context
+
+Two counterexamples: (A) a raw input body already containing a marker,
+followed by this package appending a second marker for a different
+operation, executing with BOTH; (B) a payload prepared with marker A, but a
+GENUINE token issued with a DIFFERENT `idempotency_key` B — the Gate's own
+hash check cannot catch this (the hash matches the token perfectly fine;
+it says nothing about which operation the payload's own marker names).
+
+**Fix — one immutable per-invocation operation context (`issue_contract.py`,
+a module deliberately separate from `github_actuator.py` so `pipeline.py`
+can depend on it without violating the "pipeline never imports the
+actuator" architecture guard):**
+
+1. **Marker syntax is closed and validated, not merely appended.**
+   `build_marked_payload` now refuses (before appending anything): a raw
+   body that already contains ANY marker-shaped substring — a complete
+   marker, or merely a bare prefix/suffix (`reject_preexisting_marker`) —
+   and a `logical_operation_id` that contains a substring able to break out
+   of or inject the marker's fixed delimiters (`-->`, `<!--`, or a newline
+   — `validate_operation_id_for_marker`). An existing marker is never
+   silently deleted or replaced.
+2. **Context coherence validated independently at all three protected
+   boundaries**, not only inside `prepare_marked_call`:
+   `run_positive_path`/`issue_authority` check the proposal's payload
+   against the `logical_operation_id` argument BEFORE any
+   attestation/authority/token call; `enforce_authority` checks the
+   EFFECTIVE payload (the caller's override, or `issued.canonical_payload`)
+   against the REAL signed `issued.token["idempotency_key"]` — the check
+   that specifically closes counterexample B, since it is independent of
+   whatever `issue_authority` did or didn't validate for the token actually
+   presented. `issue_contract.require_coherent_marker_context` requires
+   EXACTLY ONE well-formed marker whose id exactly equals the id being
+   presented — never derived from the payload itself (circular), always
+   from the caller's own explicit argument or the token's own claim. Marker
+   text remains DATA, never authority: none of this substitutes for the
+   real Gate's signature/binding verification, which is unaffected and
+   still mandatory.
+3. **No persistent mutable operation identity on the actuator.**
+   `VerifiedFinalPayloadActuator` is now IMMUTABLE and single-shot — bound
+   to one action/payload_hash AT CONSTRUCTION, no `.expect(...)` mutator,
+   `__call__` at most once. `VerifiedDispatchSlot` (the new outer wrapper
+   every construction site uses) holds at most one currently-armed,
+   single-shot verifier at a time; `.expect(...)` REPLACES it, and
+   dispatch clears the slot as the first thing it does. A governed call
+   that forgets to (re-)arm fails closed — either because nothing is
+   installed, or because whatever remains from an earlier, unconsumed
+   (e.g. blocked-before-actuator) attempt does not match this call's actual
+   action/payload. Two `.expect(...)` calls with no dispatch in between
+   (overlap) simply mean the LATEST installed verifier is the only one that
+   can ever be dispatched to — the earlier one is discarded, never
+   substitutable.
+4. **All callers updated consistently** (`cli.py`, `adversarial.py`
+   `_prepare_actuation`, `live_matrix.py`, `live_redteam.py`, and the
+   affected test helpers) to the `VerifiedDispatchSlot`/`.expect(...)` API;
+   `adversarial.CountingMultiActuator.github_slot` (renamed from
+   `github_verified`) is the shared slot reference these use.
+
+`tests/test_gpt6_astra_final_payload_binding.py` (31 tests) proves all of
+this through the real local authorization/Gate/coordinator path and the
+actual mock GitHub HTTP receiver where the requirement calls for it
+(end-to-end golden path with audit-entry verification; two genuinely
+in-scope operations through one shared actuator with admission/audit/result
+identity checks), plus focused final-boundary tests for every mutation
+introduced strictly AFTER a call was armed (title/body/marker
+add/remove/replace/action/destination — all zero POST invocations), the
+four pre-existing-marker variants (matching/foreign/duplicate/malformed),
+the context-A-presented-as-B rejection at both `run_positive_path` and
+`issue_authority`, the hand-crafted-genuine-token-for-B-with-marker-A proof
+that `enforce_authority`'s check is independent of the Gate's own hash
+check, and the forget-to-arm / overlapping-arm slot-safety proofs.
+
+### Round 20 → Round 21 fix map
+
+| Defect | Fix |
+|---|---|
+| `GitHubIssueActuator` reconstructed `{"title","body"}` from named fields, silently dropping any other authorized field the token's payload_hash covered | Strict, closed request schema (`issue_contract.validate_github_issue_request_payload`) validated before token issuance, checked independently at all three protected boundaries; `GitHubIssueActuator` now sends the exact `dict(payload)` it was called with — no reconstruction. |
+| A raw body already containing a marker, followed by a second marker being appended, could execute with both | `build_marked_payload` refuses any pre-existing marker-shaped substring in the raw body before appending its own. |
+| A genuinely signed token for operation B could be presented alongside a payload whose marker names a different operation A — the Gate's hash check alone cannot catch this | `require_coherent_marker_context` independently checked at `run_positive_path`/`issue_authority` (payload vs. the id being presented) AND `enforce_authority` (effective payload vs. the REAL token's `idempotency_key`). |
+| `VerifiedFinalPayloadActuator` was a shared, re-armable object — a stale, unconsumed expectation from an attempt blocked before ever reaching the actuator could persist | `VerifiedFinalPayloadActuator` is now immutable/single-shot, constructed fresh per call; `VerifiedDispatchSlot` holds at most one current verifier, replaced (never mutated) on each `.expect(...)`, cleared on every dispatch attempt. |

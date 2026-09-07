@@ -175,13 +175,15 @@ def test_localstack_never_constructs_in_memory_idempotency_directly():
 
 
 def test_every_raw_github_issue_actuator_construction_is_resource_bound():
-    """Round 18 requirement 5: no alternative raw ``GitHubIssueActuator``
-    path may bypass ``ResourceBoundActuator``/``VerifiedFinalPayloadActuator``.
-    Every file in this package that constructs a ``GitHubIssueActuator`` at
-    all must ALSO import ``ResourceBoundActuator`` -- a purely structural
-    proxy for "wraps it", cheap and stable against refactors, that would
-    fail loudly the moment a new raw construction site is added anywhere
-    in this package without the guard."""
+    """Round 18/21: no alternative raw ``GitHubIssueActuator`` path may
+    bypass resource-binding and the final payload-binding proof
+    (``VerifiedDispatchSlot``, which unconditionally wraps a
+    ``ResourceBoundActuator`` internally). Every file in this package that
+    constructs a ``GitHubIssueActuator`` at all must ALSO import
+    ``VerifiedDispatchSlot`` -- a purely structural proxy for "wraps it",
+    cheap and stable against refactors, that would fail loudly the moment a
+    new raw construction site is added anywhere in this package without the
+    guard."""
     sites = []
     for path in _all_py_files():
         if path.name == "github_actuator.py":
@@ -201,9 +203,10 @@ def test_every_raw_github_issue_actuator_construction_is_resource_bound():
             if isinstance(node, ast.ImportFrom):
                 for alias in node.names:
                     imported_names.add(alias.asname or alias.name)
-        assert "ResourceBoundActuator" in imported_names, (
+        assert "VerifiedDispatchSlot" in imported_names, (
             f"{path.name} constructs GitHubIssueActuator directly but does not import "
-            f"ResourceBoundActuator -- every raw construction site must wrap it"
+            f"VerifiedDispatchSlot -- every raw construction site must wrap it (it itself "
+            f"unconditionally constructs a ResourceBoundActuator around whatever it wraps)"
         )
     # Sanity: this guard is only meaningful if it actually found the known
     # construction sites -- a refactor that moved them without updating
