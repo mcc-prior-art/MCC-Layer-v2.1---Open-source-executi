@@ -263,6 +263,49 @@ class MCCClient:
     def verify_audit_chain(self, *, correlation_id: Optional[str] = None) -> Dict[str, Any]:
         return self._t.get("/verify", correlation_id=correlation_id)
 
+    # ------------------------------------------------------------------ #
+    # 6. Universal Proposal Service (Phase 1) — additive, non-actuating.  #
+    # ------------------------------------------------------------------ #
+    #
+    # Pure translation onto POST /v1/proposals and GET /v1/operations/{id}
+    # (gateway/proposal_api.py). Neither method computes a binding, evaluates
+    # policy, infers status, or executes anything -- that is all
+    # mcc_proposal.MCCProposalService, reached identically by every other
+    # adapter. Submitting a proposal is never permission: it never touches
+    # /evaluate, /consensus/execute, or /approvals/*.
+
+    def submit_proposal(
+        self,
+        *,
+        logical_operation_id: str,
+        actor: str,
+        action: str,
+        resource: Optional[str] = None,
+        payload: Optional[Payload] = None,
+        correlation_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Register a proposal (status ``PROPOSED``). Returns the exact
+        ``ProposalReceiptV1`` dict; this method never re-interprets it."""
+        if not logical_operation_id or not isinstance(logical_operation_id, str):
+            raise MCCInvalidDecisionError("logical_operation_id is required to submit a proposal")
+        body: Dict[str, Any] = {
+            "logical_operation_id": logical_operation_id,
+            "actor": actor,
+            "action": action,
+            "resource": resource,
+            "payload": dict(payload or {}),
+        }
+        return self._t.post("/v1/proposals", body, correlation_id=correlation_id)
+
+    def get_operation_status(
+        self, logical_operation_id: str, *, correlation_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Read-only. Returns the exact ``OperationStatusV1`` dict."""
+        from urllib.parse import quote
+
+        path = f"/v1/operations/{quote(logical_operation_id, safe='')}"
+        return self._t.get(path, correlation_id=correlation_id)
+
     # -- internals --
 
     @staticmethod
