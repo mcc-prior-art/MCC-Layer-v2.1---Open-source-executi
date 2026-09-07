@@ -149,6 +149,25 @@ class EnforcementCoordinator:
             self._record(kind="actuation_rejected", action=action, reason=gate_result.reason)
             return ActuationResult(ActuationStatus.BLOCKED, gate_result.reason)
 
+        # Round 25 remediation — mandatory logical-operation identity. A
+        # valid, signed, executable token that carries no usable
+        # idempotency_key must never reach durable admission, dispatch
+        # commitment, or the executor: "if idem_key:" used to make every
+        # downstream durable-safety step OPTIONAL, so a token issued with no
+        # idempotency_key (or "" / whitespace) could actuate with zero
+        # replay/duplicate protection -- an execution contract violation, not
+        # a legacy/optional mode. This is checked here, unconditionally,
+        # BEFORE any consensus challenge consumption, approval consumption,
+        # durable admission, velocity reservation, audit-before-actuation, or
+        # executor invocation -- the identity is never silently generated;
+        # a missing one fails closed. See docs/DURABLE_OPERATION_SAFETY.md.
+        idem_key = token.get("idempotency_key")
+        if not isinstance(idem_key, str) or not idem_key.strip():
+            reason = ("MISSING_LOGICAL_OPERATION_ID: a valid, non-empty "
+                      "idempotency_key is required for protected execution; fail-closed")
+            self._record(kind="actuation_rejected", action=action, reason=reason)
+            return ActuationResult(ActuationStatus.BLOCKED, reason)
+
         # Mandatory Multi-Context Consensus — no actuation without a valid N-of-M
         # authorization bound to this exact (now gate-verified) token: action,
         # actor, payload, resource, policy hash, and one-time nonce. Runs before
@@ -224,13 +243,13 @@ class EnforcementCoordinator:
                 self._record(kind="actuation_rejected", action=action, reason=reason)
                 return ActuationResult(ActuationStatus.BLOCKED, reason)
 
-        # Authoritative operation identity comes from the (now-verified) token.
+        # Authoritative operation identity comes from the (now-verified) token
+        # (``idem_key`` was already validated as present/non-empty above).
         # The logical-operation binding is the exact (action, resource,
         # payload_hash) triple -- NOT payload_hash alone -- so the same
         # idempotency_key can never be silently reused for a different
         # action or a different resource; either is a BINDING_CONFLICT,
         # rejected before any reservation or execution.
-        idem_key = token.get("idempotency_key")
         payload_hash = str(token.get("payload_hash", ""))
         actor_id = token.get("actor_id")
         resource_id = token.get("resource_id")
@@ -240,25 +259,27 @@ class EnforcementCoordinator:
         })
         idem_fence: Optional[str] = None
 
-        # (c) atomically admit the logical operation.
-        if idem_key:
-            reserved = await self.idempotency.reserve(idem_key, binding=binding_ref)
-            if not reserved.ok:
-                self._record(
-                    kind="idempotency_block",
-                    action=action,
-                    idempotency_key=idem_key,
-                    status=reserved.status.value,
-                    reason=reserved.reason,
-                )
-                # ERROR/BINDING_CONFLICT are fail-closed infra/contract outcomes;
-                # DUPLICATE_* (INFLIGHT/UNKNOWN/EXECUTED) are correct denials --
-                # in particular DUPLICATE_UNKNOWN means a fresh, independently
-                # valid authorization for this same logical operation must NOT
-                # trigger a second actuation while the prior attempt's outcome
-                # is unresolved (AUTHORIZED != SAFE_TO_ACTUATE).
-                return ActuationResult(ActuationStatus.BLOCKED, reason=reserved.reason)
-            idem_fence = reserved.fence
+        # (c) atomically admit the logical operation. Structurally mandatory
+        # now that idem_key is guaranteed present/non-empty above -- a
+        # protected execution can never reach the executor without first
+        # successfully reserving this logical operation.
+        reserved = await self.idempotency.reserve(idem_key, binding=binding_ref)
+        if not reserved.ok:
+            self._record(
+                kind="idempotency_block",
+                action=action,
+                idempotency_key=idem_key,
+                status=reserved.status.value,
+                reason=reserved.reason,
+            )
+            # ERROR/BINDING_CONFLICT are fail-closed infra/contract outcomes;
+            # DUPLICATE_* (INFLIGHT/UNKNOWN/EXECUTED) are correct denials --
+            # in particular DUPLICATE_UNKNOWN means a fresh, independently
+            # valid authorization for this same logical operation must NOT
+            # trigger a second actuation while the prior attempt's outcome
+            # is unresolved (AUTHORIZED != SAFE_TO_ACTUATE).
+            return ActuationResult(ActuationStatus.BLOCKED, reason=reserved.reason)
+        idem_fence = reserved.fence
 
         # (d) atomically reserve velocity / aggregate capacity.
         profile = self.profiles.for_action(action)
@@ -328,17 +349,16 @@ class EnforcementCoordinator:
         # the time any failure is observed. If this commitment itself cannot
         # be confirmed, nothing has been dispatched yet, so it is still safe
         # to release and fail closed.
-        if idem_key:
-            committed = await self.idempotency.commit_dispatch(idem_key, fence=idem_fence)
-            if not committed:
-                await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
-                self._record(
-                    kind="actuation_rejected", action=action, idempotency_key=idem_key,
-                    reason="durable dispatch ownership commit failed; fail-closed",
-                )
-                return ActuationResult(
-                    ActuationStatus.BLOCKED, "durable dispatch ownership commit failed; fail-closed",
-                )
+        committed = await self.idempotency.commit_dispatch(idem_key, fence=idem_fence)
+        if not committed:
+            await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
+            self._record(
+                kind="actuation_rejected", action=action, idempotency_key=idem_key,
+                reason="durable dispatch ownership commit failed; fail-closed",
+            )
+            return ActuationResult(
+                ActuationStatus.BLOCKED, "durable dispatch ownership commit failed; fail-closed",
+            )
 
         # (g) execute.
         try:
@@ -349,8 +369,7 @@ class EnforcementCoordinator:
             # The operation moves to UNKNOWN -- NOT released, NOT retryable --
             # and stays there until independently verified evidence
             # (reconciliation) proves the outcome one way or the other.
-            if idem_key:
-                await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
+            await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
             self._record(
                 kind="actuation_unknown",
                 action=action,
@@ -369,24 +388,23 @@ class EnforcementCoordinator:
         # registry cannot durably persist that fact, the honest answer is
         # UNKNOWN (never a false EXECUTED, and never retry-eligible either).
         result_ref = hash_document({"execution": _safe_execution_marker(execution)})
-        if idem_key:
-            finalized = await self.idempotency.mark_executed(
-                idem_key, fence=idem_fence, binding=binding_ref, result_ref=result_ref,
+        finalized = await self.idempotency.mark_executed(
+            idem_key, fence=idem_fence, binding=binding_ref, result_ref=result_ref,
+        )
+        if not finalized:
+            await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
+            self._record(
+                kind="actuation_unknown",
+                action=action,
+                idempotency_key=idem_key,
+                audit_ref=pre_ref,
+                reason="durable EXECUTED persistence failed after external success",
             )
-            if not finalized:
-                await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
-                self._record(
-                    kind="actuation_unknown",
-                    action=action,
-                    idempotency_key=idem_key,
-                    audit_ref=pre_ref,
-                    reason="durable EXECUTED persistence failed after external success",
-                )
-                return ActuationResult(
-                    ActuationStatus.EXECUTION_FAILED,
-                    "execution succeeded but durable EXECUTED persistence failed; outcome UNKNOWN",
-                    audit_ref=pre_ref,
-                )
+            return ActuationResult(
+                ActuationStatus.EXECUTION_FAILED,
+                "execution succeeded but durable EXECUTED persistence failed; outcome UNKNOWN",
+                audit_ref=pre_ref,
+            )
 
         self._record(
             kind="actuation_result",
@@ -408,7 +426,7 @@ class EnforcementCoordinator:
         attempted yet."""
         for limit in limits:
             await self.velocity.release(limit, descriptor, now=now)
-        if idem_key and idem_fence is not None:
+        if idem_fence is not None:
             await self.idempotency.release(idem_key, fence=idem_fence)
 
 

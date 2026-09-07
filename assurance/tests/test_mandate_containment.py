@@ -47,11 +47,13 @@ def _payload(**overrides: Any) -> Dict[str, Any]:
 
 
 def _execute(sut, mandate: Dict[str, Any], *, actor: str = ACTOR, action: str = ACTION,
-             resource: str = RESOURCE, context: Dict[str, Any]) -> Dict[str, Any]:
+             resource: str = RESOURCE, context: Dict[str, Any],
+             idempotency_key: str = None) -> Dict[str, Any]:
     r = httpx.post(
         f"{sut.gateway_url}/mandates/execute", headers={"x-api-key": sut.api_key},
         json={"mandate": mandate, "actor": actor, "action": action, "resource": resource,
-              "context": context},
+              "context": context,
+              "idempotency_key": idempotency_key or f"mandate-auto-{uuid.uuid4()}"},
         timeout=10.0,
     )
     return r.json()

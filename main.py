@@ -509,10 +509,16 @@ class GovernancePipeline:
     async def decide(self, *, actor: str, action: str, resource: Optional[str],
                      args: Dict[str, Any], verdict: str, constraints: Dict[str, Any],
                      challenge_id: Optional[str], votes: Optional[List[Dict[str, Any]]],
-                     audit_ref: Optional[str]):
+                     audit_ref: Optional[str], idempotency_key: Optional[str] = None):
         """Run the full pipeline for an ALLOW/CONSTRAIN policy verdict.
         Returns ``(ok, token_or_None, reason, evidence_or_None)``. Any missing or
-        invalid challenge/quorum/gate/nonce condition fails closed → ``ok=False``."""
+        invalid challenge/quorum/gate/nonce condition fails closed → ``ok=False``.
+
+        ``idempotency_key`` is the caller-supplied stable logical-operation
+        identity (Round 25 remediation): it is never generated here -- the
+        wired ``EnforcementCoordinator`` now fails closed (BLOCKED) on any
+        missing/empty/whitespace idempotency_key before the executor could
+        ever run, so a caller that omits it simply never actuates."""
         if not challenge_id or not votes:
             QUORUM.labels(result="fail").inc()
             EVALUATOR_REJECTED.labels(reason="no_evidence").inc()
@@ -533,7 +539,8 @@ class GovernancePipeline:
         token = self.engine.issue_token(
             verdict=verdict, subject=actor, action=action, payload=args,
             constraints=constraints, nonce=rec.nonce, actor_id=actor, resource_id=resource,
-            auth_claims={"challenge_id": challenge_id}, audit_ref=audit_ref)
+            auth_claims={"challenge_id": challenge_id}, audit_ref=audit_ref,
+            idempotency_key=idempotency_key)
 
         async def grant():
             return "authorized"
@@ -739,6 +746,7 @@ class MCC:
                     challenge_id=req.challenge_id,
                     votes=req.votes,
                     audit_ref=audit_entry["hash"] if audit_entry else None,
+                    idempotency_key=req.idempotency_key,
                 )
                 if ok:
                     decision_token = token

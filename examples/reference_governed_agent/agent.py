@@ -85,7 +85,8 @@ class ReferenceGovernedAgent:
         try:
             decision = self._client.evaluate(
                 actor_id=proposal.actor_id, action=proposal.action,
-                resource=proposal.resource, payload=proposal.payload)
+                resource=proposal.resource, payload=proposal.payload,
+                idempotency_key=proposal.idempotency_key)
         except MCCError as exc:
             return AgentRunResult(
                 request=request, proposal=proposal_dict, verdict="ERROR",

@@ -63,11 +63,13 @@ def _challenge(sut, payload: Dict[str, Any], *, actor: str = ACTOR) -> Dict[str,
     return r.json()
 
 
-def _execute(sut, payload: Dict[str, Any], challenge: Dict[str, Any], votes, *, actor: str = ACTOR) -> Dict[str, Any]:
+def _execute(sut, payload: Dict[str, Any], challenge: Dict[str, Any], votes, *, actor: str = ACTOR,
+             idempotency_key: str = None) -> Dict[str, Any]:
     r = httpx.post(
         f"{sut.gateway_url}/consensus/execute", headers={"x-api-key": sut.api_key},
         json={"votes": votes, "actor": actor, "action": ACTION, "resource": RESOURCE, "context": payload,
-              "challenge_id": challenge["challenge_id"], "nonce": challenge["nonce"]}, timeout=10.0,
+              "challenge_id": challenge["challenge_id"], "nonce": challenge["nonce"],
+              "idempotency_key": idempotency_key or f"c-auto-{uuid.uuid4()}"}, timeout=10.0,
     )
     return r.json()
 

@@ -457,14 +457,14 @@ def test_scenario_14_replay_after_successful_use_cannot_actuate_again():
 
     first = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=context, attestation=copy.deepcopy(genuine),
+        context=context, attestation=copy.deepcopy(genuine), idempotency_key="op-scenario14-a",
     ))
     assert first.status == "EXECUTED", first.reason
     assert actuator.calls == 1
 
     replay = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
-        context=context, attestation=copy.deepcopy(genuine),
+        context=context, attestation=copy.deepcopy(genuine), idempotency_key="op-scenario14-b",
     ))
     assert replay.status != "EXECUTED", f"replay was EXECUTED: {replay.reason}"
     assert actuator.calls == 1, "replay incremented the actuator -- dual-oracle failure"

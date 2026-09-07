@@ -648,3 +648,118 @@ honest case still works unmodified.
 | `ResourceBoundActuator`/`VerifiedFinalPayloadActuator` never compared the CURRENT call's authorized resource against the actuator's real destination — only two construction-time-fixed values against each other | `VerifiedFinalPayloadActuator` is now also bound to `resource` (from the real token/proposal) and `configured_resource` (the raw actuator's own destination); every dispatch re-verifies them match. |
 | Reconciliation resolved UNKNOWN/DISPATCH_OWNED → EXECUTED on a marker+repository match alone, never checking the candidate's own content against `payload_hash` | The candidate's `{"title","body"}` is hashed and compared against `payload_hash` before any resolution. |
 | Reconciliation's repository check (`issue.get("repo")`) could never match the real GitHub REST API's response shape (`repository_url`, no `repo` field) | `_issue_repository_identity` recognizes both shapes; the mock service's own query filter was hardened to match. |
+
+## Round 25 — mandatory logical_operation_id at the domain-neutral core execution boundary
+
+Every remediation through Round 24 hardened the GPT-6 Astra reference
+integration's own payload/marker/context machinery. Independent review then
+established that the underlying defect this whole document exists to close —
+durable execution reaching the actuator with no stable logical-operation
+identity — was never actually closed at its real, authoritative boundary:
+`EnforcementCoordinator.enforce()` in `src/mcc_core/coordinator.py`. That
+function is the ONE domain-neutral enforcement point shared by every
+governed action in this repository (payments, infrastructure, robotics,
+VoltAgent, the egress proxy, the AXFlow clinic pilot, the GPT-6 Astra
+reference integration, and any future integration) — Astra's own
+`prepare_marked_call`/pipeline machinery is one caller among many, not the
+boundary itself.
+
+### The defect
+
+`enforce()` treated `idempotency_key` as **optional** throughout: every
+durable-safety step —
+`idempotency.reserve` (admission), `commit_dispatch` (dispatch ownership),
+`mark_executed`, `mark_unknown` — was wrapped in `if idem_key:`. A genuinely
+valid, signed, executable (`ALLOW`/`CONSTRAIN`) decision token whose
+`idempotency_key` was `None`, `""`, or whitespace-only skipped every one of
+those steps entirely and still reached the real executor — with **zero**
+replay protection, duplicate-suppression, or durable dispatch-ownership
+record. Two independently-issued keyless tokens for the identical
+action/actor/resource/payload both actuate, back to back, with nothing to
+stop either.
+
+Reproduced directly against the real coordinator (no Astra-specific code
+involved at all): issue two genuinely signed, executable tokens with
+`idempotency_key=None` for the same action/resource/payload; call
+`coordinator.enforce()` for each. Before the fix: both return `EXECUTED`,
+the test executor is invoked twice, and `AuditLog` never records a
+`pre_actuation` idempotency binding for either — the coordinator never even
+attempted admission.
+
+This was independently confirmed as a real, live production gap: `main.py`'s
+`GovernancePipeline.decide()` (the wired `/evaluate` consensus+challenge
+runtime) minted its executable token with no `idempotency_key` argument at
+all, and `gateway/governance_service.py`'s `execute_with_mandate`/
+`execute_with_consensus` (backing `/mandates/execute`,
+`/approvals/{id}/execute`, `/consensus/execute`) accepted and forwarded
+`idempotency_key=None` with no rejection anywhere in the chain.
+
+### The fix
+
+**Target invariant: NO VALID LOGICAL_OPERATION_ID → BLOCKED → ZERO ACTUATOR
+INVOCATIONS.** This is now enforced at the coordinator itself, unconditionally,
+for every domain and every caller — not merely inside the GPT-6 Astra
+reference integration.
+
+1. **`src/mcc_core/coordinator.py`** — immediately after Gate verification
+   (step a/b) and before anything else stateful (consensus verification,
+   consensus-challenge consumption, actuation-time revocation re-check,
+   approval consumption, durable admission, velocity reservation,
+   audit-before-actuation, or the executor call), `enforce()` now validates
+   `token["idempotency_key"]` is present, a `str`, and non-empty after
+   stripping whitespace. Any other value returns `ActuationStatus.BLOCKED`
+   with reason `MISSING_LOGICAL_OPERATION_ID: ...; fail-closed` — the
+   executor is never reached. Every downstream `if idem_key:` guard around
+   `reserve`/`commit_dispatch`/`mark_executed`/`mark_unknown` was removed:
+   those steps are now structurally unconditional, since a valid key is
+   guaranteed present by the time they run. No identity is ever
+   silently generated anywhere in this path.
+2. **`gateway/governance_service.py`** — `execute_with_mandate` (backing both
+   `/mandates/execute` and, by delegation, `/approvals/{id}/execute`) and
+   `execute_with_consensus` (backing `/consensus/execute`) now reject a
+   missing/blank `idempotency_key` immediately after authorization (mandate
+   authority / consensus quorum) and the PR-2/PR-3 attestation gate succeed,
+   before any signed token is ever minted. This is **defense-in-depth
+   only** — `_missing_logical_operation_id`'s docstring says so explicitly —
+   the coordinator's own check is what actually makes this fail-closed; this
+   layer only avoids spending a real signature on a request that could never
+   actuate anyway.
+3. **`gateway/governance_api.py`** — the `idempotency_key` field on
+   `MandateExecuteRequest`/`ApprovalExecuteRequest`/`ConsensusExecuteRequest`
+   was deliberately **left** `Optional[str] = None` at the transport/schema
+   level rather than made a required Pydantic field. Rejecting a missing key
+   at the schema layer would turn it into an HTTP 422 with no `status`/
+   `reason` business payload — breaking legitimate BLOCKED responses for
+   requests that are rejected for an *earlier*, unrelated reason (actor/
+   resource substitution, policy drift) before idempotency is ever
+   evaluated. Enforcement for this invariant lives in `governance_service.py`
+   (defense-in-depth) and `coordinator.py` (authoritative) instead, both of
+   which return a normal `BLOCKED` `ExecOutcome`, not a schema error.
+4. **`src/mcc_core/core.py` (`DecisionEngine.issue_token`)** — deliberately
+   **unchanged**: `idempotency_key` remains `Optional[str] = None`. Not
+   every legitimate call to `issue_token` represents a protected-execution
+   request that will ever reach `EnforcementCoordinator.enforce()` (e.g. a
+   `DENY`/`ESCALATE` token, or a token minted purely for inspection/testing
+   that is never enforced) — tightening the generic issuance contract would
+   either break that legitimate non-execution compatibility or require
+   `issue_token` to know, itself, whether its caller intends to actuate,
+   which it structurally cannot. The coordinator's own check is therefore
+   the sole authoritative enforcement point for this invariant, exactly as
+   the module docstring already states — this decision does not weaken or
+   remove it under any circumstance.
+
+`tests/test_coordinator_mandatory_logical_operation_id.py` proves the
+invariant directly against `EnforcementCoordinator.enforce()` (not routed
+through Astra's pipeline helpers) for `None`, `""`, and whitespace-only
+`idempotency_key` values, plus a non-string value, each with a genuinely
+valid signature/action/resource/payload/policy/time-window/nonce: every case
+is `BLOCKED`, the executor is invoked zero times, and no durable dispatch
+record or `pre_actuation` audit entry is ever created for the attempt.
+
+### Round 24 → Round 25 fix map
+
+| Defect | Fix |
+|---|---|
+| `EnforcementCoordinator.enforce()` treated `idempotency_key` as optional (`if idem_key:` around every durable-safety step); a valid, signed, executable token with no key skipped admission/dispatch-ownership entirely and still reached the executor | Mandatory, unconditional validation immediately after Gate verification, before any other stateful step; `BLOCKED`/`MISSING_LOGICAL_OPERATION_ID` on failure; all downstream `if idem_key:` guards removed (structurally unconditional once validated). |
+| `main.py`'s wired consensus+challenge runtime minted its executable token with no `idempotency_key` at all | `GovernancePipeline.decide()` accepts and forwards a caller-supplied `idempotency_key` (the existing `EvaluateRequest.idempotency_key` field) into `issue_token`; never auto-generated. |
+| `gateway/governance_service.py`'s mandate/consensus execution accepted and forwarded a missing `idempotency_key` with no rejection anywhere in the chain | Defense-in-depth `BLOCKED` check added right before token issuance, after authorization and the attestation gate succeed; the coordinator remains the authoritative enforcement point. |

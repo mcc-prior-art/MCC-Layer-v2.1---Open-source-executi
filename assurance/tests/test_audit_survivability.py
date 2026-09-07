@@ -45,7 +45,8 @@ def _authorized_execute(sut) -> None:
     r = httpx.post(
         f"{sut.gateway_url}/consensus/execute", headers={"x-api-key": sut.api_key},
         json={"votes": votes, "actor": ACTOR, "action": ACTION, "resource": RESOURCE, "context": payload,
-              "challenge_id": ch["challenge_id"], "nonce": ch["nonce"]}, timeout=10.0,
+              "challenge_id": ch["challenge_id"], "nonce": ch["nonce"],
+              "idempotency_key": f"g-authorized-{uuid.uuid4()}"}, timeout=10.0,
     ).json()
     assert r["status"] == "EXECUTED"
 

@@ -106,7 +106,7 @@ def _e2e(tmp_path, approval_registry=None):
 
 
 def _token_from_mandate(engine, authority, mandate, *, actor, action, resource, context,
-                        transaction_id, approval_id, now=NOW):
+                        transaction_id, approval_id, now=NOW, idempotency_key=None):
     decision = run(authority.authorize(mandate, subject=actor, action=action, resource=resource,
                                        context=context, now=now, policy_hash=POLICY_HASH))
     if decision.verdict not in (Verdict.ALLOW, Verdict.CONSTRAIN):
@@ -114,7 +114,8 @@ def _token_from_mandate(engine, authority, mandate, *, actor, action, resource, 
     payload = decision.forward_context or context
     token = engine.issue_token(
         verdict=decision.verdict.value, subject=actor, action=action, payload=payload,
-        transaction_id=transaction_id, actor_id=actor, resource_id=resource,
+        transaction_id=transaction_id, idempotency_key=idempotency_key or transaction_id,
+        actor_id=actor, resource_id=resource,
         mandate_id=mandate["mandate_id"], auth_claims={"approval_id": approval_id}, now=now,
     )
     return token, decision
@@ -131,7 +132,7 @@ def test_full_escalate_loop_executes(tmp_path):
     mandate = run(svc.approve(rid, now=NOW))
     token, _ = _token_from_mandate(engine, authority, mandate, actor=actor, action=action,
                                    resource=resource, context=context, transaction_id="txn-1",
-                                   approval_id=rid)
+                                   approval_id=rid, idempotency_key="op-escalate-1")
     ran = []
 
     async def ex():
@@ -156,10 +157,15 @@ def test_approval_is_single_use_replay_blocked(tmp_path):
         return "ok"
 
     # First execution consumes the approval; a second distinct token replays it.
+    # Distinct idempotency keys so the second attempt is blocked by the
+    # single-use APPROVAL consumption being tested here, not by an
+    # unrelated idempotency-admission duplicate.
     t1, _ = _token_from_mandate(engine, authority, mandate, actor="agent/x", action="send_payment",
-                                resource="acct-1", context=context, transaction_id="txn-1", approval_id=rid)
+                                resource="acct-1", context=context, transaction_id="txn-1",
+                                approval_id=rid, idempotency_key="op-replay-a")
     t2, _ = _token_from_mandate(engine, authority, mandate, actor="agent/x", action="send_payment",
-                                resource="acct-1", context=context, transaction_id="txn-1", approval_id=rid)
+                                resource="acct-1", context=context, transaction_id="txn-1",
+                                approval_id=rid, idempotency_key="op-replay-b")
     first = run(coord.enforce(token=t1, action="send_payment", payload=context, executor=ex, now=NOW))
     second = run(coord.enforce(token=t2, action="send_payment", payload=context, executor=ex, now=NOW))
     assert first.status == ActuationStatus.EXECUTED

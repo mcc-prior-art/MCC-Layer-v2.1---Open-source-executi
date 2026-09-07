@@ -445,7 +445,8 @@ def test_coordinator_blocks_revoked_mandate_at_actuation(tmp_path):
     revocation = InMemoryRevocationRegistry()
     engine, coord = _coordinator(tmp_path, revocation)
     token = engine.issue_token(verdict="ALLOW", subject="s", action="act",
-                               payload={"x": 1}, mandate_id="mdt-xyz", now=NOW)
+                               payload={"x": 1}, mandate_id="mdt-xyz",
+                               idempotency_key="op-mdt-xyz", now=NOW)
     run(revocation.revoke("mdt-xyz"))  # revoked after issuance
 
     async def ex():
@@ -460,7 +461,8 @@ def test_coordinator_allows_active_mandate_at_actuation(tmp_path):
     revocation = InMemoryRevocationRegistry()
     engine, coord = _coordinator(tmp_path, revocation)
     token = engine.issue_token(verdict="ALLOW", subject="s", action="act",
-                               payload={"x": 1}, mandate_id="mdt-ok", now=NOW)
+                               payload={"x": 1}, mandate_id="mdt-ok",
+                               idempotency_key="op-mdt-ok", now=NOW)
     ran = []
 
     async def ex():

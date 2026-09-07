@@ -31,6 +31,7 @@ layout) that install exactly one framework each -- see
 from __future__ import annotations
 
 import importlib
+import uuid
 from typing import Any, Dict
 
 import httpx
@@ -70,7 +71,8 @@ def _execute(sut, proposal, challenge: Dict[str, Any], votes) -> Dict[str, Any]:
         f"{sut.gateway_url}/consensus/execute", headers={"x-api-key": sut.api_key},
         json={"votes": votes, "actor": proposal.actor_id, "action": proposal.action,
               "resource": proposal.resource, "context": proposal.payload,
-              "challenge_id": challenge["challenge_id"], "nonce": challenge["nonce"]}, timeout=10.0,
+              "challenge_id": challenge["challenge_id"], "nonce": challenge["nonce"],
+              "idempotency_key": f"k-auto-{uuid.uuid4()}"}, timeout=10.0,
     )
     return r.json()
 

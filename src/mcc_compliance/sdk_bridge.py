@@ -113,8 +113,14 @@ class SdkComplianceAdapter:
             tenant="compliance", namespace="certification")
 
         def router(proposal):
+            # Round 25: EnforcementCoordinator now fails closed without a
+            # stable logical-operation identity. The proposal's own
+            # ``proposal_id`` (already a fresh, unique-per-request UUID
+            # minted by CanonicalProposal.create()) is the natural one --
+            # never invented at the gateway/coordinator layer.
             return ctx.client.evaluate(actor_id=proposal.actor, action=proposal.action,
-                                       resource=proposal.resource, payload=proposal.payload)
+                                       resource=proposal.resource, payload=proposal.payload,
+                                       idempotency_key=proposal.proposal_id)
 
         runner = AdapterRunner(self._sdk, router)
         result = runner.run(sdk_ctx, {"request": ctx.request, "params": params})
