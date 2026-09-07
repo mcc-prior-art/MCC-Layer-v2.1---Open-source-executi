@@ -375,6 +375,45 @@ export class MccClient {
     return { valid: data.valid === true, raw: data };
   }
 
+  // ---- Universal Proposal Service (Phase 1) — additive, non-actuating ------ //
+  //
+  // Pure translation onto POST /v1/proposals and GET /v1/operations/{id}
+  // (gateway/proposal_api.py). Neither method here computes a binding,
+  // evaluates policy, infers status, or executes anything -- that is all
+  // MCCProposalService, reached identically by every other adapter. A
+  // proposal here is never permission: it never touches /evaluate,
+  // /consensus/execute, or /approvals/*.
+
+  async submitProposal(
+    proposal: {
+      logicalOperationId: string;
+      actor: string;
+      action: string;
+      resource?: string | null;
+      payload?: Record<string, unknown>;
+    },
+    correlationId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.request(`${this.gatewayUrl}/v1/proposals`, "POST", correlationId, {
+      logical_operation_id: proposal.logicalOperationId,
+      actor: proposal.actor,
+      action: proposal.action,
+      resource: proposal.resource ?? null,
+      payload: proposal.payload ?? {},
+    });
+  }
+
+  async getOperationStatus(
+    logicalOperationId: string,
+    correlationId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.request(
+      `${this.gatewayUrl}/v1/operations/${encodeURIComponent(logicalOperationId)}`,
+      "GET",
+      correlationId,
+    );
+  }
+
   // ---- orchestration returned to the governed tool ------------------------- //
 
   /**

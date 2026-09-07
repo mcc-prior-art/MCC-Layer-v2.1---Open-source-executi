@@ -21,8 +21,11 @@ const captured: {
   correlationIds: string[];
   paths: string[];
   idempotencyKeys: (string | undefined)[];
-} = { correlationIds: [], paths: [], idempotencyKeys: [] };
+  proposalBodies: Record<string, unknown>[];
+} = { correlationIds: [], paths: [], idempotencyKeys: [], proposalBodies: [] };
 let cfg: MockConfig = {};
+// tenant-scoped in-memory proposal store for the mock /v1/proposals + /v1/operations/{id}
+const mockProposals = new Map<string, { binding: string }>();
 
 function body(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve) => {
@@ -46,6 +49,38 @@ beforeAll(async () => {
     const cid = req.headers["x-mcc-correlation-id"];
     if (typeof cid === "string") captured.correlationIds.push(cid);
     const b = req.method === "POST" ? await body(req) : {};
+
+    if (url.pathname === "/v1/proposals" && req.method === "POST") {
+      captured.proposalBodies.push(b);
+      const logicalOperationId = String(b.logical_operation_id ?? "");
+      const binding = JSON.stringify([b.action, b.resource, b.payload]);
+      const existing = mockProposals.get(logicalOperationId);
+      if (existing && existing.binding !== binding) {
+        return json(res, 200, {
+          contract_version: "v1", accepted: false,
+          logical_operation_id: logicalOperationId, status: "BINDING_CONFLICT",
+          reason: "logical_operation_id is already bound to a different action/resource/payload",
+        });
+      }
+      mockProposals.set(logicalOperationId, { binding });
+      return json(res, 200, {
+        contract_version: "v1", accepted: true, logical_operation_id: logicalOperationId,
+        status: "PROPOSED", proposal_binding: binding,
+      });
+    }
+    if (url.pathname.startsWith("/v1/operations/") && req.method === "GET") {
+      const logicalOperationId = decodeURIComponent(url.pathname.slice("/v1/operations/".length));
+      const existing = mockProposals.get(logicalOperationId);
+      if (!existing) {
+        return json(res, 200, {
+          contract_version: "v1", logical_operation_id: logicalOperationId, status: "NOT_FOUND",
+        });
+      }
+      return json(res, 200, {
+        contract_version: "v1", logical_operation_id: logicalOperationId, status: "PROPOSED",
+        proposal_binding: existing.binding,
+      });
+    }
 
     switch (url.pathname) {
       case "/evaluate":
@@ -243,5 +278,101 @@ describe("Round 26 — logical_operation_id (idempotency_key) propagation", () =
     );
     expect(done.status).toBe("EXECUTED");
     expect(captured.idempotencyKeys).toEqual(["corr-escalate-preserve"]);
+  });
+});
+
+/**
+ * Universal Proposal Service Phase 1 — VoltAgent facade.
+ *
+ * ``submitProposal``/``getOperationStatus`` are pure translation onto
+ * POST /v1/proposals and GET /v1/operations/{id}: they must never touch
+ * /evaluate, /consensus/execute, or /approvals/* (a proposal is never
+ * permission), and the wire body they send must be exactly the canonical
+ * ProposalRequestV1 shape (mcc_proposal.models.ALLOWED_REQUEST_FIELDS) every
+ * other adapter (HTTP, MCP, LangGraph, CrewAI, AutoGen, the Python SDK) sends
+ * for the identical semantic operation.
+ */
+describe("Universal Proposal Service Phase 1 — submitProposal / getOperationStatus", () => {
+  it("submitProposal sends exactly the canonical ProposalRequestV1 field set", async () => {
+    captured.proposalBodies.length = 0;
+    captured.paths.length = 0;
+    const out = await client().submitProposal(
+      {
+        logicalOperationId: "op-volt-1",
+        actor: "agent/notify-bot",
+        action: "send_notification",
+        resource: "crm",
+        payload: { recipient: "c-1", message: "hi" },
+      },
+      "corr-volt-1",
+    );
+    expect(captured.paths).toContain("/v1/proposals");
+    expect(captured.paths).not.toContain("/evaluate");
+    expect(captured.paths).not.toContain("/consensus/execute");
+    expect(captured.paths).not.toContain("/approvals");
+    const sent = captured.proposalBodies[0]!;
+    expect(Object.keys(sent).sort()).toEqual(
+      ["action", "actor", "logical_operation_id", "payload", "resource"].sort(),
+    );
+    expect(sent.logical_operation_id).toBe("op-volt-1");
+    expect(out.status).toBe("PROPOSED");
+    expect(out.accepted).toBe(true);
+  });
+
+  it("getOperationStatus is read-only and reflects a prior submitProposal", async () => {
+    const c = client();
+    await c.submitProposal(
+      {
+        logicalOperationId: "op-volt-2", actor: "agent/notify-bot",
+        action: "send_notification", resource: "crm", payload: { recipient: "c-2" },
+      },
+      "corr-volt-2",
+    );
+    captured.paths.length = 0;
+    const status = await c.getOperationStatus("op-volt-2", "corr-volt-2");
+    expect(captured.paths).toEqual(["/v1/operations/op-volt-2"]);
+    expect(status.status).toBe("PROPOSED");
+  });
+
+  it("getOperationStatus for an unknown operation reports NOT_FOUND (never fabricates a state)", async () => {
+    const status = await client().getOperationStatus("op-volt-never-submitted", "corr-volt-3");
+    expect(status.status).toBe("NOT_FOUND");
+  });
+
+  it("submitting the same logical_operation_id with a different payload reports BINDING_CONFLICT", async () => {
+    const c = client();
+    await c.submitProposal(
+      {
+        logicalOperationId: "op-volt-4", actor: "agent/notify-bot",
+        action: "send_notification", resource: "crm", payload: { recipient: "c-4" },
+      },
+      "corr-volt-4a",
+    );
+    const conflict = await c.submitProposal(
+      {
+        logicalOperationId: "op-volt-4", actor: "agent/notify-bot",
+        action: "send_notification", resource: "crm", payload: { recipient: "DIFFERENT" },
+      },
+      "corr-volt-4b",
+    );
+    expect(conflict.status).toBe("BINDING_CONFLICT");
+    expect(conflict.accepted).toBe(false);
+  });
+
+  it("submitProposal performs no local validation of its own: it forwards logical_operation_id verbatim and relays exactly what the server decides", async () => {
+    // The server (mcc_proposal.ProposalRequestV1) is the sole authority on
+    // whether an id is valid -- the client never duplicates that judgment
+    // (Section 2: "NO adapter may independently implement proposal identity
+    // ... semantics"). This proves the client doesn't silently trim/reject
+    // locally: whatever value is supplied travels to the wire unchanged.
+    const out = await client().submitProposal(
+      {
+        logicalOperationId: "   ",
+        actor: "agent/notify-bot", action: "send_notification", resource: "crm", payload: {},
+      },
+      "corr-volt-5",
+    );
+    expect(out.logical_operation_id).toBe("   ");
+    expect(out.status).toBe("PROPOSED");
   });
 });

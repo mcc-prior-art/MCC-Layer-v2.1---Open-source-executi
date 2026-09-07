@@ -476,6 +476,27 @@ mount_consensus_routes(app, governance, api_key=settings.api_key,
                        operator_key=settings.operator_api_key)
 
 
+# ---------- Universal Proposal Service (Phase 1) — additive, non-actuating ----------
+#
+# Transport-neutral proposal/status boundary (docs/MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE1.md).
+# Reads the coordinator's OWN durable-execution registry instance for status
+# composition (never a second, independently-constructed one) so status
+# reflects the exact same state the real execution path would see — but never
+# mutates it: only ``get_state`` is ever called (see
+# ``tests/test_proposal_service_architecture_guards.py``).
+
+from mcc_proposal import MCCProposalService, proposal_registry_from_env  # noqa: E402
+
+from .proposal_api import mount_proposal_routes, tenants_from_env  # noqa: E402
+
+proposal_service = MCCProposalService(
+    proposals=proposal_registry_from_env(),
+    profiles=gateway.profiles,
+    durable_execution_state=governance.coordinator.idempotency,
+)
+mount_proposal_routes(app, proposal_service, tenants=tenants_from_env())
+
+
 # ---------- Readiness ----------
 #
 # Liveness is /health (the process is up). Readiness additionally proves the
