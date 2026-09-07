@@ -1,4 +1,4 @@
-# Durable Logical-Operation Safety (Rounds 17-21)
+# Durable Logical-Operation Safety (Rounds 17-23)
 
 ## The defect this closes
 
@@ -499,3 +499,55 @@ check, and the forget-to-arm / overlapping-arm slot-safety proofs.
 | A raw body already containing a marker, followed by a second marker being appended, could execute with both | `build_marked_payload` refuses any pre-existing marker-shaped substring in the raw body before appending its own. |
 | A genuinely signed token for operation B could be presented alongside a payload whose marker names a different operation A — the Gate's hash check alone cannot catch this | `require_coherent_marker_context` independently checked at `run_positive_path`/`issue_authority` (payload vs. the id being presented) AND `enforce_authority` (effective payload vs. the REAL token's `idempotency_key`). |
 | `VerifiedFinalPayloadActuator` was a shared, re-armable object — a stale, unconsumed expectation from an attempt blocked before ever reaching the actuator could persist | `VerifiedFinalPayloadActuator` is now immutable/single-shot, constructed fresh per call; `VerifiedDispatchSlot` holds at most one current verifier, replaced (never mutated) on each `.expect(...)`, cleared on every dispatch attempt. |
+
+## Round 23 — marker-safety validation unavoidable at the protected boundary
+
+Round 21's `issue_contract.validate_operation_id_for_marker` (rejects a
+`logical_operation_id` containing `-->`, `<!--`, a newline, or a carriage
+return) was only ever invoked from the WRITE side —
+`build_marked_payload`, reached exclusively through
+`governed_call.prepare_marked_call`. `require_coherent_marker_context` (the
+READ/acceptance side, and the ONLY marker check `pipeline.
+run_positive_path`/`issue_authority`/`enforce_authority` actually call)
+never independently validated the EXTERNAL expected identity it was
+comparing against — only whether it matched whatever the payload's body
+happened to say. A direct caller who skipped `prepare_marked_call` and
+hand-constructed a body whose marker text superficially named an unsafe id
+could get that id accepted as coherent, since nothing on the acceptance
+side re-checked the id itself.
+
+**Fix — one line, at the one place both blockers already funnel through.**
+`require_coherent_marker_context` now calls
+`validate_operation_id_for_marker(logical_operation_id)` FIRST — before the
+payload's body is inspected at all, let alone a marker "accepted". Because
+`pipeline.py`'s single helper (`_require_github_issue_context_coherence`)
+is the only caller of `require_coherent_marker_context`, and it is already
+invoked at all three protected boundaries with exactly the required
+identity source (`run_positive_path`/`issue_authority`: the explicit
+`logical_operation_id` argument; `enforce_authority`: the real signed
+`token["idempotency_key"]`), this one change closes the gap everywhere it
+mattered, with no other call site to update.
+
+Verified non-vacuous: `tests/test_gpt6_astra_marker_id_boundary_safety.py`
+(27 tests, none routed through `prepare_marked_call`/`build_marked_payload`)
+pins every rejection to `validate_operation_id_for_marker`'s own message —
+disambiguating it from an incidental "no marker found" `MarkerSyntaxError`
+a `\n`/`\r`-containing id could otherwise produce via unrelated regex
+mechanics. Reverting the fix (`git stash` the one-line change) was
+confirmed to make exactly the 18 boundary/message-pinned tests fail while
+the 9 tests of pre-existing Round 21 behavior keep passing — proving the
+new tests exercise the actual fix, not coincidental behavior. A
+companion pair of tests proves the forward and contrapositive of
+requirement 6: an id accepted through real protected execution
+(attestation → authority → Gate → coordinator → actuator → mock HTTP
+receiver) is guaranteed safe for `reconciliation.py`'s later
+`logical_operation_marker(token["idempotency_key"])` reconstruction, and
+every id rejected at the protected boundary is rejected identically by
+that same reconstruction call — one validation gate, not two that could
+drift apart.
+
+### Round 21 → Round 23 fix map
+
+| Defect | Fix |
+|---|---|
+| `require_coherent_marker_context` compared a payload's marker against the caller's `logical_operation_id` argument, but never validated that argument itself was safe -- a direct caller bypassing `prepare_marked_call` could get an unsafe id (`-->`/`<!--`/newline/carriage-return) accepted if a hand-crafted body's marker text matched it | `require_coherent_marker_context` now calls `validate_operation_id_for_marker(logical_operation_id)` before inspecting the payload's body at all -- validated at all three protected boundaries (`run_positive_path`/`issue_authority`/`enforce_authority`) via the one shared pipeline helper, with no way for a direct caller to skip it. |

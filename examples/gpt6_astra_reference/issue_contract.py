@@ -222,17 +222,36 @@ def extract_single_marker_operation_id(body: str) -> str:
 
 
 def require_coherent_marker_context(payload: Dict[str, Any], *, logical_operation_id: str) -> None:
-    """Fail-closed context-coherence check (Round 21 requirement 1/3): the
-    payload's body must carry EXACTLY ONE well-formed marker, and it must
-    name EXACTLY ``logical_operation_id`` — the SAME id being presented for
-    durable admission/the token at THIS call. ``logical_operation_id``
-    always comes from the caller's own explicit argument (durable
-    admission's id, or the real signed token's ``idempotency_key``) — never
-    derived from the payload itself, which would be circular.
+    """Fail-closed context-coherence check (Round 21 requirement 1/3; Round
+    23 requirement 1/2): the payload's body must carry EXACTLY ONE
+    well-formed marker, and it must name EXACTLY ``logical_operation_id`` —
+    the SAME id being presented for durable admission/the token at THIS
+    call. ``logical_operation_id`` always comes from the caller's own
+    explicit argument (durable admission's id, or the real signed token's
+    ``idempotency_key``) — never derived from the payload itself, which
+    would be circular.
+
+    Round 23: the EXTERNAL expected identity (``logical_operation_id``
+    itself) is validated with :func:`validate_operation_id_for_marker`
+    FIRST — before the payload's body is inspected at all, let alone a
+    marker "accepted". This is what makes marker-safety validation
+    unavoidable at the actual protected boundary
+    (``pipeline.run_positive_path``/``issue_authority``/
+    ``enforce_authority``, the only callers of this function): a caller
+    that skips ``governed_call.prepare_marked_call``/
+    ``build_marked_payload`` entirely -- and hand-constructs a body whose
+    marker happens to already name an unsafe id (one containing ``-->``,
+    ``<!--``, a newline, or a carriage return) -- can no longer slip that
+    id past the coherence check merely because the marker text matches it;
+    the id itself is refused before any comparison against the body is
+    even attempted. Round 21's ``build_marked_payload`` already refused to
+    ever WRITE such an id into a marker; this closes the matching gap on
+    the READ/acceptance side for a caller who never went through it.
 
     This is marker-syntax/consistency validation only — it establishes
     nothing about signatures, trust, or authority; the real Gate still
     performs the actual cryptographic verification."""
+    validate_operation_id_for_marker(logical_operation_id)
     if not isinstance(payload, dict):
         raise MarkerSyntaxError("payload must be an object to check marker context coherence")
     marker_id = extract_single_marker_operation_id(payload.get("body", ""))
