@@ -64,8 +64,12 @@ def main() -> int:
         print(f"  approval state      : {granted.get('state')} (operator granted)")
 
         # 2. Continue the governed execution of the ORIGINAL proposed action.
+        # A stable logical-operation identity is now mandatory at the coordinator
+        # (Round 25) -- the escalation's own correlation id is the natural one.
+        idempotency_key = state.get("correlationId") or request_id
         body = {"mandate": mandate, "actor": actor, "action": action,
-                "resource": resource, "context": context}
+                "resource": resource, "context": context,
+                "idempotency_key": idempotency_key}
         r = client.post(f"{gateway}/approvals/{request_id}/execute", json=body, headers=agent_h)
         if r.status_code != 200:
             print(f"FAILED: execute returned HTTP {r.status_code}: {r.text[:200]}")
