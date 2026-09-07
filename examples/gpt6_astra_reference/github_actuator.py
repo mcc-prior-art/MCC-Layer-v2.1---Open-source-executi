@@ -36,6 +36,8 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping, Optional
 
+from mcc_core.signing import hash_payload
+
 DISABLED = "disabled"
 LIVE = "live"
 _VALID_MODES = (DISABLED, LIVE)
@@ -195,51 +197,101 @@ def logical_operation_marker(logical_operation_id: str) -> str:
     return f"{LOGICAL_OPERATION_MARKER_PREFIX}{logical_operation_id}{LOGICAL_OPERATION_MARKER_SUFFIX}"
 
 
-class LogicalOperationMarkerActuator:
-    """Wraps an upstream ``async def (action, payload)`` callable, appending
-    the exact, greppable ``logical_operation_marker`` to the issue body
-    before delegating -- purely so reconciliation (see
-    ``reconciliation.py``) has independent, positive external evidence to
-    search for later. Never changes ``title``; never invents an operation id
-    on its own (the id is always supplied by the caller, the same one bound
-    into the token's ``idempotency_key`` -- see ``models.py``).
+def build_marked_payload(payload: Dict[str, Any], *, logical_operation_id: str) -> Dict[str, Any]:
+    """Returns a NEW dict -- ``payload`` itself is never mutated -- whose
+    ``body`` has the exact, greppable ``logical_operation_marker`` appended.
 
-    ``logical_operation_id`` is mutable (a plain settable property, not
-    fixed at construction) so ONE long-lived wrapper instance -- e.g. one
-    actuator shared across several governed calls in a single scenario,
-    each with its own logical operation -- can still mark each call
-    correctly: the caller sets ``.logical_operation_id`` to the id it is
-    about to present to ``run_positive_path``/``issue_authority``
-    immediately before making that call. There is no concurrency within one
-    such call sequence (each governed call is awaited to completion before
-    the next), so this ordering is safe. The two ids MUST be kept in sync by
-    the caller -- see ``adversarial.py``'s ``build_multi_actuator`` for the
-    reference pattern (Round 18 requirement 5: the marker must always
-    reflect the SAME verified logical_operation_id as admission/the
-    token/reconciliation, never an independently-drifting one)."""
+    Round 19: this must be called BEFORE the payload is canonicalized,
+    attested, hashed, or authorized -- never afterward. Calling it here, at
+    proposal-preparation time, makes the marker part of the SAME payload the
+    real ``ExecutionGate`` verifies and signs into the decision token's
+    ``payload_hash`` -- so there is no longer any step, anywhere downstream
+    of authorization, that changes the payload again before it reaches
+    :class:`GitHubIssueActuator`. See ``governed_call.prepare_marked_call``
+    for the one place every governed call in this reference integration
+    calls this."""
+    marked = dict(payload)
+    body = marked.get("body", "")
+    marked["body"] = f"{body}\n\n{logical_operation_marker(logical_operation_id)}"
+    return marked
 
-    def __init__(self, actuator, *, logical_operation_id: str) -> None:
+
+class PayloadBindingError(Exception):
+    """Raised by :class:`VerifiedFinalPayloadActuator`, BEFORE any external
+    call, when the action/payload about to be sent does not exactly match
+    the action/payload_hash this call was armed (via ``.expect(...)``) to
+    send -- or when nothing was armed at all. This is the final-boundary
+    proof (Round 19 requirement 1) that the exact outbound payload is
+    cryptographically bound to a real verified authorization, checked
+    immediately before the real HTTP POST, never a value derived from the
+    payload this very check is about to evaluate."""
+
+
+class VerifiedFinalPayloadActuator:
+    """The final safety net immediately before the real HTTP call. Wraps an
+    upstream ``async def (action, payload)`` callable (typically a
+    :class:`ResourceBoundActuator` wrapping the real
+    :class:`GitHubIssueActuator`) and refuses to invoke it unless the caller
+    has, immediately beforehand, armed this exact call via :meth:`expect`
+    with the action and payload_hash it was actually authorized under.
+
+    Deliberately single-use per call: :meth:`__call__` consumes (clears)
+    whatever was armed as the very first thing it does, so a caller that
+    forgets to re-arm before a subsequent call fails closed with
+    :class:`PayloadBindingError` rather than silently reusing a PRIOR call's
+    expectation. This is what makes a shared, long-lived actuator instance
+    safe to reuse across two different governed calls (Round 19 requirement
+    2): there is no persistent, settable "current operation identity" left
+    on this object for a second call to accidentally inherit from the
+    first -- every call must present its own expectation, every time.
+
+    ``expect(...)`` should be armed with values that come from the real
+    verified authorization -- for the two-step
+    ``issue_authority``/``enforce_authority`` path, the actual signed
+    ``issued.token["action"]``/``issued.token["payload_hash"]``; for the
+    one-step ``run_positive_path`` convenience path (where no token exists
+    yet at call time), the exact canonical payload about to be submitted,
+    hashed with the SAME ``hash_payload`` the real ``ExecutionGate`` uses.
+    Either way this is never a value derived from the payload AFTER this
+    check runs -- see ``governed_call.prepare_marked_call``, the one place
+    every governed call in this reference integration arms this."""
+
+    def __init__(self, actuator: Any) -> None:
         self._actuator = actuator
-        self._logical_operation_id = logical_operation_id
+        self._expected: Optional[Dict[str, str]] = None
 
-    @property
-    def logical_operation_id(self) -> str:
-        return self._logical_operation_id
-
-    @logical_operation_id.setter
-    def logical_operation_id(self, value: str) -> None:
-        self._logical_operation_id = value
+    def expect(self, *, action: str, payload_hash: str) -> None:
+        self._expected = {"action": action, "payload_hash": payload_hash}
 
     async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
-        marked = dict(payload)
-        body = marked.get("body", "")
-        marked["body"] = f"{body}\n\n{logical_operation_marker(self._logical_operation_id)}"
-        return await self._actuator(action, marked)
+        expected = self._expected
+        self._expected = None  # single-use: always consumed, whether armed or not
+        if expected is None:
+            raise PayloadBindingError(
+                "no verified action/payload_hash was armed for this call via expect(...) "
+                "-- refusing before any external call; a shared actuator never reuses a "
+                "prior call's expectation"
+            )
+        if action != expected["action"]:
+            raise PayloadBindingError(
+                f"action {action!r} about to be sent does not match the verified "
+                f"authorized action {expected['action']!r}; refusing before any "
+                "external call"
+            )
+        actual_hash = hash_payload(payload)
+        if actual_hash != expected["payload_hash"]:
+            raise PayloadBindingError(
+                f"the exact payload about to be sent hashes to {actual_hash!r}, which "
+                f"does not match the verified authorized payload_hash "
+                f"{expected['payload_hash']!r}; refusing before any external call"
+            )
+        return await self._actuator(action, payload)
 
 
 __all__ = [
     "GitHubActuatorConfig", "GitHubActuatorConfigError", "GitHubActuatorDisabledError",
     "GitHubIssueActuator", "ResourceBindingError", "ResourceBoundActuator",
     "LOGICAL_OPERATION_MARKER_PREFIX", "LOGICAL_OPERATION_MARKER_SUFFIX",
-    "logical_operation_marker", "LogicalOperationMarkerActuator", "DISABLED", "LIVE",
+    "logical_operation_marker", "build_marked_payload", "PayloadBindingError",
+    "VerifiedFinalPayloadActuator", "DISABLED", "LIVE",
 ]

@@ -38,7 +38,7 @@ from mcc_core.signing import hash_document
 
 from examples.gpt6_astra_reference._localstack import ACTION, ACTOR, LocalAstraDemoStack
 from examples.gpt6_astra_reference.github_actuator import (
-    GitHubActuatorConfig, GitHubIssueActuator, LogicalOperationMarkerActuator,
+    GitHubActuatorConfig, GitHubIssueActuator, build_marked_payload,
     ResourceBindingError, ResourceBoundActuator, logical_operation_marker,
 )
 from examples.gpt6_astra_reference.mock_github_service import recorded_issues
@@ -54,15 +54,17 @@ run = asyncio.run
 DEMO_REPO = "owner/mcc-astra-demo-sandbox"
 
 
-def _real_actuator(stack: LocalAstraDemoStack, *, authorized_resource: str,
-                   logical_operation_id: str) -> GitHubIssueActuator:
+def _real_actuator(stack: LocalAstraDemoStack, *, authorized_resource: str) -> GitHubIssueActuator:
+    """Round 19: no longer appends any marker -- the marker is now embedded
+    into the payload BEFORE authorization (see ``build_marked_payload``), so
+    it must already be present in whatever payload the caller passes to this
+    actuator."""
     raw = GitHubIssueActuator(GitHubActuatorConfig.from_env({
         "MCC_ASTRA_DEMO_MODE": "live",
         "MCC_ASTRA_GITHUB_REPO": stack.demo_repo,
         "MCC_ASTRA_GITHUB_BASE_URL": stack.github_base_url,
     }))
-    bound = ResourceBoundActuator(raw, authorized_resource=authorized_resource)
-    return LogicalOperationMarkerActuator(bound, logical_operation_id=logical_operation_id)
+    return ResourceBoundActuator(raw, authorized_resource=authorized_resource)
 
 
 class _CountingUpstream:
@@ -231,11 +233,12 @@ def test_lost_response_after_success_reconciles_to_executed_without_duplicate():
         logical_operation_id = "op-lost-response-1"
         proposal = AstraProposal(
             action=ACTION, resource=DEMO_REPO,
-            payload={"title": "Lost-response reference issue", "body": "Filed once."},
+            payload=build_marked_payload(
+                {"title": "Lost-response reference issue", "body": "Filed once."},
+                logical_operation_id=logical_operation_id,
+            ),
         )
-        lossy = _LossyActuator(_real_actuator(
-            stack, authorized_resource=DEMO_REPO, logical_operation_id=logical_operation_id,
-        ))
+        lossy = _LossyActuator(_real_actuator(stack, authorized_resource=DEMO_REPO))
         issued, outcome = run(_issue_and_dispatch(stack, proposal, logical_operation_id, lossy))
         assert outcome.status == "EXECUTION_FAILED"  # indeterminate, not a false success
         assert lossy.calls == 1
@@ -316,7 +319,10 @@ def test_dispatch_owned_crash_recovers_via_reconciliation_to_executed():
         logical_operation_id = "op-crash-dispatch-owned"
         proposal = AstraProposal(
             action=ACTION, resource=DEMO_REPO,
-            payload={"title": "Crash-recovery reference issue", "body": "Filed once."},
+            payload=build_marked_payload(
+                {"title": "Crash-recovery reference issue", "body": "Filed once."},
+                logical_operation_id=logical_operation_id,
+            ),
         )
         canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
         att = run(obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical))
@@ -334,9 +340,10 @@ def test_dispatch_owned_crash_recovers_via_reconciliation_to_executed():
 
         # The real external call actually happens (made directly here,
         # standing in for the coordinator's executor() call immediately
-        # before the process dies -- mark_unknown never runs).
-        actuator = _real_actuator(stack, authorized_resource=DEMO_REPO,
-                                  logical_operation_id=logical_operation_id)
+        # before the process dies -- mark_unknown never runs). The marker is
+        # already present in ``issued.canonical_payload`` -- it was embedded
+        # into the proposal before authorization, not applied here.
+        actuator = _real_actuator(stack, authorized_resource=DEMO_REPO)
         run(actuator(ACTION, issued.canonical_payload))
 
         record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
@@ -411,13 +418,12 @@ def _setup_unknown_operation(stack, *, logical_operation_id: str, payload=None):
     """Drives one operation through issue+dispatch with a lossy actuator so
     it parks at UNKNOWN with a real, marker-tagged issue behind it, and
     returns (issued, record)."""
+    base_payload = payload or {"title": "Trusted-reconciliation reference issue", "body": "Filed once."}
     proposal = AstraProposal(
         action=ACTION, resource=DEMO_REPO,
-        payload=payload or {"title": "Trusted-reconciliation reference issue", "body": "Filed once."},
+        payload=build_marked_payload(base_payload, logical_operation_id=logical_operation_id),
     )
-    lossy = _LossyActuator(_real_actuator(
-        stack, authorized_resource=DEMO_REPO, logical_operation_id=logical_operation_id,
-    ))
+    lossy = _LossyActuator(_real_actuator(stack, authorized_resource=DEMO_REPO))
     issued, outcome = run(_issue_and_dispatch(stack, proposal, logical_operation_id, lossy))
     assert outcome.status == "EXECUTION_FAILED"
     record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
@@ -446,9 +452,10 @@ def test_reconciliation_rejects_foreign_operation_marker():
 
         # A foreign operation's issue, filed directly (never through this
         # operation's own dispatch), carrying a DIFFERENT marker.
-        foreign_actuator = _real_actuator(stack, authorized_resource=DEMO_REPO,
-                                          logical_operation_id="op-foreign-999")
-        run(foreign_actuator(ACTION, {"title": "unrelated", "body": "unrelated"}))
+        foreign_actuator = _real_actuator(stack, authorized_resource=DEMO_REPO)
+        run(foreign_actuator(ACTION, build_marked_payload(
+            {"title": "unrelated", "body": "unrelated"}, logical_operation_id="op-foreign-999",
+        )))
         assert len(recorded_issues()) == 1  # only the foreign one exists
 
         reconcile_outcome = run(reconcile_github_issue_operation(

@@ -176,7 +176,7 @@ def test_localstack_never_constructs_in_memory_idempotency_directly():
 
 def test_every_raw_github_issue_actuator_construction_is_resource_bound():
     """Round 18 requirement 5: no alternative raw ``GitHubIssueActuator``
-    path may bypass ``ResourceBoundActuator``/``LogicalOperationMarkerActuator``.
+    path may bypass ``ResourceBoundActuator``/``VerifiedFinalPayloadActuator``.
     Every file in this package that constructs a ``GitHubIssueActuator`` at
     all must ALSO import ``ResourceBoundActuator`` -- a purely structural
     proxy for "wraps it", cheap and stable against refactors, that would

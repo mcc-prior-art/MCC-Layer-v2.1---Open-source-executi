@@ -1,4 +1,4 @@
-# Durable Logical-Operation Safety (Rounds 17-18)
+# Durable Logical-Operation Safety (Rounds 17-19)
 
 ## The defect this closes
 
@@ -193,20 +193,18 @@ construction time, from `MCC_ASTRA_GITHUB_REPO`, never read from the
 proposal or the governed payload). A mismatch raises `ResourceBindingError`
 before any network I/O.
 
-Round 18: this guard, together with `LogicalOperationMarkerActuator`, is now
+Round 18/19: this guard, together with `VerifiedFinalPayloadActuator` (Round
+19; replaces the Round 17/18 `LogicalOperationMarkerActuator`), is now
 mandatory on **every** path in this package that wires a real
 `GitHubIssueActuator` — not just `cli.py`'s. `adversarial.build_multi_actuator`
-(also used by `live_matrix.py`/`live_redteam.py`) wraps the SAME way.
-`LogicalOperationMarkerActuator.logical_operation_id` is a mutable property
-precisely so one actuator instance, reused across several governed calls in
-a scenario, can still be kept correctly in sync — the caller sets it to the
-exact id it is about to pass to `run_positive_path`/`issue_authority`,
-immediately before that call (`adversarial._prepare_actuation` is the
-reference pattern). A static architecture guard
+(also used by `live_matrix.py`/`live_redteam.py`) wraps the SAME way. A
+static architecture guard
 (`test_every_raw_github_issue_actuator_construction_is_resource_bound`)
 enumerates every raw `GitHubIssueActuator(...)` construction site in the
 package and fails if any of them does not also import
-`ResourceBoundActuator` — there is no alternative raw path.
+`ResourceBoundActuator` — there is no alternative raw path. See "Round 19"
+below for `VerifiedFinalPayloadActuator` itself and why
+`LogicalOperationMarkerActuator` was removed rather than patched.
 
 ## Reconciliation: trust model
 
@@ -270,3 +268,104 @@ operation with no path forward at all.
 * No live GitHub sandbox actuation has been performed as part of this
   remediation (Round 18 explicitly out of scope) — the next step is an
   independent, read-only Astra verification of the resulting commit.
+
+## Round 19 — final outbound payload binding, and closing marker/context drift
+
+An independent verification of the Round 18 commit (live code execution, not
+documentation) found exactly two remaining implementation defects. Both are
+closed here; nothing about the state machine, authorization verification,
+nonce protection, audit-before-actuation, reconciliation, dispatch ownership,
+or `UNKNOWN`/`DISPATCH_OWNED` semantics documented above changed.
+
+### Defect 1 — the payload sent to GitHub was not the payload that was verified
+
+`ExecutionGate` verifies `token["payload_hash"]` against the canonical
+payload BEFORE the coordinator ever calls the executor. But
+`LogicalOperationMarkerActuator` ran *inside* that executor's call chain and
+appended the reconciliation marker to `payload["body"]` **after** that
+verification had already happened — so the bytes actually POSTed to GitHub
+were never the exact bytes the Gate checked and the token's signature
+covers. Confirmed live: for a payload `{'title': 't', 'body':
+'ORIGINAL-BODY'}` whose token carried `payload_hash` for that exact
+document, the actual sent body was `'ORIGINAL-BODY\n\n<!--
+mcc-logical-operation-id: op-verify-1 -->'` — hash mismatch between what was
+authorized and what was sent.
+
+**Fix — construct the final payload before hashing, not after.**
+`github_actuator.build_marked_payload(payload, *,
+logical_operation_id)` is now the ONLY place the marker is applied, and it
+is called by `governed_call.prepare_marked_call` — the ONE place every
+governed call in this package prepares its call — **before** the resulting
+proposal is ever canonicalized, attested, or presented to
+`issue_authority`/`run_positive_path`. The marker is therefore part of the
+SAME payload the Gate verifies and signs into `payload_hash`; nothing
+downstream of authorization ever touches the payload again.
+`LogicalOperationMarkerActuator` (which mutated post-verification) is
+**removed entirely**, not patched.
+
+As a final-boundary backstop — not the primary mechanism, which is simply
+"never mutate after hashing" — `github_actuator.VerifiedFinalPayloadActuator`
+wraps the innermost actuator (after `ResourceBoundActuator`, immediately
+before the real HTTP POST) and refuses to invoke it unless the caller has,
+immediately beforehand, armed this exact call (`.expect(action=...,
+payload_hash=...)`) with the action/payload_hash it was actually authorized
+under:
+
+* for the two-step `issue_authority` → `enforce_authority` path (tamper,
+  replay, expired, stale-authority-rebinding), the values armed are the
+  REAL, signed `issued.token["action"]`/`issued.token["payload_hash"]`;
+* for the one-step `run_positive_path` convenience path (no token exists yet
+  at call time), the values armed are `hash_payload` of the exact marked
+  canonical payload about to be submitted — computed with the SAME
+  canonicalization (`ActionProfile.canonical_payload`, identity for
+  `create_github_issue`) the real token issuance path independently applies.
+
+Either way, the expected value is captured BEFORE the call it guards, never
+derived from the payload the check is evaluating. `expect()` is single-use:
+`__call__` consumes it as the first thing it does, so a mismatch — or no
+arming at all — raises `PayloadBindingError` before `ResourceBoundActuator`
+or `GitHubIssueActuator` ever runs, and before any network I/O.
+`tests/test_gpt6_astra_final_payload_binding.py` proves, at the real
+actuator/mock-network boundary (never a token-vs-registry comparison or a
+before-the-Gate denial): the exact outbound bytes hash to the real token's
+`payload_hash`; a title, body, or marker change made strictly after arming
+is refused with zero network calls; a destination mismatch and an unarmed
+call are refused identically.
+
+### Defect 2 — a shared actuator could drift context between two operations
+
+`cli.py`'s `run_autonomous_expansion` built ONE `_governed_actuator` for its
+primary operation's `logical_operation_id`, then invoked a second, distinct
+logical operation (`extra_logical_operation_id`) through the SAME actuator
+instance without ever updating it. The extra action happened to be denied by
+mandate action scope before reaching the actuator (so no duplicate
+side-effect ever occurred), but the actuator wrapper itself carried no
+structural guarantee against this — a future change reaching the actuator
+under those conditions would have sent the WRONG marker.
+
+**Fix — arm per call, not per actuator lifetime.**
+`VerifiedFinalPayloadActuator` has no persistent, settable "current
+operation identity" at all (unlike `LogicalOperationMarkerActuator`'s old
+mutable `.logical_operation_id` property) — every `__call__` consumes
+whatever was armed and nothing else, so a caller that forgets to re-arm
+fails closed rather than silently reusing a prior call's expectation.
+`governed_call.prepare_marked_call` is the ONE place that builds a marked
+proposal AND arms the actuator, together, immediately before each governed
+call; `cli.py`, `adversarial.py` (`_prepare_actuation`), `live_matrix.py`,
+and `live_redteam.py` all now call it per invocation rather than mutating
+shared actuator state. `run_autonomous_expansion` now mints its own marked
+proposal and its own (`actuator=None`, since it is denied before reaching
+the actuator anyway) call for the extra action, structurally independent of
+the primary call's expectation.
+`tests/test_gpt6_astra_final_payload_binding.py::test_two_operations_through_shared_actuator_no_context_leak`
+proves it directly: two distinct, IN-SCOPE operations reaching one shared
+actuator instance each produce an issue carrying only their own marker,
+never the other's, and each outbound payload's hash is bound only to its
+own verified authorization.
+
+### Round 18 → Round 19 fix map
+
+| Defect | Fix |
+|---|---|
+| Payload actually sent to GitHub could differ from the payload the Gate verified (marker appended post-verification by `LogicalOperationMarkerActuator`) | Marker embedded into the payload BEFORE canonicalization/attestation/hashing (`governed_call.prepare_marked_call` + `github_actuator.build_marked_payload`); `LogicalOperationMarkerActuator` removed; `VerifiedFinalPayloadActuator` proves action/payload_hash match the verified authorization immediately before the real HTTP POST, fail-closed on any mismatch or missing arming. |
+| A shared actuator instance could be reused across two logical operations without updating its marker/identity, risking drift | No mutable settable identity remains on the actuator; every governed call arms its own single-use expectation immediately before its own use (`governed_call.prepare_marked_call`); `run_autonomous_expansion`'s two calls now each carry their own coherent context. |
