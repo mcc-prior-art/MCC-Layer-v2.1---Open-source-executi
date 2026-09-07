@@ -69,11 +69,12 @@ def prepare_marked_call(
     This function never reimplements or guesses at it.
 
     If ``actuator`` is supplied and is not ``None``, it is armed here
-    (``actuator.expect(action=..., payload_hash=...)``), immediately, with
-    exactly the action and payload_hash this prepared proposal is about to
-    present to authorization -- the value the real, trusted authorization
-    path is about to independently compute and sign, not a value invented
-    after the fact. Pass ``actuator=None`` for a call that never reaches the
+    (``actuator.expect(action=..., resource=..., payload_hash=...)``),
+    immediately, with exactly the action/resource/payload_hash this
+    prepared proposal is about to present to authorization -- the values
+    the real, trusted authorization path is about to independently compute
+    and sign, not values invented after the fact. Pass ``actuator=None``
+    for a call that never reaches the
     real governed GitHub actuator (e.g. a non-canonical action, or a
     canonical one presented against a resource outside the mandate's scope,
     in the adversarial harness)."""
@@ -85,7 +86,10 @@ def prepare_marked_call(
     marked_proposal = dataclasses.replace(proposal, payload=prepared_payload)
     if actuator is not None:
         canonical = canonical_payload_fn(marked_proposal.payload)
-        actuator.expect(action=marked_proposal.action, payload_hash=hash_payload(canonical))
+        actuator.expect(
+            action=marked_proposal.action, resource=marked_proposal.resource,
+            payload_hash=hash_payload(canonical),
+        )
     return marked_proposal
 
 

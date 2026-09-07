@@ -101,11 +101,11 @@ class _CountingActuator:
         self._actuator = actuator
         self.calls = 0
 
-    def expect(self, *, action: str, payload_hash: str) -> None:
+    def expect(self, *, action: str, resource: str, payload_hash: str) -> None:
         """Forwards to the wrapped ``VerifiedDispatchSlot`` — see
         ``governed_call.prepare_marked_call``, the one place this is called,
         immediately before every governed call this CLI makes."""
-        self._actuator.expect(action=action, payload_hash=payload_hash)
+        self._actuator.expect(action=action, resource=resource, payload_hash=payload_hash)
 
     async def __call__(self, action: str, payload):
         self.calls += 1
@@ -463,7 +463,10 @@ async def run_tamper(*, live_astra: bool = False) -> RunTrace:
         # Round 19: armed with the REAL, signed token's own action/payload_hash
         # -- if the Gate's own binding check somehow did not already block this
         # tampered payload, the actuator's final-boundary check still would.
-        counting.expect(action=issued.token["action"], payload_hash=issued.token["payload_hash"])
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
+        )
         outcome = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
             action=proposal.action, payload=tampered_payload, attestation=att.raw_attestation,
@@ -511,12 +514,18 @@ async def run_replay(*, live_astra: bool = False) -> RunTrace:
         # expectation is single-use) -- both presentations of this same,
         # never-tampered token are proven bound to the exact payload GitHub
         # would receive, even though only the first is expected to reach it.
-        counting.expect(action=issued.token["action"], payload_hash=issued.token["payload_hash"])
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
+        )
         first = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
             action=proposal.action, attestation=att.raw_attestation,
         )
-        counting.expect(action=issued.token["action"], payload_hash=issued.token["payload_hash"])
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
+        )
         second = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
             action=proposal.action, attestation=att.raw_attestation,
@@ -566,7 +575,10 @@ async def run_expired(*, live_astra: bool = False) -> RunTrace:
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("expired", resp, proposal, att, exc, counting)
         await asyncio.sleep(1.5)  # let the token's real validity window elapse
-        counting.expect(action=issued.token["action"], payload_hash=issued.token["payload_hash"])
+        counting.expect(
+            action=issued.token["action"], resource=issued.token["resource_id"],
+            payload_hash=issued.token["payload_hash"],
+        )
         outcome = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
             action=proposal.action, attestation=att.raw_attestation,

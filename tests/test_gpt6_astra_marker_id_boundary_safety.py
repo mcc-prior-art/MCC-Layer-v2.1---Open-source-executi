@@ -86,8 +86,8 @@ class _CountingUpstream:
         self._actuator = actuator
         self.calls = 0
 
-    def expect(self, *, action: str, payload_hash: str) -> None:
-        self._actuator.expect(action=action, payload_hash=payload_hash)
+    def expect(self, *, action: str, resource: str, payload_hash: str) -> None:
+        self._actuator.expect(action=action, resource=resource, payload_hash=payload_hash)
 
     async def __call__(self, action: str, payload):
         self.calls += 1

@@ -53,6 +53,33 @@ of positive external evidence — leaves the record exactly as it was
 ``EXECUTED``, and never itself grounds for a fresh admission): this module
 never creates an issue, and never applies ``resolve_unknown`` on anything
 less than a full match.
+
+Round 24 hardening — candidate CONTENT is bound to the authorized payload
+--------------------------------------------------------------------------
+
+Round 18 bound the candidate to the STORED REGISTRY RECORD's own binding
+(``action``/``resource``/``payload_hash``, matched against ``record.binding``)
+and to the candidate's reported repository — but never hashed the
+candidate's own reported ``title``/``body`` and compared that hash against
+``payload_hash``. A candidate carrying the exact right marker and the exact
+right repository, but DIFFERENT content than what was ever authorized,
+would previously still resolve UNKNOWN/DISPATCH_OWNED -> EXECUTED. This is
+now checked explicitly, using the SAME ``hash_payload`` the Gate itself
+uses: the candidate's own ``{"title", "body"}`` must hash to exactly
+``payload_hash`` (extracted here from the same real, verified token every
+other check in this function reads from), or reconciliation refuses,
+leaving the record exactly as it was.
+
+Round 24 hardening — the real GitHub REST API's repository field
+--------------------------------------------------------------------------
+
+The real GitHub REST API's issue response reports its repository via
+``repository_url`` (e.g. ``"https://api.github.com/repos/{owner}/{repo}"``),
+never a bare ``repo`` field — that field is this package's own mock
+service's convenience shape. Without support for the real shape, this
+reconciliation path could never resolve anything against genuine GitHub
+data at all (a functional gap, not a security one -- it fails closed).
+``_issue_repository_identity`` recognizes both.
 """
 
 from __future__ import annotations
@@ -61,7 +88,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from mcc_core.idempotency import ReconcileStatus
-from mcc_core.signing import hash_document
+from mcc_core.signing import hash_document, hash_payload
 
 from .github_actuator import logical_operation_marker
 
@@ -78,6 +105,24 @@ class ReconciliationOutcome:
     applied: bool         # the UNKNOWN/DISPATCH_OWNED -> EXECUTED transition was actually made by THIS call
     reason: str
     issue: Optional[Dict[str, Any]] = None
+
+
+def _issue_repository_identity(issue: Dict[str, Any]) -> Optional[str]:
+    """Returns the ``"{owner}/{repo}"`` identity a candidate issue actually
+    reports -- supporting both this package's own mock service shape (a
+    direct ``repo`` field) and the real GitHub REST API shape (no ``repo``
+    field at all; a ``repository_url`` of the form
+    ``"https://api.github.com/repos/{owner}/{repo}"`` instead). Returns
+    ``None`` if neither shape is present or parseable -- never guesses."""
+    repo_field = issue.get("repo")
+    if isinstance(repo_field, str) and repo_field:
+        return repo_field
+    repo_url = issue.get("repository_url")
+    if isinstance(repo_url, str) and repo_url:
+        parts = repo_url.rstrip("/").split("/")
+        if len(parts) >= 2 and parts[-1] and parts[-2]:
+            return f"{parts[-2]}/{parts[-1]}"
+    return None
 
 
 async def _find_issue_by_marker(
@@ -151,7 +196,16 @@ async def reconcile_github_issue_operation(
     read from ``token`` alone as the sole authority) — the authorized
     resource and the lookup destination must be the identical value, or
     this refuses before any network call, exactly as
-    ``github_actuator.ResourceBoundActuator`` does at dispatch time."""
+    ``github_actuator.ResourceBoundActuator`` does at dispatch time.
+
+    Round 24: a candidate's own reported repository is recognized in either
+    this package's mock service shape (``repo``) or the real GitHub REST
+    API shape (``repository_url``) — see ``_issue_repository_identity`` —
+    and, once repository/marker match, the candidate's own reported
+    ``title``/``body`` must ALSO hash (via the same ``hash_payload`` the
+    Gate uses) to exactly this ``payload_hash``. A matching marker and
+    repository alone are never sufficient to resolve UNKNOWN/DISPATCH_OWNED
+    to EXECUTED."""
     logical_operation_id = token.get("idempotency_key")
     action = token.get("action")
     resource = token.get("resource_id")
@@ -203,19 +257,36 @@ async def reconcile_github_issue_operation(
             found=False, applied=False,
             reason="no positive external evidence found; operation left pending",
         )
-    if issue.get("repo") != actuator_repo:
+    candidate_repo = _issue_repository_identity(issue)
+    if candidate_repo != actuator_repo:
         # Defense in depth: the lookup query is already scoped to
         # actuator_repo, so this should be unreachable against a real or
         # the mock GitHub service -- but a candidate whose own reported
-        # repository disagrees is never trusted regardless.
+        # repository disagrees is never trusted regardless. Recognizes both
+        # this package's mock service shape (a "repo" field) and the real
+        # GitHub REST API shape ("repository_url").
         return ReconciliationOutcome(
             found=False, applied=False,
             reason="candidate evidence's own repository field does not match the authorized "
                    "resource; refusing to reconcile",
         )
 
+    # Round 24: the candidate's own reported CONTENT must hash to the exact
+    # payload_hash this operation was authorized under -- a matching marker
+    # and repository alone are not sufficient. Marker text is data, never
+    # authority; only the real Gate-verified payload_hash establishes what
+    # content was actually signed for, and this is the same hash_payload
+    # function the Gate itself uses.
+    candidate_content = {"title": issue.get("title"), "body": issue.get("body")}
+    if hash_payload(candidate_content) != payload_hash:
+        return ReconciliationOutcome(
+            found=False, applied=False,
+            reason="candidate evidence's own content does not hash to the authorized "
+                   "payload_hash; refusing to reconcile",
+        )
+
     result_ref = hash_document({
-        "issue_number": issue.get("number"), "html_url": issue.get("html_url"), "repo": issue.get("repo"),
+        "issue_number": issue.get("number"), "html_url": issue.get("html_url"), "repo": candidate_repo,
     })
     result = await idempotency.resolve_unknown(
         logical_operation_id, expected_generation=expected_generation, result_ref=result_ref,

@@ -216,14 +216,12 @@ class PayloadBindingError(Exception):
 
 
 class VerifiedFinalPayloadActuator:
-    """The final safety net immediately before the real HTTP call. Wraps an
-    upstream ``async def (action, payload)`` callable (typically a
-    :class:`ResourceBoundActuator` wrapping the real
-    :class:`GitHubIssueActuator`) and is bound, AT CONSTRUCTION, to EXACTLY
-    the one action/payload_hash it may ever forward.
+    """The final safety net immediately before the real HTTP call. Wraps a
+    raw :class:`GitHubIssueActuator` and is bound, AT CONSTRUCTION, to
+    EXACTLY the one action/resource/payload_hash it may ever forward.
 
-    Round 21: this is now deliberately IMMUTABLE and single-shot -- there is
-    no ``.expect(...)`` mutator, and no settable property, on this object at
+    Round 21: this is deliberately IMMUTABLE and single-shot -- there is no
+    ``.expect(...)`` mutator, and no settable property, on this object at
     all. A given instance may be awaited (``__call__``ed) AT MOST ONCE: a
     second attempt raises :class:`PayloadBindingError` before touching the
     wrapped actuator, exactly like a mismatch does. This closes the Round 20
@@ -234,20 +232,47 @@ class VerifiedFinalPayloadActuator:
     every governed call gets its OWN, independently-bound instance (see
     :class:`VerifiedDispatchSlot`, which installs a fresh one per call).
 
-    The action/payload_hash bound at construction should come from the real
-    verified authorization -- for the two-step
-    ``issue_authority``/``enforce_authority`` path, the actual signed
-    ``issued.token["action"]``/``issued.token["payload_hash"]``; for the
-    one-step ``run_positive_path`` convenience path (where no token exists
-    yet at call time), the exact canonical payload about to be submitted,
-    hashed with the SAME ``hash_payload`` the real ``ExecutionGate`` uses.
-    Either way this is never a value derived from the payload AFTER this
-    check runs."""
+    Round 24: also bound to ``resource`` -- the CURRENT call's authorized
+    resource, compared at dispatch time against the raw actuator's own
+    configured destination. This closes a gap ``ResourceBoundActuator``
+    alone left open: that class only ever compares two values fixed at
+    CONSTRUCTION time against each other (the slot's own
+    ``authorized_resource`` vs. the raw actuator's configured repo) --
+    neither of which is the resource the token PRESENTED FOR THIS CALL
+    actually authorizes. A genuinely signed token naming a DIFFERENT
+    resource than the one the slot/actuator happened to be built for could
+    previously still dispatch, silently, to the actuator's fixed
+    destination. Binding ``resource`` here, from the same real verified
+    source as ``action``/``payload_hash`` (the signed token's own
+    ``resource_id`` for the two-step path; the proposal's own resource,
+    which becomes the token's ``resource_id``, for the one-step path),
+    closes it: every dispatch re-proves the CURRENT call's authorization
+    still names the actuator's real destination, not merely that the slot
+    was once built for it.
 
-    def __init__(self, actuator: Any, *, action: str, payload_hash: str) -> None:
+    The action/resource/payload_hash bound at construction should come
+    from the real verified authorization -- for the two-step
+    ``issue_authority``/``enforce_authority`` path, the actual signed
+    ``issued.token["action"]``/``["resource_id"]``/``["payload_hash"]``;
+    for the one-step ``run_positive_path`` convenience path (where no token
+    exists yet at call time), the exact action/resource/canonical payload
+    about to be submitted, hashed with the SAME ``hash_payload`` the real
+    ``ExecutionGate`` uses. Either way this is never a value derived from
+    the payload AFTER this check runs."""
+
+    def __init__(
+        self, actuator: Any, *, action: str, resource: str, payload_hash: str, configured_resource: str,
+    ) -> None:
         self._actuator = actuator
         self._action = action
+        self._resource = resource
         self._payload_hash = payload_hash
+        # The raw actuator's OWN configured destination -- captured by the
+        # constructing ``VerifiedDispatchSlot`` directly from the raw
+        # ``GitHubIssueActuator.config.repo``, since ``actuator`` here is
+        # typically a ``ResourceBoundActuator`` wrapper that does not itself
+        # expose ``.config``.
+        self._configured_resource = configured_resource
         self._consumed = False
 
     async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
@@ -264,6 +289,13 @@ class VerifiedFinalPayloadActuator:
                 f"authorized action {self._action!r}; refusing before any "
                 "external call"
             )
+        if self._resource != self._configured_resource:
+            raise ResourceBindingError(
+                f"this call's authorized resource {self._resource!r} (from the real "
+                f"verified authorization) does not match the actuator's configured "
+                f"destination {self._configured_resource!r}; refusing before any "
+                "external call"
+            )
         actual_hash = hash_payload(payload)
         if actual_hash != self._payload_hash:
             raise PayloadBindingError(
@@ -278,12 +310,16 @@ class VerifiedDispatchSlot:
     """The invocation-local dispatch point every governed call routes
     through a real GitHub actuator via. Wraps a raw
     :class:`GitHubIssueActuator` in a :class:`ResourceBoundActuator`
-    (config-only/stable -- constructed exactly once here, safe to share)
-    and holds AT MOST ONE currently-armed, single-shot,
-    :class:`VerifiedFinalPayloadActuator` at a time.
+    (config-only/stable -- constructed exactly once here, retained as a
+    deployment-misconfiguration guard: does the SLOT's own intended
+    resource, fixed at construction, match the actuator's configured
+    destination) and holds AT MOST ONE currently-armed, single-shot,
+    :class:`VerifiedFinalPayloadActuator` at a time -- the Round 24 guard
+    that additionally re-checks THIS call's actual authorized resource
+    (from the real token) against that same destination, every dispatch.
 
-    ``expect(action=, payload_hash=)`` REPLACES whatever verifier was
-    previously installed -- it never mutates an existing one (there is
+    ``expect(action=, resource=, payload_hash=)`` REPLACES whatever verifier
+    was previously installed -- it never mutates an existing one (there is
     nothing on :class:`VerifiedFinalPayloadActuator` to mutate; each is
     immutable once constructed). Round 21 requirement 2: no persistent
     mutable operation identity survives from one governed call into a
@@ -294,19 +330,23 @@ class VerifiedDispatchSlot:
     first thing it does, so a caller that forgets to (re-)arm before a call
     that reaches this slot fails closed with :class:`PayloadBindingError`
     -- either because nothing at all is installed, or because whatever
-    remains installed was bound to a DIFFERENT action/payload and the
-    mismatch is caught exactly as for any other tamper. A shared instance
-    of this slot is therefore safe to reuse across independent governed
-    calls: the security-critical verification state is always
+    remains installed was bound to a DIFFERENT action/resource/payload and
+    the mismatch is caught exactly as for any other tamper. A shared
+    instance of this slot is therefore safe to reuse across independent
+    governed calls: the security-critical verification state is always
     invocation-local, never a value one call's preparation leaves lying
     around for a different call to silently benefit from."""
 
     def __init__(self, actuator: "GitHubIssueActuator", *, authorized_resource: str) -> None:
         self._bound = ResourceBoundActuator(actuator, authorized_resource=authorized_resource)
+        self._raw = actuator
         self._current: Optional[VerifiedFinalPayloadActuator] = None
 
-    def expect(self, *, action: str, payload_hash: str) -> None:
-        self._current = VerifiedFinalPayloadActuator(self._bound, action=action, payload_hash=payload_hash)
+    def expect(self, *, action: str, resource: str, payload_hash: str) -> None:
+        self._current = VerifiedFinalPayloadActuator(
+            self._bound, action=action, resource=resource, payload_hash=payload_hash,
+            configured_resource=self._raw.config.repo,
+        )
 
     async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
         verifier = self._current

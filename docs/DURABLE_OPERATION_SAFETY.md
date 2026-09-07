@@ -1,4 +1,4 @@
-# Durable Logical-Operation Safety (Rounds 17-23)
+# Durable Logical-Operation Safety (Rounds 17-24)
 
 ## The defect this closes
 
@@ -551,3 +551,100 @@ drift apart.
 | Defect | Fix |
 |---|---|
 | `require_coherent_marker_context` compared a payload's marker against the caller's `logical_operation_id` argument, but never validated that argument itself was safe -- a direct caller bypassing `prepare_marked_call` could get an unsafe id (`-->`/`<!--`/newline/carriage-return) accepted if a hand-crafted body's marker text matched it | `require_coherent_marker_context` now calls `validate_operation_id_for_marker(logical_operation_id)` before inspecting the payload's body at all -- validated at all three protected boundaries (`run_positive_path`/`issue_authority`/`enforce_authority`) via the one shared pipeline helper, with no way for a direct caller to skip it. |
+
+## Round 24 — TOCTOU, per-call resource binding, and reconciliation content/shape hardening
+
+An independent review of the Round 23 commit
+(`a4c4a32c7e13fd5a3d463d27450be26588cf3c75`) reported six findings. Two
+described calling `mcc_core.coordinator.enforce`/
+`gateway.governance_service.GovernanceService.execute_with_mandate`
+**directly**, bypassing `pipeline.py` entirely — accurate as code
+observations, but not a regression: those are the shared, domain-neutral
+primitives every other governed domain in this repository (payments,
+infra, robotics, VoltAgent, egress) also uses, and Round 21 explicitly
+required keeping GitHub-specific rules *out* of that layer. The Astra
+reference boundary itself (`pipeline.py`) was independently re-verified to
+still reject both cases correctly. Left as-is.
+
+The other four were genuine, live-reproducible gaps in this package's own
+code, confirmed by direct reproduction against the real chain BEFORE each
+fix, then re-run to confirm each is closed:
+
+### 1. TOCTOU via a mutable payload dict
+
+`pipeline.enforce_authority` used the caller's own payload object, by
+reference, across every `await` inside `coordinator.enforce` (idempotency
+reservation, velocity, audit) between the point the Gate verifies its hash
+and the point `executor()` actually dispatches it. Reproduced: arm
+`VerifiedDispatchSlot` for operation A but never consume it (a blocked
+attempt); start `enforce_authority` for a genuinely signed token for
+operation B built on a caller-held mutable dict; mutate that SAME dict back
+to A's content from inside a patched `idempotency.reserve` (an await point
+strictly between Gate verification and dispatch). Before the fix: `EXECUTED`,
+A's content actually sent under B's token/audit trail,
+`hash(sent) != token["payload_hash"]`. Fix: `effective_payload` is now
+`copy.deepcopy`'d into a private snapshot synchronously, before the first
+`await` — every subsequent read (context coherence, the Gate, and
+`executor()`'s dispatch) uses that same frozen copy, unreachable by any
+external reference. After the fix the same reproduction correctly returns
+`EXECUTION_FAILED`/`UNKNOWN` (the stale slot A correctly refuses B's real,
+unmutated content) with zero issues recorded.
+
+### 2. Resource binding not tied to the current token
+
+`ResourceBoundActuator` only ever compared two values fixed at
+*construction* time against each other — the slot's own
+`authorized_resource` and the raw actuator's configured `repo` — never the
+CURRENT call's actual authorized resource. Reproduced: build a slot for
+`REPO_A` (matching the raw actuator's own config, unremarkably); present a
+genuinely signed token naming `REPO_B`; `EXECUTED`, dispatched to `REPO_A`
+regardless of what the token said. Fix: `VerifiedFinalPayloadActuator` is
+now also bound, at construction, to `resource` (the current call's real
+authorized resource, from the same trusted source as `action`/`payload_hash`
+— the signed token's `resource_id` for the two-step path, the proposal's
+resource for the one-step path) and `configured_resource` (the raw
+actuator's own destination, captured by `VerifiedDispatchSlot` once);
+`__call__` raises `ResourceBindingError` on mismatch, every dispatch.
+`VerifiedDispatchSlot.expect(...)`/`_CountingActuator.expect(...)` (and
+every call site: `governed_call.prepare_marked_call`, `cli.py`'s
+tamper/replay/expired, `adversarial.py`'s `run_stale_authority_rebinding`)
+now pass `resource=` alongside `action=`/`payload_hash=`.
+
+### 3. Reconciliation resolved on marker+repo alone
+
+`reconcile_github_issue_operation` validated the STORED REGISTRY record's
+binding against the token, and the candidate's reported repository —  but
+never hashed the candidate's own reported `title`/`body` and compared
+against `payload_hash`. Reproduced: park an operation UNKNOWN; inject a
+candidate issue with the correct marker and correct repo but completely
+different content; resolved UNKNOWN → EXECUTED anyway. Fix: after the
+marker+repository match, the candidate's own `{"title", "body"}` is hashed
+with the same `hash_payload` the Gate uses and compared against
+`payload_hash`; any mismatch refuses, leaving the record exactly as it was.
+
+### 4. Reconciliation could never match real GitHub data
+
+The real GitHub REST API reports an issue's repository via
+`repository_url` (e.g. `"https://api.github.com/repos/{owner}/{repo}"`),
+never a bare `repo` field — that field is this package's own mock
+service's convenience shape. Without support for the real shape,
+reconciliation could never resolve anything against genuine GitHub data at
+all (fails closed — a functional gap, not a security one). Fix:
+`_issue_repository_identity` recognizes both shapes; the mock service's own
+`GET /repos/{owner}/{repo}/issues` filter (`_matches_repo`) was hardened
+identically so an end-to-end test using a candidate reported *only* via
+`repository_url` (no mock-specific `repo` field at all) is provably found
+and correctly resolved.
+
+`tests/test_gpt6_astra_round24_hardening.py` (11 tests) proves all four,
+each with the exploit reproduction plus a positive control proving the
+honest case still works unmodified.
+
+### Round 23 → Round 24 fix map
+
+| Defect | Fix |
+|---|---|
+| A caller-held mutable payload dict could be mutated during `coordinator.enforce`'s await window, after the Gate verified it but before `executor()` dispatched it, letting a stale slot expectation accept mismatched content | `enforce_authority` deep-copies the effective payload into a private snapshot before its first `await`; the Gate and the actuator dispatch always see the identical, frozen content. |
+| `ResourceBoundActuator`/`VerifiedFinalPayloadActuator` never compared the CURRENT call's authorized resource against the actuator's real destination — only two construction-time-fixed values against each other | `VerifiedFinalPayloadActuator` is now also bound to `resource` (from the real token/proposal) and `configured_resource` (the raw actuator's own destination); every dispatch re-verifies them match. |
+| Reconciliation resolved UNKNOWN/DISPATCH_OWNED → EXECUTED on a marker+repository match alone, never checking the candidate's own content against `payload_hash` | The candidate's `{"title","body"}` is hashed and compared against `payload_hash` before any resolution. |
+| Reconciliation's repository check (`issue.get("repo")`) could never match the real GitHub REST API's response shape (`repository_url`, no `repo` field) | `_issue_repository_identity` recognizes both shapes; the mock service's own query filter was hardened to match. |

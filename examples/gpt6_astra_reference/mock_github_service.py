@@ -58,6 +58,26 @@ def recorded_issues() -> List[Dict[str, Any]]:
     return list(_STATE.issues)
 
 
+def _matches_repo(issue: Dict[str, Any], owner: str, repo: str) -> bool:
+    """Round 24: matches an issue against ``{owner}/{repo}`` using either
+    this service's own convenience ``repo`` field OR the real GitHub REST
+    API's ``repository_url`` shape (e.g.
+    ``"https://api.github.com/repos/{owner}/{repo}"``) -- a candidate
+    reported only via the latter (as a real GitHub response, or a test
+    reproducing one, would be) must still be found by this endpoint's own
+    query-scoping filter, not silently excluded. A ``.get(...)`` throughout
+    -- an issue missing both fields simply never matches, never raises."""
+    target = f"{owner}/{repo}"
+    if issue.get("repo") == target:
+        return True
+    repo_url = issue.get("repository_url")
+    if isinstance(repo_url, str):
+        parts = repo_url.rstrip("/").split("/")
+        if len(parts) >= 2 and f"{parts[-2]}/{parts[-1]}" == target:
+            return True
+    return False
+
+
 class IssueIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(min_length=1)
@@ -73,7 +93,7 @@ def build_mock_github_service() -> FastAPI:
 
     @app.get("/repos/{owner}/{repo}/issues")
     def list_issues(owner: str, repo: str) -> Dict[str, Any]:
-        matching = [i for i in _STATE.issues if i["repo"] == f"{owner}/{repo}"]
+        matching = [i for i in _STATE.issues if _matches_repo(i, owner, repo)]
         return {"count": len(matching), "issues": matching}
 
     @app.post("/repos/{owner}/{repo}/issues")

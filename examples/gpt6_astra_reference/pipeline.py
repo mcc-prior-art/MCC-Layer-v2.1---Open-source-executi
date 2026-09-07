@@ -33,6 +33,7 @@ no second Gate:
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -287,9 +288,25 @@ async def enforce_authority(
     operation A: the Gate's own hash check alone cannot catch this (the
     hash can match perfectly fine), so this must be independent of it.
     Reading the marker establishes no authority by itself; the real Gate
-    still verifies the token's signature/binding exactly as before."""
+    still verifies the token's signature/binding exactly as before.
+
+    Round 24: ``payload``/``issued.canonical_payload`` is a mutable dict the
+    CALLER still holds a live reference to. ``coordinator.enforce`` awaits
+    through several admission steps (idempotency reservation, velocity,
+    audit) between the point the Gate verifies this payload's hash and the
+    point ``executor()`` finally dispatches it -- an event loop can run
+    other, concurrently-scheduled code during any of those suspensions. If
+    the caller (or anything else holding a reference to the SAME dict
+    object) mutated it during that window, the Gate's verification and the
+    actual outbound dispatch would silently observe DIFFERENT content, even
+    though both reads target the identical object. A deep-copied snapshot
+    is taken here, synchronously, before this function's first ``await`` --
+    every subsequent read (context coherence, the Gate via
+    ``coordinator.enforce``, and ``executor()``'s own dispatch) uses this
+    SAME private, frozen-in-effect copy, which no external reference can
+    reach or mutate."""
     require_logical_operation_id(issued.token.get("idempotency_key"))
-    effective_payload = payload if payload is not None else issued.canonical_payload
+    effective_payload = copy.deepcopy(payload if payload is not None else issued.canonical_payload)
     _require_github_issue_context_coherence(
         action=action, payload=effective_payload,
         logical_operation_id=issued.token.get("idempotency_key"),

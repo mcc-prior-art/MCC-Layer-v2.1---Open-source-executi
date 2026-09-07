@@ -95,8 +95,8 @@ class _CountingUpstream:
         self._actuator = actuator
         self.calls = 0
 
-    def expect(self, *, action: str, payload_hash: str) -> None:
-        self._actuator.expect(action=action, payload_hash=payload_hash)
+    def expect(self, *, action: str, resource: str, payload_hash: str) -> None:
+        self._actuator.expect(action=action, resource=resource, payload_hash=payload_hash)
 
     async def __call__(self, action: str, payload):
         self.calls += 1
@@ -273,7 +273,7 @@ def _armed_slot_and_original_payload(stack: LocalAstraDemoStack):
         {"title": "Armed-and-verified issue", "body": "Original, authorized body."},
         logical_operation_id="op-tamper-boundary-1",
     )
-    slot.expect(action=ACTION, payload_hash=hash_payload(original_payload))
+    slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(original_payload))
     return slot, original_payload
 
 
@@ -355,7 +355,7 @@ def test_destination_mismatch_blocked_before_network_call():
         payload = build_marked_payload(
             {"title": "t", "body": "b"}, logical_operation_id="op-destination-mismatch-1",
         )
-        slot.expect(action=ACTION, payload_hash=hash_payload(payload))
+        slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(payload))
 
         with pytest.raises(ResourceBindingError):
             run(slot(ACTION, payload))
@@ -607,7 +607,7 @@ def test_forget_to_arm_after_successful_attempt_fails_closed():
     with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
         slot = _build_dispatch_slot(stack, authorized_resource=DEMO_REPO)
         payload1 = build_marked_payload({"title": "first", "body": "b"}, logical_operation_id="op-forget-1")
-        slot.expect(action=ACTION, payload_hash=hash_payload(payload1))
+        slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(payload1))
         result1 = run(slot(ACTION, payload1))
         assert result1 is not None
         assert len(recorded_issues()) == 1
@@ -630,7 +630,7 @@ def test_forget_to_arm_after_blocked_attempt_fails_closed():
     with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
         slot = _build_dispatch_slot(stack, authorized_resource=DEMO_REPO)
         payload1 = build_marked_payload({"title": "blocked", "body": "b"}, logical_operation_id="op-blocked-1")
-        slot.expect(action=ACTION, payload_hash=hash_payload(payload1))
+        slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(payload1))
         # ... the attempt this was armed for is blocked upstream and never
         # reaches this slot at all (no call happens here).
 
@@ -650,8 +650,8 @@ def test_overlapping_arm_preserves_latest_context_never_a_stale_one():
         payload_a = build_marked_payload({"title": "A", "body": "b"}, logical_operation_id="op-overlap-A")
         payload_b = build_marked_payload({"title": "B", "body": "b"}, logical_operation_id="op-overlap-B")
 
-        slot.expect(action=ACTION, payload_hash=hash_payload(payload_a))
-        slot.expect(action=ACTION, payload_hash=hash_payload(payload_b))  # overlap: replaces A's context
+        slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(payload_a))
+        slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(payload_b))  # overlap: replaces A's context
 
         # A's own payload can no longer be dispatched -- its context was discarded.
         with pytest.raises(PayloadBindingError):
@@ -659,7 +659,7 @@ def test_overlapping_arm_preserves_latest_context_never_a_stale_one():
         assert recorded_issues() == []
 
         # A fresh arm+dispatch with B's real payload succeeds normally.
-        slot.expect(action=ACTION, payload_hash=hash_payload(payload_b))
+        slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(payload_b))
         result = run(slot(ACTION, payload_b))
         assert result is not None
         issues = recorded_issues()

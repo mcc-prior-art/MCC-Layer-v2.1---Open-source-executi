@@ -744,11 +744,13 @@ async def run_stale_authority_rebinding(*, tamper: str) -> AdversarialResult:
             tampered_payload["title"] = "STALE-AUTHORITY REBIND ATTEMPT — never authorized"
             kwargs["payload"] = tampered_payload
 
-        # Round 19: armed with the REAL, signed token's own action/payload_hash
-        # -- a final-boundary backstop alongside the Gate's own binding checks.
+        # Round 19/24: armed with the REAL, signed token's own
+        # action/resource/payload_hash -- a final-boundary backstop
+        # alongside the Gate's own binding checks.
         if actuator.github_slot is not None:
             actuator.github_slot.expect(
-                action=issued.token["action"], payload_hash=issued.token["payload_hash"],
+                action=issued.token["action"], resource=issued.token["resource_id"],
+                payload_hash=issued.token["payload_hash"],
             )
         outcome = await enforce_authority(
             stack.service, issued=issued, actor=ACTOR, attestation=att.raw_attestation, **kwargs,
