@@ -1,4 +1,4 @@
-"""Round 26 — logical_operation_id propagation through the VoltAgent/AXFlow
+"""Round 26/27 — logical_operation_id propagation through the VoltAgent/AXFlow
 clinic operator continuation step.
 
 ``integrations/voltagent/mcc_side/operator_cli.py`` is the operator-side
@@ -7,8 +7,15 @@ process that continues an ESCALATE after approval: it reads the
 ``/approvals/{id}/execute``. Round 25 made ``idempotency_key`` mandatory at
 the coordinator; these tests prove this script reuses the SAME logical
 operation identity the original proposal recorded (its ``correlationId``) --
-never a fresh one, never derived from mutable context/payload -- both for
-the ordinary case and when a caller's state predates this field entirely.
+never a fresh one, never derived from mutable context/payload.
+
+Round 27 closes a gap in Round 26's own fallback: a state file missing
+``correlationId`` used to fall back to the approval's own ``request_id`` --
+an identifier from a different subsystem, minted at a different time, never
+proven equivalent to the original logical operation. That fallback is now
+removed; a state without its original ``correlationId`` fails closed before
+any operator action (not approved, not executed -- zero actuator
+invocations), rather than substituting a different identity.
 """
 
 from __future__ import annotations
@@ -119,32 +126,29 @@ def test_two_operator_runs_for_two_different_escalations_get_two_different_ids(
     assert seen_keys == ["corr-op-a", "corr-op-b"]
 
 
-def test_missing_correlation_id_in_state_falls_back_to_request_id_never_empty(
+def test_missing_correlation_id_in_state_fails_closed_never_falls_back_to_request_id(
     tmp_path, monkeypatch
 ):
-    """A state file from an older/foreign recorder that lacks correlationId
-    entirely must still produce a non-empty, stable identity (the request id)
-    -- never an empty string, never None, and the coordinator's mandatory
-    check is never silently worked around by sending a blank value."""
-    captured = {}
+    """Round 27: request_id is NEVER treated as equivalent to the original
+    logical_operation_id -- they are minted by different subsystems, at
+    different times, for different purposes, and the implementation cannot
+    prove they name the same canonical operation. A state file from an
+    older/foreign recorder that lacks correlationId entirely (legacy,
+    malformed, or hand-edited) must fail closed BEFORE any operator action:
+    not approved, not executed -- zero actuator invocations, and not even
+    the approval endpoint is called."""
+    calls = []
 
     def handler(request: httpx.Request) -> httpx.Response:
-        path = request.url.path
-        if path.endswith("/approve"):
-            return httpx.Response(200, json={"state": "APPROVED", "mandate": {"m": 1}})
-        if path.endswith("/execute"):
-            captured["body"] = json.loads(request.content)
-            return httpx.Response(200, json={"status": "EXECUTED", "execution": {"ok": True}})
-        if path.endswith("/verify"):
-            return httpx.Response(200, json={"valid": True})
-        return httpx.Response(404)
+        calls.append(request.url.path)
+        return httpx.Response(500, json={"error": "must never be called"})
 
     state = {
         "requestId": "req-no-corr",
         "actor": "agent/notify-bot",
         "resource": "crm",
         "context": {"recipient": "c-1"},
-        # correlationId deliberately omitted.
+        # correlationId deliberately omitted -- the exact legacy/malformed case.
     }
     (tmp_path / "escalation.json").write_text(json.dumps(state), encoding="utf-8")
     _install_mock_gateway(monkeypatch, handler)
@@ -152,10 +156,38 @@ def test_missing_correlation_id_in_state_falls_back_to_request_id_never_empty(
 
     rc = operator_cli.main()
 
-    assert rc == 0
-    key = captured["body"]["idempotency_key"]
-    assert isinstance(key, str) and key.strip()
-    assert key == "req-no-corr"
+    assert rc == 1
+    assert calls == []  # zero actuator invocations -- not even /approve ran
+
+
+@pytest.mark.parametrize("bad_correlation_id", ["", "   ", None, 12345])
+def test_blank_or_non_string_correlation_id_also_fails_closed(
+    tmp_path, monkeypatch, bad_correlation_id
+):
+    """Empty, whitespace-only, null, or non-string correlationId values are
+    exactly as invalid as a missing key entirely -- never coerced to a
+    string, never treated as present, never silently repaired."""
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        return httpx.Response(500, json={"error": "must never be called"})
+
+    state = {
+        "requestId": "req-bad-corr",
+        "actor": "agent/notify-bot",
+        "resource": "crm",
+        "context": {"recipient": "c-1"},
+        "correlationId": bad_correlation_id,
+    }
+    (tmp_path / "escalation.json").write_text(json.dumps(state), encoding="utf-8")
+    _install_mock_gateway(monkeypatch, handler)
+    _set_env(monkeypatch, tmp_path)
+
+    rc = operator_cli.main()
+
+    assert rc == 1
+    assert calls == []
 
 
 def test_gateway_rejection_for_missing_id_would_surface_as_failure(tmp_path, monkeypatch):
