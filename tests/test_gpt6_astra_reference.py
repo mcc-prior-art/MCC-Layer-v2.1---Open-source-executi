@@ -127,6 +127,7 @@ def test_5_actuator_not_called_when_authority_verification_fails():
         proposal = AstraProposal(action=ACTION, resource=stack.demo_repo, payload={"title": "t", "body": "b"})
         outcome = run(run_positive_path(
             stack.service, mandate=bad_mandate, actor=ACTOR, proposal=proposal, attestation=None,
+            logical_operation_id="op-test-5",
         ))
         assert outcome.status != "EXECUTED"
         assert calls["n"] == 0

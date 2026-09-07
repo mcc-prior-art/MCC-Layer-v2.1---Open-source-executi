@@ -30,8 +30,9 @@ from typing import Any, Dict
 from mcc_attester_service import AssessmentResult, AttesterService, AttesterServiceConfig, DeterministicTestProvider
 from mcc_core import AuditLog, EnforcementCoordinator, ExecutionGate, ProfileRegistry, SigningKey, issue_mandate
 from mcc_core import (
-    InMemoryApprovalRegistry, InMemoryIdempotencyRegistry, InMemoryNonceRegistry,
+    InMemoryApprovalRegistry, InMemoryNonceRegistry,
     InMemoryRevocationRegistry, InMemoryVelocityRegistry, ApprovalService,
+    idempotency_registry_from_env,
 )
 
 from gateway.governance_service import GovernanceService
@@ -69,6 +70,22 @@ class LocalAstraDemoStack:
                  assessment_table: Dict[str, AssessmentResult] | None = None,
                  mandate_action_scope=(ACTION,), mandate_resource_scope=None,
                  token_ttl_seconds: int = 60) -> None:
+        # 0. Round 18: select the idempotency backend through the SAME
+        #    enforcement-aware factory production code uses -- never a bare
+        #    ``InMemoryIdempotencyRegistry()`` construction here. By default
+        #    (``MCC_DEPLOYMENT_MODE`` unset/``reference``) this still resolves
+        #    to in-memory, exactly as before, for local demo/test runs that
+        #    never invoke a real actuator. The moment an operator configures
+        #    ``MCC_DEPLOYMENT_MODE=enforcement`` -- required before this stack
+        #    could ever be pointed at a real external actuator -- construction
+        #    fails closed (``IdempotencyConfigError``) unless a real, shared,
+        #    durable backend (``MCC_IDEMPOTENCY_BACKEND=redis`` +
+        #    ``MCC_REDIS_URL``) is configured. Selected FIRST, before any
+        #    server/thread is started, so a fail-closed refusal here never
+        #    leaks a running mock-service port. See
+        #    ``docs/DURABLE_OPERATION_SAFETY.md``.
+        idempotency_backend = idempotency_registry_from_env()
+
         reset_issues()
         self.demo_repo = demo_repo
         self.profiles = ProfileRegistry.default_pilot()
@@ -109,7 +126,7 @@ class LocalAstraDemoStack:
         self._audit_path = tempfile.mkdtemp(prefix="astra-demo-audit-") + "/audit.jsonl"
         self.audit = AuditLog(self._audit_path)
         self.coordinator = EnforcementCoordinator(
-            gate=self.gate, idempotency=InMemoryIdempotencyRegistry(),
+            gate=self.gate, idempotency=idempotency_backend,
             velocity=InMemoryVelocityRegistry(), audit=self.audit,
             profiles=self.profiles, revocation_registry=InMemoryRevocationRegistry(),
         )

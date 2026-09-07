@@ -250,6 +250,41 @@ def test_fresh_authorization_for_unknown_operation_blocks_second_actuation(tmp_p
     assert seen == []  # the actuator was never invoked a second time
 
 
+def test_no_second_actuator_invocation_after_ambiguous_first_attempt(tmp_path):
+    """Round 18 requirement 8's mutation detector: the safety property this
+    checks is PURELY "does a second actuator invocation ever become
+    possible" -- deliberately independent of which exact intermediate
+    state label (``UNKNOWN`` vs ``DISPATCH_OWNED``) the first attempt left
+    behind. A detector that instead (or also) asserts an exact state label
+    can fail on a harmless label technicality without ever proving a real
+    duplicate execution is possible -- see ``mutation/defects.py``'s
+    ``idempotency-reserve-reopens-pending-states`` and the explicit
+    instruction not to count such a detector."""
+    engine, coord, audit = build(tmp_path)
+    token1, payload1 = payment(engine, idem="op-1", txn="txn-A")
+
+    async def boom():
+        raise RuntimeError("upstream 500")
+
+    first_seen = []
+
+    async def boom_after_count():
+        first_seen.append("executed")
+        raise RuntimeError("upstream 500")
+
+    first = run(coord.enforce(token=token1, action="send_payment", payload=payload1,
+                              executor=boom_after_count, now=NOW))
+    assert first.status == ActuationStatus.EXECUTION_FAILED
+    assert first_seen == ["executed"]  # the first (only legitimate) invocation
+
+    token2, payload2 = payment(engine, idem="op-1", txn="txn-B")
+    second_seen = []
+    second = run(coord.enforce(token=token2, action="send_payment", payload=payload2,
+                               executor=runner(second_seen), now=NOW))
+    assert second.status == ActuationStatus.BLOCKED
+    assert second_seen == []  # no second invocation, whatever the intermediate state is named
+
+
 def test_two_valid_tokens_same_key_at_most_one_side_effect(tmp_path):
     """Test scenario 23: two separately-signed, independently valid
     authorizations for the same logical operation -> at most one external
@@ -331,7 +366,7 @@ class _UnfinalizableIdempotency(InMemoryIdempotencyRegistry):
     to durably persist EXECUTED -- models a backend outage occurring exactly
     between a successful external call and the durable success write."""
 
-    async def mark_executed(self, key, *, fence, binding="", result_ref=None, ttl_seconds=None):
+    async def mark_executed(self, key, *, fence, binding="", result_ref=None):
         return False
 
 

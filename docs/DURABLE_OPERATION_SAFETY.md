@@ -1,4 +1,4 @@
-# Durable Logical-Operation Safety (Round 17)
+# Durable Logical-Operation Safety (Rounds 17-18)
 
 ## The defect this closes
 
@@ -23,35 +23,39 @@ external call was actually attempted:
 ```python
 except Exception as exc:
     if idem_key:
-        await self.idempotency.mark_failed(idem_key)   # <-- deletes the key
+        await self.idempotency.mark_failed(idem_key)   # <-- deleted the key unconditionally
     ...
     return ActuationResult(ActuationStatus.EXECUTION_FAILED, ...)
 ```
 
-`mark_failed` deleted the idempotency record unconditionally. A caller who
-retried with a fresh, independently valid, differently-nonced authorization
-for the same logical operation would be admitted again — even though the
-first attempt's external side effect might already have happened (a timeout,
-a dropped connection, or a lost response all look identical to "the executor
-raised" from the coordinator's point of view). The old idempotency binding
-also keyed only on `payload_hash` (`str(token.get("payload_hash", ""))`),
-so the same `idempotency_key` could, in principle, be silently reused across
-a different `action` or a different `resource` without being rejected as a
-distinct operation.
+`mark_failed` deleted the idempotency record unconditionally, regardless of
+current state or ownership. Round 17 fixed the coordinator's own call site
+(the exception handler now calls the fenced `mark_unknown`), but Round 18's
+independent re-inspection found `mark_failed` itself still existed as an
+unfenced, state-blind "legacy" API on both registries — reachable by any
+future caller, and (worse) the Round 17 mutation-assurance defect meant to
+prove this class of regression stays caught was itself only catchable on a
+harmless state-label technicality. Round 18 closes both: the unsafe API is
+now **removed entirely**, and the mutation defect was replaced with one that
+provably reopens actuation.
 
-## Blocker -> fix map
+## Round 17 -> Round 18 blocker -> fix map
 
-| Round 16/17 blocker | Fix |
+| Blocker | Fix |
 |---|---|
-| `mark_failed` releases ownership after any executor exception, regardless of whether the external call was ever attempted | `coordinator.enforce` now only ever releases the logical operation for a *pre-dispatch* failure (audit-before-actuation, velocity, or the dispatch-commit call itself). Once `commit_dispatch` succeeds, an executor exception calls `mark_unknown`, never `release`/`mark_failed`. |
-| Logical-operation identity was `payload_hash` alone | `binding_ref = hash_document({"action": action, "resource": resource_id, "payload_hash": payload_hash})`. A mismatch on any of the three is `ReserveStatus.BINDING_CONFLICT`, rejected before any reservation. |
-| No durable "dispatch ownership" boundary before the external call | `IdempotencyState.DISPATCH_OWNED`, committed via `commit_dispatch` strictly after audit-before-actuation and strictly before `executor()` is invoked. |
-| `UNKNOWN`/indeterminate state didn't exist | `IdempotencyState.UNKNOWN` — set on any executor exception, and on a failure to durably persist `EXECUTED` after a genuine external success. Blocks `reserve()` (`ReserveStatus.DUPLICATE_UNKNOWN`) exactly like `EXECUTED` does. |
-| State mutation was read-then-write, not fenced | Every mutating call (`commit_dispatch`/`mark_executed`/`mark_unknown`/`release`/`resolve_unknown`) takes the `fence` (generation) token `reserve()` issued and performs a single atomic compare-and-swap (a Lua script in Redis; a synchronous critical section in the in-memory backend) against both the current state and that fence. |
-| `get_state` returned `None` on both "not found" and "backend down" | `get_state` raises `IdempotencyBackendUnavailable` on any backend failure; `None` means, unambiguously, "no record". |
-| No reconciliation path | `examples/gpt6_astra_reference/reconciliation.py` — read-only; the ONLY thing that may move `UNKNOWN -> EXECUTED`, and only from positive, exact external evidence (an issue whose body carries the operation's own marker). |
-| No resource-binding check between the authorized resource and the actuator's own configured destination | `github_actuator.ResourceBoundActuator` — checked synchronously, before any HTTP call. |
-| The Astra-facing request path had no `logical_operation_id` concept at all | `models.require_logical_operation_id` — a protected action's request is rejected before governance is ever invoked if it doesn't carry one; it becomes the signed token's `idempotency_key`. |
+| (R17) `mark_failed` releases ownership after any executor exception | `coordinator.enforce` only releases the logical operation for a *pre-dispatch* failure; once `commit_dispatch` succeeds, an executor exception calls `mark_unknown`. |
+| (R17) Logical-operation identity was `payload_hash` alone | `binding_ref = hash_document({"action":.., "resource":.., "payload_hash":..})`; a mismatch is `BINDING_CONFLICT`. |
+| (R17) No durable "dispatch ownership" boundary | `IdempotencyState.DISPATCH_OWNED`, committed strictly after audit-before-actuation and strictly before `executor()`. |
+| (R17) No `UNKNOWN`/indeterminate state | `IdempotencyState.UNKNOWN`; blocks `reserve()` exactly like `EXECUTED`. |
+| (R17) State mutation was read-then-write | Every mutation is a fenced (generation-token) CAS. |
+| (R18) `mark_failed` still existed as an unfenced deletion API, usable against `DISPATCH_OWNED`/`UNKNOWN`/`EXECUTED` | **Removed entirely** from both `InMemoryIdempotencyRegistry` and `RedisIdempotencyRegistry` — there is no deletion-capable call except the already-fenced `release()`, which only ever succeeds from `RESERVED` with the current generation. |
+| (R18) `mark_executed` accepted an optional `ttl_seconds`, which — if a caller ever passed one — would let a **terminal** `EXECUTED` record expire and silently become re-admittable | `ttl_seconds` removed from `mark_executed`'s signature on both backends. An `EXECUTED` record is unconditionally permanent; there is no parameter that can reopen it. |
+| (R18) The Astra reference stack (`_localstack.py`) constructed `InMemoryIdempotencyRegistry()` directly, bypassing the enforcement-mode gate entirely | Replaced with `idempotency_registry_from_env()` — the SAME factory production code uses — selected before any server/thread starts. `MCC_DEPLOYMENT_MODE=enforcement` now fails the stack's own construction closed unless a real Redis backend is configured. |
+| (R18) `logical_operation_id` was only enforced in `cli.py`; `pipeline.run_positive_path`/`issue_authority` themselves still accepted `None`, and `live_matrix.py`/`live_redteam.py`/`adversarial.py` called them without one at all | `logical_operation_id` is now a **required** keyword argument on `run_positive_path`/`issue_authority`, validated (`models.require_logical_operation_id`) as the FIRST thing either function does — before any attestation/authority/gate/actuator call. `enforce_authority` independently re-validates the token's own `idempotency_key` too (defense in depth). Every caller across the package (CLI, adversarial scenarios, the live matrix, the live red-team loop) now mints and threads one explicitly. |
+| (R18) `adversarial.build_multi_actuator` wired a RAW `GitHubIssueActuator` for `CANONICAL_ACTION`, bypassing `ResourceBoundActuator`/`LogicalOperationMarkerActuator` entirely (only `cli.py`'s path had them) | Wrapped identically to `cli.py`; `LogicalOperationMarkerActuator.logical_operation_id` is now a mutable property so ONE long-lived actuator (shared across a multi-turn adversarial scenario) can still be updated, immediately before each governed call, to the exact id that call presents — never a second, independently-drifting id. A static architecture guard enumerates every raw `GitHubIssueActuator(...)` construction site in the package and asserts each one also imports `ResourceBoundActuator`. |
+| (R18) Reconciliation trusted a marker substring alone | `reconcile_github_issue_operation` now takes the real, gate-verified signed **token** the operation ran under as its single source of truth, and validates the candidate evidence against the STORED registry record on `logical_operation_id` (registry key == `token["idempotency_key"]`), `action` (must be exactly `create_github_issue`), `resource` (must equal the actuator's configured lookup destination, checked before any network call), the authorized payload (via the SAME `hash_document` binding the coordinator computed at admission, compared against the stored record's `binding`), and `generation` (fenced, exactly like every other mutation). Any mismatch refuses before resolving anything. |
+| (R18) A crash after `commit_dispatch` but before `mark_unknown`/`mark_executed` could run left the operation permanently stuck at `DISPATCH_OWNED` with no path forward | `resolve_unknown` now accepts `DISPATCH_OWNED` as a source state (identically to `UNKNOWN`) — reconciliation can resolve either directly to `EXECUTED` from verified positive evidence; absence of evidence leaves either state exactly as it was. |
+| (R18) The mutation-assurance defect modeling this class of regression (`idempotency-unsafe-release-after-dispatch`) mutated the coordinator to call the ALREADY-fenced `release()`, which fails harmlessly against `DISPATCH_OWNED` — so its own detector tests could only fail on a state-*label* technicality, never by proving a real duplicate actuation | Replaced with `idempotency-reserve-reopens-pending-states`, which mutates `reserve()` itself to treat `DISPATCH_OWNED`/`UNKNOWN`/in-flight `RESERVED` as available (only `EXECUTED` remains protected). Its detector (`test_no_second_actuator_invocation_after_ambiguous_first_attempt`) asserts purely on actuator invocation COUNT, deliberately independent of which state label the first attempt left behind. |
 
 ## State machine
 
@@ -63,34 +67,36 @@ distinct operation.
                                              │  └──────────────► (absent)   [retry-eligible]
                                              ▼
                                       DISPATCH_OWNED ── the point of no return
-                                       │           │
-                          mark_unknown()│           │mark_executed() (fenced)
-                                       ▼           ▼
-                                   UNKNOWN      EXECUTED  ── terminal
-                                       │
-                     resolve_unknown() │ (fenced; positive external
-                                       │  evidence only; never creates)
-                                       ▼
-                                   EXECUTED
+                                       │           │      │
+                          mark_unknown()│           │mark_ │
+                                       ▼           ▼ executed()
+                                   UNKNOWN      EXECUTED  ── terminal, permanent, no TTL ever
+                                       │           ▲
+                     resolve_unknown() │           │ resolve_unknown() (fenced; positive
+                     (fenced; positive │           │  external evidence only; never
+                     evidence only)    └───────────┘  creates; also accepts DISPATCH_OWNED
+                                                       as a source state directly)
 ```
 
 * `RESERVED` is the only state with a TTL that feeds admission logic — a
   reservation abandoned before any dispatch commitment is safe to recover
   (no external call could have been attempted).
 * `DISPATCH_OWNED`, `UNKNOWN`, and `EXECUTED` are written with **no**
-  expiry. None of the three ever becomes admittable again through the
+  expiry, ever. None of the three ever becomes admittable again through the
   passage of time; `reserve()` on any of them returns `DUPLICATE_INFLIGHT`,
   `DUPLICATE_UNKNOWN`, or `DUPLICATE_EXECUTED` respectively, forever, until
-  an explicit, independent reconciliation resolves `UNKNOWN -> EXECUTED`.
+  an explicit, independent reconciliation resolves `DISPATCH_OWNED`/
+  `UNKNOWN -> EXECUTED`. `mark_executed` takes no `ttl_seconds` parameter at
+  all (Round 18 removed it) — there is no way to make an `EXECUTED` record
+  expire.
 * A record with a `binding` (the `action`/`resource`/`payload_hash` triple)
   that does not match the presented binding is `BINDING_CONFLICT` — a
   distinct outcome from a plain duplicate, at every state.
-* `mark_executed`/`resolve_unknown` accept an optional `ttl_seconds` purely
-  as an operator-controlled storage-retention knob; it defaults to `None`
-  (no expiry) and is never consulted by `reserve()`'s admission logic. Set
-  it deliberately, as a distinct, explicit garbage-collection decision, if
-  and when a deployment needs to bound storage growth for terminal records —
-  never as a substitute for real archival.
+* There is no deletion-capable call except `release()`, and `release()`
+  itself only ever succeeds from `RESERVED` with the CURRENT generation —
+  every other `(state, fence)` combination is rejected and the record is
+  left unchanged. `mark_failed` (the old unfenced, state-blind delete) does
+  not exist on either backend.
 
 ## Durability model
 
@@ -108,15 +114,17 @@ distinct operation.
   `tests/test_nonce.py`/`tests/test_velocity.py` already use for
   cross-instance proofs).
 * **`InMemoryIdempotencyRegistry` is explicitly NOT durable.** It is a
-  single-process dict, documented as such, and is refused outright by
-  `deployment_mode.is_enforcement_mode()` for a real deployment (see
-  `nonce_registry_from_env`'s sibling guard in `idempotency_registry_from_env`
-  once wired the same way at the deployment-mode layer). `test_idempotency.py`
-  carries an explicit negative control
-  (`test_inmemory_registry_is_not_durable_across_instances`) proving two
-  in-memory instances do **not** share state — precisely so the Redis
-  durability tests are not mistaken for an artifact of both sides reading
-  the same in-process dict.
+  single-process dict, documented as such. `idempotency_registry_from_env`
+  refuses to select it — explicitly or by default — under
+  `MCC_DEPLOYMENT_MODE=enforcement`, mirroring `nonce_registry_from_env`'s
+  identical guard; the Astra reference stack (`_localstack.py`) now goes
+  through this SAME factory rather than constructing
+  `InMemoryIdempotencyRegistry()` itself, so that gate actually applies to
+  it (Round 18 requirement 4). `test_idempotency.py` carries an explicit
+  negative control (`test_inmemory_registry_is_not_durable_across_instances`)
+  proving two in-memory instances do **not** share state — precisely so the
+  Redis durability tests are not mistaken for an artifact of both sides
+  reading the same in-process dict.
 * **Backend outage**: every mutating call fails closed (`ReserveStatus.ERROR`
   / `False` / `ReconcileStatus.ERROR`), and `get_state` raises
   `IdempotencyBackendUnavailable` rather than returning `None`. No caller of
@@ -140,29 +148,29 @@ bound to one exact `action`/`resource`/`payload_hash`):
    durable dispatch boundary.** `commit_dispatch` is a fenced CAS from
    `RESERVED` (held by exactly one `reserve()` winner) to `DISPATCH_OWNED`;
    every other concurrent or subsequent caller sees a non-`RESERVED` status
-   and never reaches `executor()` at all — proven for two concurrent
-   submissions (`test_concurrent_duplicate_exactly_one_winner`) and for two
-   *separately signed, separately nonced* authorizations presented
-   sequentially or concurrently (`test_two_valid_tokens_same_key_at_most_one_side_effect`,
-   scenario 23).
+   and never reaches `executor()` at all.
 2. **A second, fresh, independently valid authorization for the same
    logical operation can never trigger a second dispatch while the first is
    unresolved or resolved.** `DISPATCH_OWNED`, `UNKNOWN`, and `EXECUTED` all
-   block `reserve()` unconditionally and indefinitely (scenario 5/18/23) —
-   this is the literal meaning of "AUTHORIZED != SAFE_TO_ACTUATE": passing
-   the nonce/signature/mandate checks again is necessary but never
-   sufficient to reach the actuator a second time.
+   block `reserve()` unconditionally and indefinitely — this is the literal
+   meaning of "AUTHORIZED != SAFE_TO_ACTUATE": passing the nonce/signature/
+   mandate checks again is necessary but never sufficient to reach the
+   actuator a second time. Proven independent of any specific intermediate
+   state label by
+   `tests/test_coordinator.py::test_no_second_actuator_invocation_after_ambiguous_first_attempt`.
 3. **A raise, timeout, disconnect, or lost response after dispatch
    commitment never frees the operation for a retry.** It becomes `UNKNOWN`
-   and stays there — the only way out is `resolve_unknown`, which itself
-   only ever fires on independently verified positive evidence and never on
-   the absence of evidence (negative/inconclusive results leave `UNKNOWN`
-   untouched — scenario 8/17/18).
-4. **A stale owner cannot mutate a newer generation's record.** Every
-   mutation is fenced by the exact generation token `reserve()` issued;
-   a superseded generation's `mark_executed`/`mark_unknown`/`release` calls
-   are rejected outright (scenario 15/16), so a crashed-then-recovered
-   process replaying an old attempt cannot regress or hijack the current
+   (or, if the process dies before even that write completes, stays at
+   `DISPATCH_OWNED`) and stays there — the only way out is
+   `resolve_unknown`, which fires only on independently verified positive
+   evidence and never on the absence of evidence.
+4. **A stale owner cannot mutate a newer generation's record, and cannot
+   delete a current one.** Every mutation is fenced by the exact generation
+   token `reserve()` issued; a superseded generation's
+   `mark_executed`/`mark_unknown`/`release` calls are rejected outright, and
+   `release()` itself refuses to act against anything but `RESERVED` even
+   with the CURRENT generation — so a crashed-then-recovered process
+   replaying an old attempt cannot regress, hijack, or delete the current
    owner's state.
 
 Combined, this means: **for any one `logical_operation_id`, the number of
@@ -176,43 +184,76 @@ increase that count: it has no path to the actuator at all — it only reads
 external state and, at most, applies a state transition inside this
 registry.
 
-## Resource binding
+## Resource binding and mandatory guards on the GitHub path
 
 `github_actuator.ResourceBoundActuator` performs a synchronous,
 pre-external-call equality check between the resource a request was
 authorized for and the actuator's own `GitHubActuatorConfig.repo` (fixed at
 construction time, from `MCC_ASTRA_GITHUB_REPO`, never read from the
 proposal or the governed payload). A mismatch raises `ResourceBindingError`
-before any network I/O — proven by pointing the actuator at a deliberately
-unreachable `base_url` and confirming the exception is the binding error,
-not a connection failure (`tests/test_gpt6_astra_durable_operation_safety.py`).
-This does not change the shared `gateway.governance_service.Upstream`
-contract (`(action, payload) -> Any`) that every other governed executor in
-this repository (`pilot_notify`, `clinic_service`) also uses — the check is
-entirely local to this reference actuator's own wiring.
+before any network I/O.
 
-## Reconciliation
+Round 18: this guard, together with `LogicalOperationMarkerActuator`, is now
+mandatory on **every** path in this package that wires a real
+`GitHubIssueActuator` — not just `cli.py`'s. `adversarial.build_multi_actuator`
+(also used by `live_matrix.py`/`live_redteam.py`) wraps the SAME way.
+`LogicalOperationMarkerActuator.logical_operation_id` is a mutable property
+precisely so one actuator instance, reused across several governed calls in
+a scenario, can still be kept correctly in sync — the caller sets it to the
+exact id it is about to pass to `run_positive_path`/`issue_authority`,
+immediately before that call (`adversarial._prepare_actuation` is the
+reference pattern). A static architecture guard
+(`test_every_raw_github_issue_actuator_construction_is_resource_bound`)
+enumerates every raw `GitHubIssueActuator(...)` construction site in the
+package and fails if any of them does not also import
+`ResourceBoundActuator` — there is no alternative raw path.
+
+## Reconciliation: trust model
 
 `examples/gpt6_astra_reference/reconciliation.py` is the narrowest reusable
 piece needed for the one real actuator this repository ships
-(`GitHubIssueActuator`). It is read-only:
+(`GitHubIssueActuator`). It is read-only — it never issues a `POST` — and
+(Round 18) it trusts nothing about a candidate match except what it can
+verify against the STORED logical-operation record:
 
-* it never issues a `POST`;
-* it looks for an issue whose body contains
-  `github_actuator.logical_operation_marker(logical_operation_id)` — a
-  marker `LogicalOperationMarkerActuator` appends to every issue this
-  actuator creates, purely so a later, independent lookup has something
-  exact to match on (the real "create issue" endpoint has no idempotency
-  parameter to echo back);
-* "not found", a transport error, a timeout, and a non-2xx response are all
-  treated identically — as inconclusive, leaving `UNKNOWN` exactly as it
-  was;
-* a positive match calls `idempotency.resolve_unknown(key,
-  expected_generation=...)`, which is itself a fenced CAS from `UNKNOWN` to
-  `EXECUTED` — safe to race against a late-arriving legitimate completion of
-  the very same dispatch, a blocked fresh retry, or a second reconciliation
-  worker (exactly one write applies; see
-  `tests/test_idempotency.py::test_reconciliation_races_with_late_completion_exactly_one_wins`).
+1. **Single source of truth.** The caller passes the real, gate-verified
+   signed decision **token** the operation ran under — never a
+   loose bundle of independently-suppliable strings. Every value this
+   function checks (`logical_operation_id`, `action`, `resource`,
+   `payload_hash`) comes from that ONE token.
+2. **Action.** Must be exactly `create_github_issue` — the only action this
+   path understands.
+3. **Resource.** The token's `resource_id` must equal the actuator's own
+   configured lookup destination (`actuator_repo`) — checked BEFORE any
+   network call.
+4. **Payload binding.** `hash_document({"action":.., "resource":..,
+   "payload_hash":..})`, computed the identical way
+   `EnforcementCoordinator` did at admission time, must equal the STORED
+   record's own `binding` (fetched via `idempotency.get_state`) — a token
+   claiming a different action/resource/payload than what was actually
+   admitted under this id is refused.
+5. **Generation.** The caller's `expected_generation` must equal the stored
+   record's current generation — the same fencing every other mutation
+   uses, so a late-arriving legitimate completion of the SAME dispatch and
+   a reconciliation call race safely (exactly one write applies).
+6. **The marker.** Only once 1-5 all hold does this function even look for
+   external evidence: an issue, in the query already scoped to
+   `actuator_repo`, whose body contains the EXACT
+   `github_actuator.logical_operation_marker(logical_operation_id)` string.
+   The candidate's own reported repository is checked again defensively.
+
+A marker substring match alone is *never* sufficient — steps 1-5 must all
+pass first. Any single mismatch, or the complete absence of positive
+evidence, leaves the record exactly as it was: this function never creates
+anything, and never applies `resolve_unknown` on anything less than a full
+match. "Not found", a transport error, a timeout, and a non-2xx response are
+all treated identically — as inconclusive.
+
+`resolve_unknown` (the registry method reconciliation calls) accepts BOTH
+`UNKNOWN` and `DISPATCH_OWNED` as source states (Round 18 requirement 7) —
+closing the gap where a crash after `commit_dispatch` but before
+`mark_unknown`/`mark_executed` could even run would otherwise strand the
+operation with no path forward at all.
 
 ## What is intentionally out of scope here
 
@@ -220,9 +261,12 @@ piece needed for the one real actuator this repository ships
   idempotency-key support is not achievable by any client-side change; see
   "Exactly-once safety" above.
 * Automatic, unattended reconciliation scheduling (a background worker that
-  periodically calls `reconcile_github_issue_operation` for every `UNKNOWN`
+  periodically calls `reconcile_github_issue_operation` for every pending
   operation) is not wired up as a running service in this reference
   integration — the function is provided, tested, and safe to call
   repeatedly (idempotent: a second reconciliation attempt on an already-
   `EXECUTED` operation is a no-op), but operating it on a schedule is a
   deployment concern for a real integration, not a demo-repo default.
+* No live GitHub sandbox actuation has been performed as part of this
+  remediation (Round 18 explicitly out of scope) — the next step is an
+  independent, read-only Astra verification of the resulting commit.

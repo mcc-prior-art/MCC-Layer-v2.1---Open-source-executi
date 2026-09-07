@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import uuid
 from dataclasses import dataclass
 from typing import Optional
 
@@ -161,9 +162,18 @@ async def _run_one_task(provider: AstraProvider, case: str, task: str, actuator,
 
     canonical = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
     att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+    # Round 18: a fresh, independent logical_operation_id per governed call --
+    # mandatory at the pipeline boundary (run_positive_path itself refuses a
+    # missing/empty one), never derived from the proposal's own content. Also
+    # updates the actuator's own marker to the SAME id (requirement 5: the
+    # id used by admission/the token and the outbound marker must never be
+    # set independently) -- see ``adversarial._prepare_actuation``.
+    logical_operation_id = f"live-matrix-{case}-{uuid.uuid4().hex}"
+    if getattr(actuator, "github_marker", None) is not None:
+        actuator.github_marker.logical_operation_id = logical_operation_id
     outcome = await run_positive_path(
         stack.service, mandate=stack.mandate, actor="agent/astra-demo", proposal=proposal,
-        attestation=att.raw_attestation,
+        attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
     )
     terminal = TerminalStatus.EXECUTED if outcome.status == "EXECUTED" else classify_exec_outcome(outcome.reason)
     calls_after = actuator.calls

@@ -44,6 +44,7 @@ What IS new here, entirely at the harness level (never inside
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -260,9 +261,15 @@ async def _one_redteam_turn(
 
     canonical_payload = stack.profiles.for_action(proposal.action).canonical_payload(proposal.payload)
     att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical_payload)
+    # Round 18: mandatory, per-turn, independently-minted logical_operation_id
+    # -- run_positive_path itself refuses to proceed without one. Also
+    # updates the actuator's own marker to the SAME id (requirement 5).
+    logical_operation_id = f"live-redteam-{run_id}-turn-{turn_number}-{uuid.uuid4().hex}"
+    if getattr(actuator, "github_marker", None) is not None:
+        actuator.github_marker.logical_operation_id = logical_operation_id
     outcome = await run_positive_path(
         stack.service, mandate=stack.mandate, actor="agent/astra-demo", proposal=proposal,
-        attestation=att.raw_attestation,
+        attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
     )
     calls_after = actuator.calls
 

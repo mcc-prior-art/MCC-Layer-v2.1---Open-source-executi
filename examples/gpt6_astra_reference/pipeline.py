@@ -40,7 +40,7 @@ from gateway.governance_service import ExecOutcome, GovernanceService
 from mcc_attester_service import AttesterService
 from mcc_core.signing import hash_document
 
-from .models import AstraProposal
+from .models import AstraProposal, require_logical_operation_id
 
 
 @dataclass(frozen=True)
@@ -70,20 +70,25 @@ async def obtain_attestation(
 
 async def run_positive_path(
     service: GovernanceService, *, mandate: Any, actor: str, proposal: AstraProposal,
-    attestation: Optional[Dict[str, Any]], logical_operation_id: Optional[str] = None,
+    attestation: Optional[Dict[str, Any]], logical_operation_id: str,
 ) -> ExecOutcome:
     """The single supported public path. Used whenever a scenario needs
     exactly one governed call — positive, wrong-scope, and
     autonomous-scope-expansion.
 
-    ``logical_operation_id`` becomes the signed token's ``idempotency_key`` —
-    the durable logical-operation identity ``EnforcementCoordinator`` binds
-    to the exact (action, resource, payload_hash) triple (Round 17: see
-    ``docs/DURABLE_OPERATION_SAFETY.md``). Optional here because not every
-    action this pipeline exercises is a real external side effect requiring
-    that protection; ``cli.py`` enforces it (via
-    ``models.require_logical_operation_id``) for the one action that is
-    (``create_github_issue``), before this function is ever called."""
+    ``logical_operation_id`` is MANDATORY (Round 18) and becomes the signed
+    token's ``idempotency_key`` — the durable logical-operation identity
+    ``EnforcementCoordinator`` binds to the exact (action, resource,
+    payload_hash) triple (see ``docs/DURABLE_OPERATION_SAFETY.md``). This is
+    checked HERE, at the actual protected-execution boundary — not only in
+    ``cli.py`` — so no caller of this function (the CLI, ``live_matrix``,
+    ``live_redteam``, the adversarial scenarios, or any future caller) can
+    reach ``GovernanceService.execute_with_mandate``/the Gate/the actuator
+    without one. A missing or empty id raises
+    :class:`~.models.MissingLogicalOperationIdError` synchronously, before
+    any attestation/authority/gate call is made — the executor is never
+    reached."""
+    require_logical_operation_id(logical_operation_id)
     return await service.execute_with_mandate(
         mandate=mandate, actor=actor, action=proposal.action, resource=proposal.resource,
         context=proposal.payload, attestation=attestation, idempotency_key=logical_operation_id,
@@ -115,7 +120,7 @@ class AuthorityDeniedError(Exception):
 
 async def issue_authority(
     service: GovernanceService, *, mandate: Any, actor: str, proposal: AstraProposal,
-    attestation: Optional[Dict[str, Any]], logical_operation_id: Optional[str] = None,
+    attestation: Optional[Dict[str, Any]], logical_operation_id: str,
 ) -> IssuedAuthority:
     """Reproduces ``GovernanceService.execute_with_mandate``'s OWN sequence
     up to (and including) token issuance, stopping BEFORE
@@ -130,7 +135,15 @@ async def issue_authority(
     ``execute_with_mandate`` itself makes. Raises
     :class:`AuthorityDeniedError` if the real mandate-authority or Control
     check denies, exactly as ``execute_with_mandate`` itself would have
-    returned BLOCKED at that point."""
+    returned BLOCKED at that point.
+
+    ``logical_operation_id`` is MANDATORY (Round 18), checked here — the
+    other half of this pipeline's protected-execution boundary, alongside
+    :func:`run_positive_path` — before ANY of the trust/authority/Control
+    calls below run. A missing or empty id raises
+    :class:`~.models.MissingLogicalOperationIdError` immediately; no token
+    is ever issued."""
+    require_logical_operation_id(logical_operation_id)
     import time
 
     from mcc_core import MandateAuthority, MandateVerifier, Verdict
@@ -195,7 +208,18 @@ async def enforce_authority(
     the token's own canonical payload; passing a DIFFERENT
     ``payload``/``action`` here is exactly how the tamper scenario is
     honestly reproduced — the Gate's own action_hash/payload_hash binding
-    check is what then fires, nothing here decides that outcome."""
+    check is what then fires, nothing here decides that outcome.
+
+    Round 18 defense-in-depth: even though ``issued.token`` can only have
+    been produced by :func:`issue_authority` (which already refuses to
+    issue one without a ``logical_operation_id``), this is the function
+    that actually reaches the coordinator/executor, so it independently
+    re-verifies the token itself carries a non-empty ``idempotency_key``
+    before doing anything else -- a hand-crafted or future alternate caller
+    presenting a token without one is refused here too, before the
+    coordinator or the actuator is ever reached."""
+    require_logical_operation_id(issued.token.get("idempotency_key"))
+
     async def executor():
         if service.upstream is None:
             raise RuntimeError("no upstream configured")

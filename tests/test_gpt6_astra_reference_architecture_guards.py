@@ -147,3 +147,68 @@ def test_pipeline_module_never_imports_the_actuator_directly():
         if isinstance(node, ast.ImportFrom) and node.module:
             imported_modules.add(node.module)
     assert not any("github_actuator" in m for m in imported_modules)
+
+
+def test_localstack_never_constructs_in_memory_idempotency_directly():
+    """Round 18 requirement 4: the stack must select its idempotency
+    backend through ``idempotency_registry_from_env`` (the same
+    enforcement-aware factory production code uses), never by calling
+    ``InMemoryIdempotencyRegistry()`` itself -- doing so would silently
+    bypass the enforcement-mode fail-closed gate entirely."""
+    tree = ast.parse((PKG_DIR / "_localstack.py").read_text(encoding="utf-8"))
+    called_names = set()
+    imported_names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            called_names.add(node.func.id)
+        if isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                imported_names.add(alias.asname or alias.name)
+    assert "InMemoryIdempotencyRegistry" not in called_names, (
+        "_localstack.py must not call InMemoryIdempotencyRegistry() directly"
+    )
+    assert "InMemoryIdempotencyRegistry" not in imported_names, (
+        "_localstack.py must not even import InMemoryIdempotencyRegistry -- "
+        "idempotency_registry_from_env is the only supported construction path"
+    )
+    assert "idempotency_registry_from_env" in imported_names
+
+
+def test_every_raw_github_issue_actuator_construction_is_resource_bound():
+    """Round 18 requirement 5: no alternative raw ``GitHubIssueActuator``
+    path may bypass ``ResourceBoundActuator``/``LogicalOperationMarkerActuator``.
+    Every file in this package that constructs a ``GitHubIssueActuator`` at
+    all must ALSO import ``ResourceBoundActuator`` -- a purely structural
+    proxy for "wraps it", cheap and stable against refactors, that would
+    fail loudly the moment a new raw construction site is added anywhere
+    in this package without the guard."""
+    sites = []
+    for path in _all_py_files():
+        if path.name == "github_actuator.py":
+            continue  # defines the class; does not construct/dispatch through it
+        text = path.read_text(encoding="utf-8")
+        tree = ast.parse(text, filename=str(path))
+        constructs = any(
+            isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id == "GitHubIssueActuator"
+            for node in ast.walk(tree)
+        )
+        if not constructs:
+            continue
+        sites.append(path.name)
+        imported_names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    imported_names.add(alias.asname or alias.name)
+        assert "ResourceBoundActuator" in imported_names, (
+            f"{path.name} constructs GitHubIssueActuator directly but does not import "
+            f"ResourceBoundActuator -- every raw construction site must wrap it"
+        )
+    # Sanity: this guard is only meaningful if it actually found the known
+    # construction sites -- a refactor that moved them without updating
+    # this test would otherwise silently pass on zero sites checked.
+    assert set(sites) == {"cli.py", "adversarial.py"}, (
+        f"expected raw GitHubIssueActuator construction in exactly cli.py and "
+        f"adversarial.py, found: {sorted(sites)} -- update this guard if that changed"
+    )

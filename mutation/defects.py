@@ -4,10 +4,13 @@ testing gap -- see the ``gate-*-fail-open`` block below; extended again by
 PR-5 to cover the PR-1->4 attestation-to-execution chain, which the
 original 26 entirely predate -- see the trailing block below that and
 ``docs/ATTESTATION_INDEPENDENT_ASSURANCE.md``'s gap matrix; extended once
-more (Round 17, durable logical-operation safety) with
-``idempotency-unsafe-release-after-dispatch``, targeting the exact defect
-class Astra's Round 16/17 inspection identified -- see
-``docs/DURABLE_OPERATION_SAFETY.md``).
+more (Round 17/18, durable logical-operation safety) with
+``idempotency-reserve-reopens-pending-states``, targeting the exact defect
+class Astra's Round 16-18 inspections identified -- a mutation that
+genuinely reopens execution eligibility for an unresolved (DISPATCH_OWNED/
+UNKNOWN) operation, replacing an earlier Round 17 mutation the Round 18
+inspection found could only be caught on a harmless state-label technicality
+-- see ``docs/DURABLE_OPERATION_SAFETY.md``).
 
 Unlike generic mutation testing (which mutates arbitrary operators across a
 whole codebase and requires heavy tuning to separate meaningful mutants
@@ -168,25 +171,37 @@ DEFECTS: List[Defect] = [
         detector_tests=("tests/test_idempotency.py::test_duplicate_reservation_denied",),
     ),
     Defect(
-        id="idempotency-unsafe-release-after-dispatch",
+        id="idempotency-reserve-reopens-pending-states",
         description=(
-            "The coordinator releases (frees for retry) the logical operation on ANY executor "
-            "exception, instead of marking it UNKNOWN -- reintroducing the exact Round 16/17 "
-            "defect class Astra identified: an ambiguous post-dispatch failure must never "
-            "release ownership for another actuation attempt."
+            "The idempotency registry's reserve() treats DISPATCH_OWNED, UNKNOWN, and "
+            "in-flight RESERVED records as available for a fresh reservation (only EXECUTED "
+            "is still protected) -- genuinely reopening execution eligibility for an operation "
+            "whose actuation outcome is not yet durably confirmed, letting a fresh authorization "
+            "actually reach and invoke the executor a second time. This replaces Round 17's "
+            "'unsafe-release' mutation, which mutated the coordinator to call the (already "
+            "correctly fenced) release() after dispatch -- release() itself refuses to act "
+            "outside RESERVED regardless, so that mutation could only ever be caught on a "
+            "harmless state-LABEL technicality (DISPATCH_OWNED instead of UNKNOWN), never by "
+            "proving a real duplicate actuation -- see Round 18 requirement 8 and "
+            "docs/DURABLE_OPERATION_SAFETY.md."
         ),
-        file_path="src/mcc_core/coordinator.py",
+        file_path="src/mcc_core/idempotency.py",
         find=(
-            '            if idem_key:\n'
-            '                await self.idempotency.mark_unknown(idem_key, fence=idem_fence)'
+            '        if state == IdempotencyState.UNKNOWN:\n'
+            '            return ReserveResult(ReserveStatus.DUPLICATE_UNKNOWN,\n'
+            '                                  "operation outcome UNKNOWN; requires reconciliation, not retry", held_binding)\n'
+            '        return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", held_binding)'
         ),
         replace=(
-            '            if idem_key:\n'
-            '                await self.idempotency.release(idem_key, fence=idem_fence)  # MUTATED: unsafe release'
+            '        # MUTATED: DISPATCH_OWNED/UNKNOWN/in-flight RESERVED all reopened for reservation\n'
+            '        generation = uuid.uuid4().hex\n'
+            '        self._store[key] = (_encode(IdempotencyState.RESERVED, generation, binding), now + DEFAULT_RESERVATION_TTL_SECONDS)\n'
+            '        return ReserveResult(ReserveStatus.RESERVED, "MUTATED: pending states reopened", held_binding, fence=generation)'
         ),
         detector_tests=(
-            "tests/test_coordinator.py::test_execution_exception_marks_unknown_not_released",
-            "tests/test_coordinator.py::test_fresh_authorization_for_unknown_operation_blocks_second_actuation",
+            "tests/test_idempotency.py::test_unknown_blocks_reservation_pending_reconciliation",
+            "tests/test_idempotency.py::test_concurrent_duplicate_exactly_one_winner",
+            "tests/test_coordinator.py::test_no_second_actuator_invocation_after_ambiguous_first_attempt",
         ),
     ),
     Defect(

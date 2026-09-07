@@ -170,14 +170,13 @@ class FakeRedis:
                 return 1
 
             if script == _MARK_EXECUTED_LUA:
-                expected_gen, result_ref, ttl_seconds = a
+                expected_gen, result_ref = a
                 if cur_value is None:
                     return 0
                 state, gen, binding = cur_value.split("|", 3)[:3]
                 if state != "DISPATCH_OWNED" or gen != expected_gen:
                     return 0
-                expires = (self.clock() + int(ttl_seconds)) if ttl_seconds else None
-                self.kv[key] = (f"EXECUTED|{gen}|{binding}|{result_ref}", expires)
+                self.kv[key] = (f"EXECUTED|{gen}|{binding}|{result_ref}", None)
                 return 1
 
             if script == _MARK_UNKNOWN_LUA:
@@ -209,8 +208,8 @@ class FakeRedis:
                 return ["STALE_GENERATION", state]
             if state == "EXECUTED":
                 return ["ALREADY_EXECUTED", state]
-            if state != "UNKNOWN":
-                return ["NOT_UNKNOWN", state]
+            if state != "UNKNOWN" and state != "DISPATCH_OWNED":
+                return ["NOT_PENDING", state]
             self.kv[key] = (f"EXECUTED|{gen}|{binding}|{result_ref}", None)
             return ["RESOLVED", "EXECUTED"]
 

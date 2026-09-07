@@ -100,9 +100,9 @@ class ReserveResult:
 
 
 class ReconcileStatus(str, Enum):
-    RESOLVED = "RESOLVED"                  # UNKNOWN -> EXECUTED applied
+    RESOLVED = "RESOLVED"                  # UNKNOWN/DISPATCH_OWNED -> EXECUTED applied
     ALREADY_EXECUTED = "ALREADY_EXECUTED"  # a racing writer (or earlier run) already resolved it
-    NOT_UNKNOWN = "NOT_UNKNOWN"            # current state isn't UNKNOWN (e.g. still DISPATCH_OWNED)
+    NOT_PENDING = "NOT_PENDING"            # current state isn't UNKNOWN or DISPATCH_OWNED (e.g. still RESERVED)
     STALE_GENERATION = "STALE_GENERATION"  # the observed generation no longer holds the record
     NOT_FOUND = "NOT_FOUND"                # no record at all for this key
     ERROR = "ERROR"                        # indeterminate -> fail closed, no state change
@@ -214,8 +214,12 @@ class InMemoryIdempotencyRegistry:
 
     async def mark_executed(
         self, key: str, *, fence: str, binding: str = "", result_ref: Optional[str] = None,
-        ttl_seconds: Optional[int] = None,
     ) -> bool:
+        """Terminal, unconditional, permanent: EXECUTED is never written
+        with an expiry (Round 18 — a terminal record must never silently
+        reopen through TTL semantics; retention/archival, if ever needed,
+        must be a separate, explicit, out-of-band operation, never a
+        parameter of this call)."""
         now = time.monotonic()
         encoded = self._live(key, now)
         if encoded is None:
@@ -223,9 +227,8 @@ class InMemoryIdempotencyRegistry:
         state, generation, held_binding, _ = _decode(encoded)
         if state != IdempotencyState.DISPATCH_OWNED or generation != fence:
             return False
-        expires = (now + ttl_seconds) if ttl_seconds is not None else None
         self._store[key] = (
-            _encode(IdempotencyState.EXECUTED, generation, held_binding, result_ref or ""), expires,
+            _encode(IdempotencyState.EXECUTED, generation, held_binding, result_ref or ""), None,
         )
         return True
 
@@ -258,6 +261,20 @@ class InMemoryIdempotencyRegistry:
     async def resolve_unknown(
         self, key: str, *, expected_generation: str, result_ref: Optional[str] = None,
     ) -> ReconcileResult:
+        """Fenced CAS: ``UNKNOWN`` OR ``DISPATCH_OWNED`` -> ``EXECUTED``,
+        given independently verified positive external evidence (the
+        CALLER, e.g. ``reconciliation.py``, is responsible for that
+        verification -- this only performs the state transition). Accepting
+        ``DISPATCH_OWNED`` as a source state too (Round 18) closes the gap
+        where a crash after durable dispatch commitment but before
+        ``mark_unknown``/``mark_executed`` ever ran would otherwise strand
+        the operation with no reconciliation path at all: both states mean
+        exactly the same thing to a reconciliation worker -- "the actuation
+        outcome for this generation is not yet durably confirmed" -- and
+        differ only in what the ORIGINAL dispatcher itself managed to
+        persist before disappearing. Absence of positive evidence never
+        reaches this far (the caller simply does not call this); this
+        method itself has no "not found -> proceed anyway" branch."""
         now = time.monotonic()
         encoded = self._live(key, now)
         if encoded is None:
@@ -268,8 +285,8 @@ class InMemoryIdempotencyRegistry:
                                     "observed generation no longer holds this record")
         if state == IdempotencyState.EXECUTED:
             return ReconcileResult(ReconcileStatus.ALREADY_EXECUTED, "already resolved (racing writer won)")
-        if state != IdempotencyState.UNKNOWN:
-            return ReconcileResult(ReconcileStatus.NOT_UNKNOWN, f"current state is {state.value if state else '?'}")
+        if state not in (IdempotencyState.UNKNOWN, IdempotencyState.DISPATCH_OWNED):
+            return ReconcileResult(ReconcileStatus.NOT_PENDING, f"current state is {state.value if state else '?'}")
         self._store[key] = (_encode(IdempotencyState.EXECUTED, generation, binding, result_ref or ""), None)
         return ReconcileResult(ReconcileStatus.RESOLVED, "positive external evidence confirmed execution")
 
@@ -281,16 +298,6 @@ class InMemoryIdempotencyRegistry:
         if state is None:
             return None
         return StateRecord(state=state, generation=generation, binding=binding, result_ref=result_ref)
-
-    # ---- legacy convenience aliases (pre-dispatch-only semantics) ----
-
-    async def mark_failed(self, key: str) -> bool:
-        """Deprecated: equivalent to ``release`` without fencing, kept only
-        for scripts that pre-date the durable dispatch boundary. Never used
-        by :class:`~mcc_core.coordinator.EnforcementCoordinator`, which
-        always fences its release/failure calls."""
-        self._store.pop(key, None)
-        return True
 
 
 _RESERVE_LUA = """
@@ -329,11 +336,7 @@ if not cur then return 0 end
 local state, gen, binding = cur:match('^([^|]*)|([^|]*)|([^|]*)|')
 if state ~= 'DISPATCH_OWNED' or gen ~= ARGV[1] then return 0 end
 local val = 'EXECUTED|' .. gen .. '|' .. binding .. '|' .. ARGV[2]
-if ARGV[3] ~= '' then
-    redis.call('SET', KEYS[1], val, 'EX', ARGV[3])
-else
-    redis.call('SET', KEYS[1], val)
-end
+redis.call('SET', KEYS[1], val)
 return 1
 """
 
@@ -361,7 +364,7 @@ if not cur then return {'NOT_FOUND', ''} end
 local state, gen, binding = cur:match('^([^|]*)|([^|]*)|([^|]*)|')
 if gen ~= ARGV[1] then return {'STALE_GENERATION', state} end
 if state == 'EXECUTED' then return {'ALREADY_EXECUTED', state} end
-if state ~= 'UNKNOWN' then return {'NOT_UNKNOWN', state} end
+if state ~= 'UNKNOWN' and state ~= 'DISPATCH_OWNED' then return {'NOT_PENDING', state} end
 redis.call('SET', KEYS[1], 'EXECUTED|' .. gen .. '|' .. binding .. '|' .. ARGV[2])
 return {'RESOLVED', 'EXECUTED'}
 """
@@ -469,12 +472,12 @@ class RedisIdempotencyRegistry:
 
     async def mark_executed(
         self, key: str, *, fence: str, binding: str = "", result_ref: Optional[str] = None,
-        ttl_seconds: Optional[int] = None,
     ) -> bool:
+        """Terminal, unconditional, permanent — see the in-memory
+        registry's identical docstring; no TTL is ever applied here."""
         try:
             res = await self._call(self._redis.eval(
                 _MARK_EXECUTED_LUA, 1, self._key(key), fence, result_ref or "",
-                "" if ttl_seconds is None else str(int(ttl_seconds)),
             ))
             return int(res) == 1
         except Exception:
@@ -520,18 +523,6 @@ class RedisIdempotencyRegistry:
         if state is None:
             raise IdempotencyBackendUnavailable(f"malformed idempotency record for {key!r}")
         return StateRecord(state=state, generation=generation, binding=binding, result_ref=result_ref)
-
-    # ---- legacy convenience alias ----
-
-    async def mark_failed(self, key: str) -> bool:
-        """Deprecated unfenced delete, kept only for pre-existing scripts.
-        Never used by :class:`~mcc_core.coordinator.EnforcementCoordinator`."""
-        try:
-            await self._call(self._redis.delete(self._key(key)))
-            return True
-        except Exception:
-            return False
-
 
 class IdempotencyConfigError(Exception):
     """Raised when the idempotency backend is misconfigured (fail-closed start)."""

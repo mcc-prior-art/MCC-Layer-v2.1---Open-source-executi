@@ -102,15 +102,13 @@ class IdemFakeRedis:
             return 1
 
         if script == _MARK_EXECUTED_LUA:
-            expected_gen, result_ref, ttl_seconds = argv
+            expected_gen, result_ref = argv
             if cur is None:
                 return 0
             state, gen, binding = cur.split("|", 3)[:3]
             if state != "DISPATCH_OWNED" or gen != expected_gen:
                 return 0
-            val = f"EXECUTED|{gen}|{binding}|{result_ref}"
-            expires = (self.clock() + int(ttl_seconds)) if ttl_seconds else None
-            self.store[key] = (val, expires)
+            self.store[key] = (f"EXECUTED|{gen}|{binding}|{result_ref}", None)
             return 1
 
         if script == _MARK_UNKNOWN_LUA:
@@ -142,8 +140,8 @@ class IdemFakeRedis:
                 return ["STALE_GENERATION", state]
             if state == "EXECUTED":
                 return ["ALREADY_EXECUTED", state]
-            if state != "UNKNOWN":
-                return ["NOT_UNKNOWN", state]
+            if state != "UNKNOWN" and state != "DISPATCH_OWNED":
+                return ["NOT_PENDING", state]
             self.store[key] = (f"EXECUTED|{gen}|{binding}|{result_ref}", None)
             return ["RESOLVED", "EXECUTED"]
 
@@ -280,6 +278,17 @@ def test_dispatch_owned_does_not_expire_into_admittable_state():
     assert retry.status == ReserveStatus.DUPLICATE_INFLIGHT
 
 
+def test_mark_executed_accepts_no_ttl_parameter_on_either_backend():
+    """Round 18 requirement 3: the capability to reopen a terminal EXECUTED
+    record via TTL is removed from the protected state machine entirely,
+    not merely defaulted to off."""
+    import inspect
+
+    for reg in (InMemoryIdempotencyRegistry(), redis_reg()):
+        params = inspect.signature(reg.mark_executed).parameters
+        assert "ttl_seconds" not in params
+
+
 def test_unknown_does_not_expire_into_admittable_state():
     """Test scenario 13: UNKNOWN must not become actuation-eligible through
     TTL expiry."""
@@ -295,10 +304,11 @@ def test_unknown_does_not_expire_into_admittable_state():
 
 
 def test_executed_does_not_expire_into_admittable_state():
-    """Test scenario 14: EXECUTED must not silently become executable again
-    through TTL expiry (retention/GC is a distinct, explicit, opt-in
-    mechanism -- ``mark_executed``'s ``ttl_seconds`` is never wired into
-    ``reserve``'s admission logic by default, i.e. ``ttl_seconds=None``)."""
+    """Test scenario 14 / Round 18 requirement 3: EXECUTED must not
+    silently become executable again through TTL expiry. ``mark_executed``
+    accepts no ``ttl_seconds`` at all (Round 18 removed it) -- an EXECUTED
+    record is unconditionally permanent; there is no parameter that could
+    ever cause it to expire and be re-admitted."""
     clock = {"t": 1000.0}
     reg = redis_reg(clock=lambda: clock["t"])
     first = run(reg.reserve("op-1", ttl_seconds=5))
@@ -402,6 +412,74 @@ def test_stale_fence_cannot_regress_executed_to_unknown():
     # An attempt using a fabricated/foreign fence cannot regress EXECUTED.
     assert run(reg.mark_unknown("op-1", fence="not-a-real-fence")) is False
     assert run(reg.get_state("op-1")).state == IdempotencyState.EXECUTED
+
+
+# ---- Round 18 requirement 2: no unfenced ownership deletion. ``release`` is
+# the only remaining deletion-capable call (``mark_failed`` is removed
+# entirely -- it deleted DISPATCH_OWNED/UNKNOWN/EXECUTED records
+# unconditionally, regardless of fence). ``release`` itself only ever
+# succeeds from RESERVED with the correct, current fence; every other
+# (state, fence) combination is rejected and the protected record survives
+# unchanged. ----
+
+def test_mark_failed_no_longer_exists_on_either_backend():
+    """Requirement 2: the unsafe, unfenced deletion API is removed
+    entirely, not merely restricted -- there is no ``mark_failed`` to call
+    at all."""
+    assert not hasattr(InMemoryIdempotencyRegistry(), "mark_failed")
+    assert not hasattr(redis_reg(), "mark_failed")
+
+
+@pytest.mark.parametrize("reg", registries())
+def test_release_deletion_attempt_against_dispatch_owned_preserves_record(reg):
+    gen = run(reg.reserve("op-1", binding="b"))
+    run(reg.commit_dispatch("op-1", fence=gen.fence))
+    # Even with the CORRECT, current fence, release() refuses once the
+    # state has moved past RESERVED.
+    assert run(reg.release("op-1", fence=gen.fence)) is False
+    record = run(reg.get_state("op-1"))
+    assert record.state == IdempotencyState.DISPATCH_OWNED
+    assert record.generation == gen.fence
+
+
+@pytest.mark.parametrize("reg", registries())
+def test_release_deletion_attempt_against_unknown_preserves_record(reg):
+    gen = run(reg.reserve("op-1", binding="b"))
+    run(reg.commit_dispatch("op-1", fence=gen.fence))
+    run(reg.mark_unknown("op-1", fence=gen.fence))
+    assert run(reg.release("op-1", fence=gen.fence)) is False
+    record = run(reg.get_state("op-1"))
+    assert record.state == IdempotencyState.UNKNOWN
+    assert record.generation == gen.fence
+
+
+@pytest.mark.parametrize("reg", registries())
+def test_release_deletion_attempt_against_executed_preserves_record(reg):
+    gen = run(reg.reserve("op-1", binding="b"))
+    run(reg.commit_dispatch("op-1", fence=gen.fence))
+    run(reg.mark_executed("op-1", fence=gen.fence, binding="b"))
+    assert run(reg.release("op-1", fence=gen.fence)) is False
+    record = run(reg.get_state("op-1"))
+    assert record.state == IdempotencyState.EXECUTED
+    assert record.generation == gen.fence
+
+
+@pytest.mark.parametrize("reg", registries())
+def test_stale_generation_deletion_attempt_preserves_record(reg):
+    """A stale (superseded) generation can never delete the CURRENT
+    generation's record, regardless of which state it is in."""
+    first = run(reg.reserve("op-1", binding="b"))
+    stale_fence = first.fence
+    assert run(reg.release("op-1", fence=stale_fence))  # legitimate: still RESERVED at this point
+    second = run(reg.reserve("op-1", binding="b"))
+    assert second.fence != stale_fence
+    run(reg.commit_dispatch("op-1", fence=second.fence))
+    # The stale fence from the FIRST (superseded) generation can never
+    # delete/regress the SECOND (current) generation's record.
+    assert run(reg.release("op-1", fence=stale_fence)) is False
+    record = run(reg.get_state("op-1"))
+    assert record.state == IdempotencyState.DISPATCH_OWNED
+    assert record.generation == second.fence
 
 
 # ---- Reconciliation ----

@@ -202,11 +202,33 @@ class LogicalOperationMarkerActuator:
     ``reconciliation.py``) has independent, positive external evidence to
     search for later. Never changes ``title``; never invents an operation id
     on its own (the id is always supplied by the caller, the same one bound
-    into the token's ``idempotency_key`` -- see ``models.py``)."""
+    into the token's ``idempotency_key`` -- see ``models.py``).
+
+    ``logical_operation_id`` is mutable (a plain settable property, not
+    fixed at construction) so ONE long-lived wrapper instance -- e.g. one
+    actuator shared across several governed calls in a single scenario,
+    each with its own logical operation -- can still mark each call
+    correctly: the caller sets ``.logical_operation_id`` to the id it is
+    about to present to ``run_positive_path``/``issue_authority``
+    immediately before making that call. There is no concurrency within one
+    such call sequence (each governed call is awaited to completion before
+    the next), so this ordering is safe. The two ids MUST be kept in sync by
+    the caller -- see ``adversarial.py``'s ``build_multi_actuator`` for the
+    reference pattern (Round 18 requirement 5: the marker must always
+    reflect the SAME verified logical_operation_id as admission/the
+    token/reconciliation, never an independently-drifting one)."""
 
     def __init__(self, actuator, *, logical_operation_id: str) -> None:
         self._actuator = actuator
         self._logical_operation_id = logical_operation_id
+
+    @property
+    def logical_operation_id(self) -> str:
+        return self._logical_operation_id
+
+    @logical_operation_id.setter
+    def logical_operation_id(self, value: str) -> None:
+        self._logical_operation_id = value
 
     async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
         marked = dict(payload)
