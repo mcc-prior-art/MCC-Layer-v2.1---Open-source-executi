@@ -132,6 +132,7 @@ def test_5_actuator_not_called_when_authority_verification_fails():
         outcome = run(run_positive_path(
             stack.service, mandate=bad_mandate, actor=ACTOR, proposal=proposal, attestation=None,
             logical_operation_id="op-test-5",
+            tenant_id=stack.tenant_id,
         ))
         assert outcome.status != "EXECUTED"
         assert calls["n"] == 0

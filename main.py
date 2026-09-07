@@ -509,7 +509,8 @@ class GovernancePipeline:
     async def decide(self, *, actor: str, action: str, resource: Optional[str],
                      args: Dict[str, Any], verdict: str, constraints: Dict[str, Any],
                      challenge_id: Optional[str], votes: Optional[List[Dict[str, Any]]],
-                     audit_ref: Optional[str], idempotency_key: Optional[str] = None):
+                     audit_ref: Optional[str], idempotency_key: Optional[str] = None,
+                     tenant_id: Optional[str] = None):
         """Run the full pipeline for an ALLOW/CONSTRAIN policy verdict.
         Returns ``(ok, token_or_None, reason, evidence_or_None)``. Any missing or
         invalid challenge/quorum/gate/nonce condition fails closed → ``ok=False``.
@@ -518,7 +519,14 @@ class GovernancePipeline:
         identity (Round 25 remediation): it is never generated here -- the
         wired ``EnforcementCoordinator`` now fails closed (BLOCKED) on any
         missing/empty/whitespace idempotency_key before the executor could
-        ever run, so a caller that omits it simply never actuates."""
+        ever run, so a caller that omits it simply never actuates.
+
+        ``tenant_id`` (PR #105 remediation) is the trusted server-side
+        tenant/security-domain identity ``evaluate()`` already resolved from
+        the authenticated caller (``get_tenant``) -- never generated here,
+        never taken from ``args``. The same wired coordinator fails closed
+        on any missing/empty/whitespace ``tenant_id`` claim, alongside
+        ``idempotency_key``."""
         if not challenge_id or not votes:
             QUORUM.labels(result="fail").inc()
             EVALUATOR_REJECTED.labels(reason="no_evidence").inc()
@@ -540,14 +548,14 @@ class GovernancePipeline:
             verdict=verdict, subject=actor, action=action, payload=args,
             constraints=constraints, nonce=rec.nonce, actor_id=actor, resource_id=resource,
             auth_claims={"challenge_id": challenge_id}, audit_ref=audit_ref,
-            idempotency_key=idempotency_key)
+            idempotency_key=idempotency_key, tenant_id=tenant_id)
 
         async def grant():
             return "authorized"
 
         result = await self.coordinator.enforce(
             token=token, action=action, payload=args, executor=grant,
-            request_binding={"actor_id": actor, "resource_id": resource},
+            request_binding={"actor_id": actor, "resource_id": resource, "tenant_id": tenant_id},
             consensus_votes=votes)
 
         if result.status == ActuationStatus.EXECUTED:
@@ -747,6 +755,7 @@ class MCC:
                     votes=req.votes,
                     audit_ref=audit_entry["hash"] if audit_entry else None,
                     idempotency_key=req.idempotency_key,
+                    tenant_id=tenant,
                 )
                 if ok:
                     decision_token = token
@@ -783,6 +792,7 @@ class MCC:
                         payload=req.args,
                         constraints=policy_decision.constraints,
                         audit_ref=audit_entry["hash"] if audit_entry else None,
+                        tenant_id=tenant,
                     )
                 except Exception:
                     logger.error(

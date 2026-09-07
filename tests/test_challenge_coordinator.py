@@ -57,12 +57,12 @@ def a_challenge(challenges, *, action=ACTION, actor=ACTOR, resource=RESOURCE,
                                 ttl_seconds=ttl, now=NOW))
 
 
-def token_for(engine, rec, *, nonce=None, idem="op-1", actor=ACTOR, resource=RESOURCE):
+def token_for(engine, rec, *, nonce=None, idem="op-1", actor=ACTOR, resource=RESOURCE, tenant_id="tenant-1"):
     return engine.issue_token(
         verdict="ALLOW", subject=actor, action=ACTION, payload=PAYLOAD,
         idempotency_key=idem, actor_id=actor, resource_id=resource,
         nonce=nonce if nonce is not None else rec.nonce,
-        auth_claims={"challenge_id": rec.challenge_id}, now=NOW)
+        auth_claims={"challenge_id": rec.challenge_id}, now=NOW, tenant_id=tenant_id)
 
 
 def runner(record):
@@ -124,7 +124,7 @@ def test_unknown_challenge_blocks(tmp_path):
     token = engine.issue_token(
         verdict="ALLOW", subject=ACTOR, action=ACTION, payload=PAYLOAD, idempotency_key="op-1",
         actor_id=ACTOR, resource_id=RESOURCE, nonce=rec.nonce,
-        auth_claims={"challenge_id": "chal-unknown"}, now=NOW)
+        auth_claims={"challenge_id": "chal-unknown"}, now=NOW, tenant_id="tenant-1")
     res, seen = enforce(coord, token)
     assert res.status == ActuationStatus.BLOCKED and seen == []
 

@@ -153,6 +153,7 @@ def test_outbound_payload_hash_equals_verified_token_payload_hash_and_audit():
         issued = run(issue_authority(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         ))
         outcome = run(enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=DEMO_REPO, action=ACTION,
@@ -177,7 +178,7 @@ def test_outbound_payload_hash_equals_verified_token_payload_hash_and_audit():
         assert pre_actuation[0]["payload_hash"] == issued.token["payload_hash"]
         assert pre_actuation[0]["idempotency_key"] == logical_operation_id
 
-        record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        record = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert record.state == IdempotencyState.EXECUTED
 
 
@@ -223,6 +224,7 @@ def test_run_positive_path_rejects_unsupported_field_even_bypassing_prepare_mark
             run(run_positive_path(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal, attestation=None,
                 logical_operation_id="op-bypass-labels",
+                tenant_id=stack.tenant_id,
             ))
         assert counting.calls == 0
         assert recorded_issues() == []
@@ -455,11 +457,12 @@ def test_prepare_context_a_then_present_as_b_rejected_at_protected_boundary():
             run(run_positive_path(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_for_a,
                 attestation=att.raw_attestation, logical_operation_id="op-context-B-1",
+                tenant_id=stack.tenant_id,
             ))
         assert counting.calls == 0
         assert recorded_issues() == []
-        assert run(stack.coordinator.idempotency.get_state("op-context-B-1")) is None
-        assert run(stack.coordinator.idempotency.get_state("op-context-A-1")) is None
+        assert run(stack.coordinator.idempotency.get_state("op-context-B-1", tenant_id=stack.tenant_id)) is None
+        assert run(stack.coordinator.idempotency.get_state("op-context-A-1", tenant_id=stack.tenant_id)) is None
 
         # issue_authority (the OTHER protected boundary) independently
         # refuses the identical mismatch too, before any token is issued.
@@ -467,6 +470,7 @@ def test_prepare_context_a_then_present_as_b_rejected_at_protected_boundary():
             run(issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_for_a,
                 attestation=att.raw_attestation, logical_operation_id="op-context-B-1",
+                tenant_id=stack.tenant_id,
             ))
         assert counting.calls == 0
 
@@ -500,6 +504,7 @@ def test_enforce_authority_rejects_context_mismatch_even_when_gate_hash_matches(
             verdict="ALLOW", subject=ACTOR, action=ACTION, payload=canonical,
             actor_id=ACTOR, resource_id=DEMO_REPO, auth_claims={},
             idempotency_key="op-hash-match-B",
+            tenant_id=stack.tenant_id,
         )
         assert hash_payload(canonical) == token["payload_hash"]  # the Gate's own check would pass fine
 
@@ -510,7 +515,7 @@ def test_enforce_authority_rejects_context_mismatch_even_when_gate_hash_matches(
             ))
         assert counting.calls == 0
         assert recorded_issues() == []
-        assert run(stack.coordinator.idempotency.get_state("op-hash-match-B")) is None
+        assert run(stack.coordinator.idempotency.get_state("op-hash-match-B", tenant_id=stack.tenant_id)) is None
 
 
 # ---------------------------------------------------------------------------
@@ -549,6 +554,7 @@ def test_two_operations_through_shared_actuator_no_context_leak():
             issued = await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
             outcome = await enforce_authority(
                 stack.service, issued=issued, actor=ACTOR, resource=DEMO_REPO, action=ACTION,
@@ -582,8 +588,8 @@ def test_two_operations_through_shared_actuator_no_context_leak():
         assert hash_payload(sent_b) != issued_a.token["payload_hash"]
 
         # Admission/result identity matches each operation independently.
-        record_a = run(stack.coordinator.idempotency.get_state(op_a_id))
-        record_b = run(stack.coordinator.idempotency.get_state(op_b_id))
+        record_a = run(stack.coordinator.idempotency.get_state(op_a_id, tenant_id=stack.tenant_id))
+        record_b = run(stack.coordinator.idempotency.get_state(op_b_id, tenant_id=stack.tenant_id))
         assert record_a.state == IdempotencyState.EXECUTED
         assert record_b.state == IdempotencyState.EXECUTED
 

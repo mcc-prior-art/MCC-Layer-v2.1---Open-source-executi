@@ -194,6 +194,7 @@ def test_full_infra_execution_through_coordinator(tmp_path):
         verdict="ALLOW", subject="ops-1", action="scale_cluster", payload=ctx,
         actor_id="ops-1", resource_id="cluster-prod-1", idempotency_key="infra-op-1",
         mandate_id=decision.mandate_id, auth_claims=PROFILE.auth_claims(ctx), now=NOW,
+        tenant_id="tenant-infra-1",
     )
     ran = []
 

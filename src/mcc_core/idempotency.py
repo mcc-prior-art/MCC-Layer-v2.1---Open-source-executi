@@ -7,6 +7,19 @@ payload_hash) triple — safe against duplicate external side effects, even
 across different, separately-signed, separately-nonced tokens that share that
 key. See ``docs/DURABLE_OPERATION_SAFETY.md``.
 
+Durable identity is tenant-scoped (PR #105)
+--------------------------------------------
+Every operation this registry admits, tracks, or resolves is identified by
+the PAIR ``(tenant_id, key)`` — never ``key`` alone. Two different tenants
+using the identical raw ``key`` (``logical_operation_id``/``idempotency_key``)
+are structurally independent: reserving, dispatching, executing, or
+reconciling one can never observe, block, overwrite, or resolve the other's
+record. ``tenant_id`` is mandatory on every method (no default; an omitted
+value is a caller bug, not a silently-scoped default), matches the
+authenticated tenant/security-domain identity the coordinator establishes
+(see ``coordinator.py``), and is never inferred from ``key``, a binding, or
+any caller-supplied payload.
+
 State machine
 -------------
 
@@ -42,11 +55,17 @@ the record's current generation still matches the fence the caller was
 issued. A stale caller — a crashed-then-recovered process replaying an old
 attempt, or a second concurrent racer — can therefore never regress a newer
 generation's state, mark someone else's operation executed, release it, or
-overwrite its binding. Reconciliation (``resolve_unknown``) is fenced the
-same way, using the generation observed via ``get_state``, so it composes
-safely with a late-arriving legitimate completion of the very same
-generation (exactly one of the two racing writers wins; neither invokes any
-actuator).
+overwrite its binding. Because the fence is issued for, and every mutation
+is re-scoped to, the SAME ``(tenant_id, key)`` pair, a fence obtained for
+``(tenant-a, op-123)`` is structurally meaningless against
+``(tenant-b, op-123)``'s record — it addresses a different Redis key /
+different in-memory dict entry entirely, not merely a different generation
+of the same one. Reconciliation (``resolve_unknown``) is fenced the same
+way, using the generation observed via ``get_state`` for that SAME tenant
+scope, so it composes safely with a late-arriving legitimate completion of
+the very same generation (exactly one of the two racing writers wins;
+neither invokes any actuator) and can never resolve a different tenant's
+operation.
 
 Fail-closed: a registry that cannot give a definite answer denies the
 reservation (``ReserveStatus.ERROR``), and ``get_state`` raises
@@ -54,6 +73,27 @@ reservation (``ReserveStatus.ERROR``), and ``get_state`` raises
 backend outage must never be interpreted as "operation not found" / "not
 executed" / "safe to retry". ``idempotency_registry_from_env`` refuses to
 silently fall back from Redis to in-memory in an enforcement deployment.
+
+Legacy (pre-tenant-scoping) durable state
+------------------------------------------
+Before PR #105, ``RedisIdempotencyRegistry`` stored one record per raw
+``key`` (``namespace + key``, no tenant dimension at all). PR #105 re-keys
+storage to ``namespace + hash(tenant_id) + ':' + key``, so a durable record
+written under the OLD format is invisible to a lookup under the NEW format.
+Silently treating "no record at the new key" as "safe to admit" would let an
+operation that already reached DISPATCH_OWNED/UNKNOWN/EXECUTED under the old
+scheme be dispatched a SECOND time — a duplicate external side effect. This
+is closed structurally, not by convention: ``RedisIdempotencyRegistry.reserve``
+and ``get_state`` both check for a legacy-format record under the same raw
+``key`` FIRST; if one exists, admission (``reserve``) and status
+(``get_state``) both fail closed with a distinct, explicit signal
+(``ReserveStatus.LEGACY_UNMIGRATED`` / :class:`IdempotencyBackendUnavailable`)
+rather than silently proceeding as if nothing were there. There is no
+automatic ownership claim of a legacy record by any tenant (a raw key alone
+proves nothing about which tenant it belongs to) — an operator must run
+:func:`migrate_legacy_record` explicitly, after establishing out-of-band
+which tenant actually owns that operation, before it becomes admissible
+again under the new scheme. See ``docs/TENANT_SCOPED_DURABLE_IDENTITY.md``.
 """
 
 from __future__ import annotations
@@ -83,7 +123,12 @@ class ReserveStatus(str, Enum):
     DUPLICATE_UNKNOWN = "DUPLICATE_UNKNOWN"    # existing op UNKNOWN; needs reconciliation, not retry
     DUPLICATE_EXECUTED = "DUPLICATE_EXECUTED"  # operation already completed
     BINDING_CONFLICT = "BINDING_CONFLICT"      # same key, different action/resource/payload
+    LEGACY_UNMIGRATED = "LEGACY_UNMIGRATED"    # pre-tenant-scoping record exists; migration required
     ERROR = "ERROR"                            # indeterminate -> fail closed
+
+    @property
+    def ok(self) -> bool:  # pragma: no cover - convenience mirror of ReserveResult.ok
+        return self == ReserveStatus.RESERVED
 
 
 @dataclass(frozen=True)
@@ -129,9 +174,20 @@ class StateRecord:
 
 
 class IdempotencyBackendUnavailable(Exception):
-    """Raised by ``get_state`` when the backend cannot answer. Callers MUST
-    NOT treat this as "not found" / "not executed" / "safe to retry" — it is
-    a distinct, explicit UNAVAILABLE/INDETERMINATE signal."""
+    """Raised by ``get_state`` when the backend cannot answer -- including
+    when a legacy (pre-tenant-scoping) record is found and migration has not
+    yet resolved it. Callers MUST NOT treat this as "not found" / "not
+    executed" / "safe to retry" — it is a distinct, explicit
+    UNAVAILABLE/INDETERMINATE signal."""
+
+
+def _require_tenant_id(tenant_id: Any) -> None:
+    if not isinstance(tenant_id, str) or not tenant_id.strip():
+        raise ValueError(
+            "tenant_id must be a non-empty, non-whitespace string -- durable "
+            "identity is mandatorily tenant-scoped (PR #105); it is never "
+            "inferred or defaulted"
+        )
 
 
 def _encode(state: IdempotencyState, generation: str, binding: str, result_ref: str = "") -> str:
@@ -159,19 +215,26 @@ class InMemoryIdempotencyRegistry:
     stand in for a shared/durable backend in an enforcement deployment (see
     ``deployment_mode.is_enforcement_mode``, which refuses in-memory
     registries there). Its purpose here is local development and the
-    single-process test suite.
+    single-process test suite. Because nothing survives a restart, there is
+    no "legacy unscoped record" concept here — that is exclusively a
+    durable-backend (Redis) migration concern; see the module docstring.
+
+    Keyed by the tuple ``(tenant_id, key)`` — an exact-value Python tuple
+    comparison, never a concatenated/encoded string, so there is no possible
+    collision between e.g. tenant ``"a"``/key ``"b:c"`` and tenant ``"a:b"``/
+    key ``"c"``.
     """
 
     def __init__(self) -> None:
-        self._store: Dict[str, Tuple[str, Optional[float]]] = {}  # key -> (encoded, expires_at|None)
+        self._store: Dict[Tuple[str, str], Tuple[str, Optional[float]]] = {}
 
-    def _live(self, key: str, now: float) -> Optional[str]:
-        entry = self._store.get(key)
+    def _live(self, scoped_key: Tuple[str, str], now: float) -> Optional[str]:
+        entry = self._store.get(scoped_key)
         if entry is None:
             return None
         encoded, expires_at = entry
         if expires_at is not None and expires_at <= now:
-            self._store.pop(key, None)
+            self._store.pop(scoped_key, None)
             return None
         return encoded
 
@@ -179,16 +242,22 @@ class InMemoryIdempotencyRegistry:
         self,
         key: str,
         *,
+        tenant_id: str,
         binding: str = "",
         ttl_seconds: int = DEFAULT_RESERVATION_TTL_SECONDS,
     ) -> ReserveResult:
         if not key or not isinstance(key, str):
             return ReserveResult(ReserveStatus.ERROR, "invalid idempotency key")
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return ReserveResult(ReserveStatus.ERROR, "invalid tenant_id")
+        scoped_key = (tenant_id, key)
         now = time.monotonic()
-        encoded = self._live(key, now)
+        encoded = self._live(scoped_key, now)
         if encoded is None:
             generation = uuid.uuid4().hex
-            self._store[key] = (_encode(IdempotencyState.RESERVED, generation, binding), now + ttl_seconds)
+            self._store[scoped_key] = (
+                _encode(IdempotencyState.RESERVED, generation, binding), now + ttl_seconds,
+            )
             return ReserveResult(ReserveStatus.RESERVED, "reserved", binding, fence=generation)
         state, generation, held_binding, _ = _decode(encoded)
         if held_binding != binding:
@@ -201,82 +270,97 @@ class InMemoryIdempotencyRegistry:
                                   "operation outcome UNKNOWN; requires reconciliation, not retry", held_binding)
         return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", held_binding)
 
-    async def commit_dispatch(self, key: str, *, fence: str) -> bool:
+    async def commit_dispatch(self, key: str, *, tenant_id: str, fence: str) -> bool:
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
+        scoped_key = (tenant_id, key)
         now = time.monotonic()
-        encoded = self._live(key, now)
+        encoded = self._live(scoped_key, now)
         if encoded is None:
             return False
         state, generation, binding, _ = _decode(encoded)
         if state != IdempotencyState.RESERVED or generation != fence:
             return False
-        self._store[key] = (_encode(IdempotencyState.DISPATCH_OWNED, generation, binding), None)
+        self._store[scoped_key] = (_encode(IdempotencyState.DISPATCH_OWNED, generation, binding), None)
         return True
 
     async def mark_executed(
-        self, key: str, *, fence: str, binding: str = "", result_ref: Optional[str] = None,
+        self, key: str, *, tenant_id: str, fence: str, binding: str = "", result_ref: Optional[str] = None,
     ) -> bool:
         """Terminal, unconditional, permanent: EXECUTED is never written
         with an expiry (Round 18 — a terminal record must never silently
         reopen through TTL semantics; retention/archival, if ever needed,
         must be a separate, explicit, out-of-band operation, never a
         parameter of this call)."""
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
+        scoped_key = (tenant_id, key)
         now = time.monotonic()
-        encoded = self._live(key, now)
+        encoded = self._live(scoped_key, now)
         if encoded is None:
             return False
         state, generation, held_binding, _ = _decode(encoded)
         if state != IdempotencyState.DISPATCH_OWNED or generation != fence:
             return False
-        self._store[key] = (
+        self._store[scoped_key] = (
             _encode(IdempotencyState.EXECUTED, generation, held_binding, result_ref or ""), None,
         )
         return True
 
-    async def mark_unknown(self, key: str, *, fence: str) -> bool:
+    async def mark_unknown(self, key: str, *, tenant_id: str, fence: str) -> bool:
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
+        scoped_key = (tenant_id, key)
         now = time.monotonic()
-        encoded = self._live(key, now)
+        encoded = self._live(scoped_key, now)
         if encoded is None:
             return False
         state, generation, binding, _ = _decode(encoded)
         if state != IdempotencyState.DISPATCH_OWNED or generation != fence:
             return False
-        self._store[key] = (_encode(IdempotencyState.UNKNOWN, generation, binding), None)
+        self._store[scoped_key] = (_encode(IdempotencyState.UNKNOWN, generation, binding), None)
         return True
 
-    async def release(self, key: str, *, fence: str) -> bool:
+    async def release(self, key: str, *, tenant_id: str, fence: str) -> bool:
         """Free the key for a legitimate retry. Only valid pre-dispatch
         (state RESERVED): once dispatch ownership has been committed, the
         operation can never be released back to an admittable state — see
         ``mark_unknown``."""
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
+        scoped_key = (tenant_id, key)
         now = time.monotonic()
-        encoded = self._live(key, now)
+        encoded = self._live(scoped_key, now)
         if encoded is None:
             return True  # already gone
         state, generation, _binding, _ = _decode(encoded)
         if state != IdempotencyState.RESERVED or generation != fence:
             return False
-        self._store.pop(key, None)
+        self._store.pop(scoped_key, None)
         return True
 
     async def resolve_unknown(
-        self, key: str, *, expected_generation: str, result_ref: Optional[str] = None,
+        self, key: str, *, tenant_id: str, expected_generation: str, result_ref: Optional[str] = None,
     ) -> ReconcileResult:
         """Fenced CAS: ``UNKNOWN`` OR ``DISPATCH_OWNED`` -> ``EXECUTED``,
         given independently verified positive external evidence (the
-        CALLER, e.g. ``reconciliation.py``, is responsible for that
-        verification -- this only performs the state transition). Accepting
+        CALLER is responsible for that verification -- this only performs
+        the state transition, scoped to the SAME ``(tenant_id, key)`` pair
+        the evidence was observed for; it is structurally incapable of
+        resolving a different tenant's record for the same raw ``key``,
+        since that is a different dict entry entirely). Accepting
         ``DISPATCH_OWNED`` as a source state too (Round 18) closes the gap
         where a crash after durable dispatch commitment but before
         ``mark_unknown``/``mark_executed`` ever ran would otherwise strand
-        the operation with no reconciliation path at all: both states mean
-        exactly the same thing to a reconciliation worker -- "the actuation
-        outcome for this generation is not yet durably confirmed" -- and
-        differ only in what the ORIGINAL dispatcher itself managed to
-        persist before disappearing. Absence of positive evidence never
-        reaches this far (the caller simply does not call this); this
-        method itself has no "not found -> proceed anyway" branch."""
+        the operation with no reconciliation path at all. Absence of
+        positive evidence never reaches this far (the caller simply does
+        not call this); this method itself has no "not found -> proceed
+        anyway" branch."""
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return ReconcileResult(ReconcileStatus.ERROR, "invalid tenant_id")
+        scoped_key = (tenant_id, key)
         now = time.monotonic()
-        encoded = self._live(key, now)
+        encoded = self._live(scoped_key, now)
         if encoded is None:
             return ReconcileResult(ReconcileStatus.NOT_FOUND, "no record for this key")
         state, generation, binding, _ = _decode(encoded)
@@ -287,11 +371,12 @@ class InMemoryIdempotencyRegistry:
             return ReconcileResult(ReconcileStatus.ALREADY_EXECUTED, "already resolved (racing writer won)")
         if state not in (IdempotencyState.UNKNOWN, IdempotencyState.DISPATCH_OWNED):
             return ReconcileResult(ReconcileStatus.NOT_PENDING, f"current state is {state.value if state else '?'}")
-        self._store[key] = (_encode(IdempotencyState.EXECUTED, generation, binding, result_ref or ""), None)
+        self._store[scoped_key] = (_encode(IdempotencyState.EXECUTED, generation, binding, result_ref or ""), None)
         return ReconcileResult(ReconcileStatus.RESOLVED, "positive external evidence confirmed execution")
 
-    async def get_state(self, key: str) -> Optional[StateRecord]:
-        encoded = self._live(key, time.monotonic())
+    async def get_state(self, key: str, *, tenant_id: str) -> Optional[StateRecord]:
+        _require_tenant_id(tenant_id)
+        encoded = self._live((tenant_id, key), time.monotonic())
         if encoded is None:
             return None
         state, generation, binding, result_ref = _decode(encoded)
@@ -301,6 +386,11 @@ class InMemoryIdempotencyRegistry:
 
 
 _RESERVE_LUA = """
+-- KEYS[1] = tenant-scoped key, KEYS[2] = legacy (pre-tenant-scoping) key
+local legacy = redis.call('GET', KEYS[2])
+if legacy then
+    return {'LEGACY_UNMIGRATED', '', ''}
+end
 local cur = redis.call('GET', KEYS[1])
 if not cur then
     local gen = ARGV[3]
@@ -390,6 +480,14 @@ class RedisIdempotencyRegistry:
     Fail-closed: any Redis error or timeout yields ``ReserveStatus.ERROR`` /
     ``False`` / :class:`IdempotencyBackendUnavailable`, never a value that
     could be mistaken for "not found" or "safe to retry".
+
+    Keys are tenant-scoped (PR #105): ``namespace + hash(tenant_id) + ':' +
+    key``. ``hash(tenant_id)`` is a fixed-length (32 hex char)
+    ``redis_keys.hash_component`` digest, so the tenant/key boundary is
+    always unambiguous regardless of what characters either contains --
+    there is no concatenation format a crafted ``tenant_id`` or ``key``
+    could exploit to alias a different tenant's key. See the module
+    docstring for the legacy (pre-scoping) migration story.
     """
 
     def __init__(
@@ -416,7 +514,14 @@ class RedisIdempotencyRegistry:
         )
         return cls(client, **kwargs)
 
-    def _key(self, key: str) -> str:
+    def _key(self, tenant_id: str, key: str) -> str:
+        from . import redis_keys
+
+        return self._namespace + redis_keys.hash_component(tenant_id) + ":" + key
+
+    def _legacy_key(self, key: str) -> str:
+        """The pre-PR-105 unscoped key format. Read-only from this class's
+        perspective: nothing here ever writes to it again."""
         return self._namespace + key
 
     async def _call(self, coro):
@@ -432,17 +537,21 @@ class RedisIdempotencyRegistry:
         self,
         key: str,
         *,
+        tenant_id: str,
         binding: str = "",
         ttl_seconds: int = DEFAULT_RESERVATION_TTL_SECONDS,
     ) -> ReserveResult:
         if not key or not isinstance(key, str):
             return ReserveResult(ReserveStatus.ERROR, "invalid idempotency key")
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return ReserveResult(ReserveStatus.ERROR, "invalid tenant_id")
         if "|" in binding:
             return ReserveResult(ReserveStatus.ERROR, "invalid binding: must not contain '|'")
         generation = uuid.uuid4().hex
         try:
             res = await self._call(self._redis.eval(
-                _RESERVE_LUA, 1, self._key(key), binding, str(int(ttl_seconds)), generation,
+                _RESERVE_LUA, 2, self._key(tenant_id, key), self._legacy_key(key),
+                binding, str(int(ttl_seconds)), generation,
             ))
         except Exception:
             return ReserveResult(ReserveStatus.ERROR, "idempotency registry unavailable; fail-closed")
@@ -452,6 +561,14 @@ class RedisIdempotencyRegistry:
             return ReserveResult(ReserveStatus.ERROR, "malformed registry response; fail-closed")
         if status == ReserveStatus.RESERVED:
             return ReserveResult(ReserveStatus.RESERVED, "reserved", binding, fence=generation)
+        if status == ReserveStatus.LEGACY_UNMIGRATED:
+            return ReserveResult(
+                status,
+                "a pre-tenant-scoping durable record exists for this logical_operation_id; "
+                "ownership cannot be established automatically -- run the explicit migration "
+                "(migrate_legacy_record) after verifying the owning tenant out-of-band; "
+                "fail-closed",
+            )
         held_generation = self._text(res[1]) if len(res) > 1 else None
         held_binding = self._text(res[2]) if len(res) > 2 else None
         if status == ReserveStatus.BINDING_CONFLICT:
@@ -463,46 +580,62 @@ class RedisIdempotencyRegistry:
             return ReserveResult(status, "operation outcome UNKNOWN; requires reconciliation, not retry", binding)
         return ReserveResult(ReserveStatus.DUPLICATE_INFLIGHT, "operation already reserved", binding)
 
-    async def commit_dispatch(self, key: str, *, fence: str) -> bool:
+    async def commit_dispatch(self, key: str, *, tenant_id: str, fence: str) -> bool:
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
         try:
-            res = await self._call(self._redis.eval(_COMMIT_DISPATCH_LUA, 1, self._key(key), fence))
+            res = await self._call(
+                self._redis.eval(_COMMIT_DISPATCH_LUA, 1, self._key(tenant_id, key), fence)
+            )
             return int(res) == 1
         except Exception:
             return False
 
     async def mark_executed(
-        self, key: str, *, fence: str, binding: str = "", result_ref: Optional[str] = None,
+        self, key: str, *, tenant_id: str, fence: str, binding: str = "", result_ref: Optional[str] = None,
     ) -> bool:
         """Terminal, unconditional, permanent — see the in-memory
         registry's identical docstring; no TTL is ever applied here."""
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
         try:
             res = await self._call(self._redis.eval(
-                _MARK_EXECUTED_LUA, 1, self._key(key), fence, result_ref or "",
+                _MARK_EXECUTED_LUA, 1, self._key(tenant_id, key), fence, result_ref or "",
             ))
             return int(res) == 1
         except Exception:
             return False
 
-    async def mark_unknown(self, key: str, *, fence: str) -> bool:
+    async def mark_unknown(self, key: str, *, tenant_id: str, fence: str) -> bool:
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
         try:
-            res = await self._call(self._redis.eval(_MARK_UNKNOWN_LUA, 1, self._key(key), fence))
+            res = await self._call(
+                self._redis.eval(_MARK_UNKNOWN_LUA, 1, self._key(tenant_id, key), fence)
+            )
             return int(res) == 1
         except Exception:
             return False
 
-    async def release(self, key: str, *, fence: str) -> bool:
+    async def release(self, key: str, *, tenant_id: str, fence: str) -> bool:
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return False
         try:
-            res = await self._call(self._redis.eval(_RELEASE_LUA, 1, self._key(key), fence))
+            res = await self._call(
+                self._redis.eval(_RELEASE_LUA, 1, self._key(tenant_id, key), fence)
+            )
             return int(res) == 1
         except Exception:
             return False
 
     async def resolve_unknown(
-        self, key: str, *, expected_generation: str, result_ref: Optional[str] = None,
+        self, key: str, *, tenant_id: str, expected_generation: str, result_ref: Optional[str] = None,
     ) -> ReconcileResult:
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            return ReconcileResult(ReconcileStatus.ERROR, "invalid tenant_id")
         try:
             res = await self._call(self._redis.eval(
-                _RESOLVE_UNKNOWN_LUA, 1, self._key(key), expected_generation, result_ref or "",
+                _RESOLVE_UNKNOWN_LUA, 1, self._key(tenant_id, key), expected_generation, result_ref or "",
             ))
         except Exception:
             return ReconcileResult(ReconcileStatus.ERROR, "idempotency registry unavailable; fail-closed")
@@ -512,17 +645,70 @@ class RedisIdempotencyRegistry:
             return ReconcileResult(ReconcileStatus.ERROR, "malformed registry response; fail-closed")
         return ReconcileResult(status, status.value.lower().replace("_", " "))
 
-    async def get_state(self, key: str) -> Optional[StateRecord]:
+    async def get_state(self, key: str, *, tenant_id: str) -> Optional[StateRecord]:
+        _require_tenant_id(tenant_id)
         try:
-            current = await self._call(self._redis.get(self._key(key)))
+            current = await self._call(self._redis.get(self._key(tenant_id, key)))
         except Exception as exc:
             raise IdempotencyBackendUnavailable(f"idempotency backend unavailable: {exc!r}") from exc
         if current is None:
+            # Section 11: a legacy (pre-tenant-scoping) record for this raw
+            # key must never be silently treated as "not found" -- that
+            # would let a status caller (or, transitively, an admission
+            # decision downstream of it) conclude "safe to retry" for an
+            # operation that may already be DISPATCH_OWNED/UNKNOWN/EXECUTED
+            # under the old scheme.
+            try:
+                legacy = await self._call(self._redis.get(self._legacy_key(key)))
+            except Exception as exc:
+                raise IdempotencyBackendUnavailable(f"idempotency backend unavailable: {exc!r}") from exc
+            if legacy is not None:
+                raise IdempotencyBackendUnavailable(
+                    f"a pre-tenant-scoping legacy durable record exists for key {key!r}; "
+                    "migration required before status can be determined for this tenant"
+                )
             return None
         state, generation, binding, result_ref = _decode(self._text(current))
         if state is None:
             raise IdempotencyBackendUnavailable(f"malformed idempotency record for {key!r}")
         return StateRecord(state=state, generation=generation, binding=binding, result_ref=result_ref)
+
+
+async def migrate_legacy_record(
+    registry: "RedisIdempotencyRegistry", *, tenant_id: str, key: str, delete_legacy: bool = True,
+) -> bool:
+    """Explicit, operator-invoked migration of ONE pre-PR-105 legacy record
+    into the new tenant-scoped namespace.
+
+    This is deliberately NOT automatic and NOT called from ``reserve``/
+    ``get_state`` -- a raw ``key`` alone proves nothing about which tenant
+    legitimately owns it (Section 11: "no automatic ownership claim based
+    only on binding"). An operator must independently verify, out-of-band
+    (e.g. from the original request logs, the audit chain, or a
+    pre-migration inventory), which tenant actually issued the operation
+    before calling this. Idempotent: migrating an already-migrated or
+    already-absent legacy record is a safe no-op (returns ``True``).
+
+    Returns ``True`` once the tenant-scoped key holds the migrated record
+    (or already did); ``False`` on a backend error (fail-closed -- the
+    legacy record is left in place, still blocking admission, rather than
+    risking a partial/lost migration).
+    """
+    legacy_key = registry._legacy_key(key)
+    scoped_key = registry._key(tenant_id, key)
+    try:
+        legacy_value = await registry._call(registry._redis.get(legacy_key))
+        if legacy_value is None:
+            return True  # nothing to migrate
+        existing_scoped = await registry._call(registry._redis.get(scoped_key))
+        if existing_scoped is None:
+            await registry._call(registry._redis.set(scoped_key, legacy_value))
+        if delete_legacy:
+            await registry._call(registry._redis.delete(legacy_key))
+        return True
+    except Exception:
+        return False
+
 
 class IdempotencyConfigError(Exception):
     """Raised when the idempotency backend is misconfigured (fail-closed start)."""

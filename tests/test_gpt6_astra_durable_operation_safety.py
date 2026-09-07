@@ -86,6 +86,7 @@ async def _issue_and_dispatch(stack, proposal, logical_operation_id, upstream):
     issued = await issue_authority(
         stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
         attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+        tenant_id=stack.tenant_id,
     )
     outcome = await enforce_authority(
         stack.service, issued=issued, actor=ACTOR, resource=proposal.resource,
@@ -128,6 +129,7 @@ def test_run_positive_path_refuses_missing_id_actuator_never_invoked(bad_value):
             run(run_positive_path(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
                 attestation=att.raw_attestation, logical_operation_id=bad_value,
+                tenant_id=stack.tenant_id,
             ))
         assert counting.calls == 0
 
@@ -147,6 +149,7 @@ def test_issue_authority_refuses_missing_id_no_token_issued(bad_value):
             run(issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
                 attestation=att.raw_attestation, logical_operation_id=bad_value,
+                tenant_id=stack.tenant_id,
             ))
         assert counting.calls == 0
 
@@ -243,7 +246,7 @@ def test_lost_response_after_success_reconciles_to_executed_without_duplicate():
         assert outcome.status == "EXECUTION_FAILED"  # indeterminate, not a false success
         assert lossy.calls == 1
 
-        record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        record = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert record.state == IdempotencyState.UNKNOWN
 
         # The side effect genuinely happened -- independently observable via
@@ -262,7 +265,7 @@ def test_lost_response_after_success_reconciles_to_executed_without_duplicate():
             actuator_repo=stack.demo_repo,
         ))
         assert reconcile_outcome.found and reconcile_outcome.applied
-        resolved = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        resolved = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert resolved.state == IdempotencyState.EXECUTED
 
         # A fresh, independently valid authorization for the SAME logical
@@ -274,6 +277,7 @@ def test_lost_response_after_success_reconciles_to_executed_without_duplicate():
         second_outcome = run(run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
             attestation=second_att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         ))
         assert second_outcome.status == "BLOCKED"
         assert lossy.calls == 1  # no second external call
@@ -295,7 +299,7 @@ def test_reconciliation_never_creates_when_no_positive_evidence_exists():
 
         issued, outcome = run(_issue_and_dispatch(stack, proposal, logical_operation_id, always_raises))
         assert outcome.status == "EXECUTION_FAILED"
-        record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        record = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert record.state == IdempotencyState.UNKNOWN
         assert recorded_issues() == []  # genuinely never happened
 
@@ -306,7 +310,7 @@ def test_reconciliation_never_creates_when_no_positive_evidence_exists():
         ))
         assert not reconcile_outcome.found
         assert not reconcile_outcome.applied
-        still = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        still = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.UNKNOWN  # unchanged; still not retry-eligible
         assert recorded_issues() == []  # reconciliation never created anything
 
@@ -332,14 +336,15 @@ def test_dispatch_owned_crash_recovers_via_reconciliation_to_executed():
         issued = run(issue_authority(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         ))
         binding_ref = hash_document({
             "action": issued.token["action"], "resource": issued.token["resource_id"],
             "payload_hash": issued.token["payload_hash"],
         })
-        reserved = run(stack.coordinator.idempotency.reserve(logical_operation_id, binding=binding_ref))
+        reserved = run(stack.coordinator.idempotency.reserve(logical_operation_id, binding=binding_ref, tenant_id=stack.tenant_id))
         assert reserved.ok
-        assert run(stack.coordinator.idempotency.commit_dispatch(logical_operation_id, fence=reserved.fence))
+        assert run(stack.coordinator.idempotency.commit_dispatch(logical_operation_id, fence=reserved.fence, tenant_id=stack.tenant_id))
 
         # The real external call actually happens (made directly here,
         # standing in for the coordinator's executor() call immediately
@@ -349,7 +354,7 @@ def test_dispatch_owned_crash_recovers_via_reconciliation_to_executed():
         actuator = _real_actuator(stack, authorized_resource=DEMO_REPO)
         run(actuator(ACTION, issued.canonical_payload))
 
-        record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        record = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert record.state == IdempotencyState.DISPATCH_OWNED
 
         # No automatic redispatch: a fresh, independently valid
@@ -360,6 +365,7 @@ def test_dispatch_owned_crash_recovers_via_reconciliation_to_executed():
         retry_outcome = run(run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
             attestation=fresh_att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         ))
         assert retry_outcome.status == "BLOCKED"
         assert counting.calls == 0
@@ -372,7 +378,7 @@ def test_dispatch_owned_crash_recovers_via_reconciliation_to_executed():
             actuator_repo=stack.demo_repo,
         ))
         assert reconcile_outcome.found and reconcile_outcome.applied
-        resolved = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        resolved = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert resolved.state == IdempotencyState.EXECUTED
         assert len(recorded_issues()) == 1  # exactly one, ever
 
@@ -391,16 +397,17 @@ def test_dispatch_owned_without_evidence_stays_pending_never_reopens():
         issued = run(issue_authority(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         ))
         binding_ref = hash_document({
             "action": issued.token["action"], "resource": issued.token["resource_id"],
             "payload_hash": issued.token["payload_hash"],
         })
-        reserved = run(stack.coordinator.idempotency.reserve(logical_operation_id, binding=binding_ref))
-        assert run(stack.coordinator.idempotency.commit_dispatch(logical_operation_id, fence=reserved.fence))
+        reserved = run(stack.coordinator.idempotency.reserve(logical_operation_id, binding=binding_ref, tenant_id=stack.tenant_id))
+        assert run(stack.coordinator.idempotency.commit_dispatch(logical_operation_id, fence=reserved.fence, tenant_id=stack.tenant_id))
         # No external call is ever made -- genuinely no evidence exists.
 
-        record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        record = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         reconcile_outcome = run(reconcile_github_issue_operation(
             idempotency=stack.coordinator.idempotency, token=issued.token,
             expected_generation=record.generation, base_url=stack.github_base_url,
@@ -408,7 +415,7 @@ def test_dispatch_owned_without_evidence_stays_pending_never_reopens():
         ))
         assert not reconcile_outcome.found
         assert not reconcile_outcome.applied
-        still = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        still = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.DISPATCH_OWNED  # unchanged
         assert recorded_issues() == []
 
@@ -432,7 +439,7 @@ def _setup_unknown_operation(stack, *, logical_operation_id: str, payload=None):
     lossy = _LossyActuator(_real_actuator(stack, authorized_resource=DEMO_REPO))
     issued, outcome = run(_issue_and_dispatch(stack, proposal, logical_operation_id, lossy))
     assert outcome.status == "EXECUTION_FAILED"
-    record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+    record = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
     assert record.state == IdempotencyState.UNKNOWN
     return issued, record
 
@@ -455,7 +462,7 @@ def test_reconciliation_rejects_foreign_operation_marker():
 
         issued, outcome = run(_issue_and_dispatch(stack, proposal, logical_operation_id, always_raises))
         assert outcome.status == "EXECUTION_FAILED"
-        record = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        record = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert record.state == IdempotencyState.UNKNOWN
         assert recorded_issues() == []  # op-real-6a genuinely never happened
 
@@ -474,7 +481,7 @@ def test_reconciliation_rejects_foreign_operation_marker():
         ))
         assert not reconcile_outcome.found
         assert not reconcile_outcome.applied
-        still = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        still = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.UNKNOWN
 
 
@@ -493,7 +500,7 @@ def test_reconciliation_rejects_wrong_repository():
         assert not reconcile_outcome.found
         assert not reconcile_outcome.applied
         assert "resource" in reconcile_outcome.reason.lower()
-        still = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        still = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.UNKNOWN
 
 
@@ -515,7 +522,7 @@ def test_reconciliation_rejects_wrong_logical_operation_id():
         assert not reconcile_outcome.applied
         assert "no stored" in reconcile_outcome.reason.lower()
         # the REAL operation is untouched
-        still = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        still = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.UNKNOWN
 
 
@@ -537,7 +544,7 @@ def test_reconciliation_rejects_wrong_payload():
         assert not reconcile_outcome.found
         assert not reconcile_outcome.applied
         assert "binding" in reconcile_outcome.reason.lower()
-        still = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        still = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.UNKNOWN
 
 
@@ -553,7 +560,7 @@ def test_reconciliation_rejects_stale_generation():
         ))
         assert not reconcile_outcome.found
         assert not reconcile_outcome.applied
-        still = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        still = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.UNKNOWN
 
 
@@ -569,7 +576,7 @@ def test_reconciliation_accepts_fully_matching_evidence():
             actuator_repo=stack.demo_repo,
         ))
         assert reconcile_outcome.found and reconcile_outcome.applied
-        resolved = run(stack.coordinator.idempotency.get_state(logical_operation_id))
+        resolved = run(stack.coordinator.idempotency.get_state(logical_operation_id, tenant_id=stack.tenant_id))
         assert resolved.state == IdempotencyState.EXECUTED
 
 
@@ -606,3 +613,120 @@ def test_astra_stack_starts_normally_in_reference_mode(monkeypatch):
     monkeypatch.delenv("MCC_IDEMPOTENCY_BACKEND", raising=False)
     with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
         assert isinstance(stack.coordinator.idempotency, InMemoryIdempotencyRegistry)
+
+
+# ---------------------------------------------------------------------------
+# PR #105 requirement 10: reconciliation is tenant-isolated at THIS
+# reference integration's own boundary (reconciliation.py derives tenant_id
+# from the real, signed token -- see reconciliation.py's own docstring),
+# not merely at the raw mcc_core.idempotency registry level (already proven
+# directly by tests/test_idempotency.py's test_g_* tests).
+# ---------------------------------------------------------------------------
+
+
+async def _park_operation_unknown_as_tenant(stack, *, op_id, tenant_id, title, body):
+    """Exactly like ``_park_operation_unknown`` in
+    test_gpt6_astra_round24_hardening.py, but issues authority under an
+    EXPLICIT tenant_id override rather than the stack's own fixed
+    ``stack.tenant_id`` -- so two independent tenants can each park the
+    IDENTICAL raw ``op_id`` at UNKNOWN, entirely independently."""
+    payload = build_marked_payload({"title": title, "body": body}, logical_operation_id=op_id)
+    proposal = AstraProposal(action=ACTION, resource=DEMO_REPO, payload=payload)
+    canonical = stack.profiles.for_action(ACTION).canonical_payload(payload)
+    att = await obtain_attestation(stack.attester, proposal=proposal, canonical_payload=canonical)
+    issued = await issue_authority(
+        stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
+        attestation=att.raw_attestation, logical_operation_id=op_id, tenant_id=tenant_id,
+    )
+    binding_ref = hash_document({
+        "action": issued.token["action"], "resource": issued.token["resource_id"],
+        "payload_hash": issued.token["payload_hash"],
+    })
+    reserved = await stack.coordinator.idempotency.reserve(op_id, tenant_id=tenant_id, binding=binding_ref)
+    await stack.coordinator.idempotency.commit_dispatch(op_id, tenant_id=tenant_id, fence=reserved.fence)
+    await stack.coordinator.idempotency.mark_unknown(op_id, tenant_id=tenant_id, fence=reserved.fence)
+    record = await stack.coordinator.idempotency.get_state(op_id, tenant_id=tenant_id)
+    return issued, record
+
+
+def test_reconciliation_resolving_tenant_a_never_resolves_tenant_bs_identical_id():
+    """The critical cross-tenant reproduction at the reconciliation layer:
+    tenant-a and tenant-b independently park the IDENTICAL raw
+    logical_operation_id at UNKNOWN with the IDENTICAL real GitHub issue
+    marker/content (same title/body -- so even the marker-based lookup
+    finds a plausible candidate for either). Reconciling tenant-a's
+    operation (using tenant-a's own real, signed token) must resolve ONLY
+    tenant-a's durable record -- tenant-b's stays UNKNOWN, never silently
+    resolved as a side effect."""
+    with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
+        op_id = "op-recon-tenant-isolation-1"
+        tenant_a, tenant_b = "tenant-recon-a", "tenant-recon-b"
+
+        issued_a, record_a = run(_park_operation_unknown_as_tenant(
+            stack, op_id=op_id, tenant_id=tenant_a, title="Shared title", body="shared body",
+        ))
+        issued_b, record_b = run(_park_operation_unknown_as_tenant(
+            stack, op_id=op_id, tenant_id=tenant_b, title="Shared title", body="shared body",
+        ))
+        # Both tenants' tokens carry the SAME idempotency_key; their durable
+        # records are nonetheless structurally independent (PR #105).
+        assert issued_a.token["idempotency_key"] == issued_b.token["idempotency_key"] == op_id
+        assert record_a.generation != record_b.generation
+
+        # A single real GitHub issue is filed (both tenants' marker content
+        # is identical, so this one issue is the only positive evidence
+        # that will ever exist for either).
+        real_actuator = _real_actuator(stack, authorized_resource=DEMO_REPO)
+        run(real_actuator(ACTION, issued_a.canonical_payload))
+
+        # Reconcile tenant-a's operation using tenant-a's own token.
+        outcome_a = run(reconcile_github_issue_operation(
+            idempotency=stack.coordinator.idempotency, token=issued_a.token,
+            expected_generation=record_a.generation, base_url=stack.github_base_url,
+            actuator_repo=stack.demo_repo,
+        ))
+        assert outcome_a.found and outcome_a.applied
+
+        state_a = run(stack.coordinator.idempotency.get_state(op_id, tenant_id=tenant_a))
+        state_b = run(stack.coordinator.idempotency.get_state(op_id, tenant_id=tenant_b))
+        assert state_a.state == IdempotencyState.EXECUTED
+        # Tenant-b's own record is COMPLETELY unaffected by tenant-a's
+        # reconciliation -- still UNKNOWN, never silently resolved.
+        assert state_b.state == IdempotencyState.UNKNOWN
+
+        # Tenant-b's OWN reconciliation, using tenant-b's own token, still
+        # works normally afterward -- tenant-a's resolution did not consume
+        # or otherwise disturb it.
+        outcome_b = run(reconcile_github_issue_operation(
+            idempotency=stack.coordinator.idempotency, token=issued_b.token,
+            expected_generation=record_b.generation, base_url=stack.github_base_url,
+            actuator_repo=stack.demo_repo,
+        ))
+        assert outcome_b.found and outcome_b.applied
+        state_b_final = run(stack.coordinator.idempotency.get_state(op_id, tenant_id=tenant_b))
+        assert state_b_final.state == IdempotencyState.EXECUTED
+
+
+def test_reconciliation_token_without_tenant_id_is_refused():
+    """Defense-in-depth: a hand-crafted token missing ``tenant_id``
+    (impossible from a genuinely signed real token, but reconciliation
+    reads directly off the token dict and must not silently substitute a
+    default) is refused before any durable lookup."""
+    with LocalAstraDemoStack(demo_repo=DEMO_REPO) as stack:
+        op_id = "op-recon-no-tenant"
+        issued, record = run(_park_operation_unknown_as_tenant(
+            stack, op_id=op_id, tenant_id="tenant-recon-c", title="t", body="b",
+        ))
+        forged_token = dict(issued.token)
+        forged_token["tenant_id"] = ""
+        outcome = run(reconcile_github_issue_operation(
+            idempotency=stack.coordinator.idempotency, token=forged_token,
+            expected_generation=record.generation, base_url=stack.github_base_url,
+            actuator_repo=stack.demo_repo,
+        ))
+        assert not outcome.found
+        assert not outcome.applied
+        assert "tenant" in outcome.reason.lower()
+        # the real operation is untouched
+        still = run(stack.coordinator.idempotency.get_state(op_id, tenant_id="tenant-recon-c"))
+        assert still.state == IdempotencyState.UNKNOWN

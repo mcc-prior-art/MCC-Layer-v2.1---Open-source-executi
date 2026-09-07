@@ -147,12 +147,12 @@ def test_idempotency_cross_instance(tmp_path):
     ns = redis_keys.prefix("idem", {"MCC_ENV": "test"})
     reg_a = RedisIdempotencyRegistry(shared, namespace=ns)
     reg_b = RedisIdempotencyRegistry(shared, namespace=ns)
-    first = run(reg_a.reserve("op-1", binding="payload-hash-A"))
+    first = run(reg_a.reserve("op-1", binding="payload-hash-A", tenant_id="tenant-1"))
     assert first.status == ReserveStatus.RESERVED
     # B sees the in-flight reservation under a DIFFERENT binding -- a
     # distinct logical operation presenting the same key is a
     # BINDING_CONFLICT, never merely a duplicate.
-    conflict = run(reg_b.reserve("op-1", binding="payload-hash-B"))
+    conflict = run(reg_b.reserve("op-1", binding="payload-hash-B", tenant_id="tenant-1"))
     assert conflict.status == ReserveStatus.BINDING_CONFLICT
     assert not conflict.ok
 
@@ -165,7 +165,7 @@ def test_idempotency_concurrent_single_winner_cross_instance(tmp_path):
 
     async def race():
         return await asyncio.gather(*[
-            (a if i % 2 == 0 else b).reserve("op-x", binding=f"b{i}") for i in range(12)])
+            (a if i % 2 == 0 else b).reserve("op-x", binding=f"b{i}", tenant_id="tenant-1") for i in range(12)])
 
     results = run(race())
     winners = [r for r in results if r.status == ReserveStatus.RESERVED]
@@ -215,6 +215,6 @@ def test_registry_outage_fails_closed():
     idem = RedisIdempotencyRegistry(down, namespace="x:")
     vel = RedisVelocityRegistry(down, namespace="x:")
     assert run(nonce.consume("n", ttl_seconds=60)) is False
-    assert run(idem.reserve("k")).status == ReserveStatus.ERROR
+    assert run(idem.reserve("k", tenant_id="tenant-1")).status == ReserveStatus.ERROR
     limit = VelocityLimit(name="c", window_seconds=60, max_count=1)
     assert not run(vel.reserve(limit, VelocityDescriptor(dimensions={"actor": "a"}))).ok

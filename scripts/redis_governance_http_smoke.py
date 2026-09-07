@@ -94,10 +94,10 @@ async def main() -> int:
                       resource_scope=["res-1"], constraints={}, not_before=1, not_after=FUTURE,
                       revocation_required=True, mandate_id=f"mdt-{run_id}")
     ok = await a.execute_with_mandate(mandate=m, actor="agent/x", action="generic_op",
-                                      resource="res-1", context=ctx, idempotency_key=f"i-{run_id}-1")
+                                      resource="res-1", context=ctx, idempotency_key=f"i-{run_id}-1", tenant_id="redis-smoke-tenant")
     await rev_a.revoke(m["mandate_id"])
     blocked = await b.execute_with_mandate(mandate=m, actor="agent/x", action="generic_op",
-                                           resource="res-1", context=ctx, idempotency_key=f"i-{run_id}-2")
+                                           resource="res-1", context=ctx, idempotency_key=f"i-{run_id}-2", tenant_id="redis-smoke-tenant")
     print(f"mandate: A execute={ok.status}  B after revoke={blocked.status}")
     if ok.status != "EXECUTED":
         failures.append("instance A execute should succeed")
@@ -111,10 +111,10 @@ async def main() -> int:
     mandate = await a.approve(rid["request_id"])
     first = await a.execute_with_approval(mandate=mandate, actor="agent/x", action="generic_op",
                                           resource="res-1", context=ctx, transaction_id=f"t-{run_id}",
-                                          idempotency_key=f"a-{run_id}-1")
+                                          idempotency_key=f"a-{run_id}-1", tenant_id="redis-smoke-tenant")
     second = await b.execute_with_approval(mandate=mandate, actor="agent/x", action="generic_op",
                                            resource="res-1", context=ctx, transaction_id=f"t-{run_id}",
-                                           idempotency_key=f"a-{run_id}-2")
+                                           idempotency_key=f"a-{run_id}-2", tenant_id="redis-smoke-tenant")
     print(f"approval: A execute={first.status}  B replay={second.status}")
     if first.status != "EXECUTED":
         failures.append("instance A approval execute should succeed")

@@ -168,22 +168,22 @@ def test_r_to_u_durable_states_map_verbatim(transition, expected):
     svc = service(durable_execution_state=idem)
     run(svc.submit_proposal(tenant_id="t", request={"logical_operation_id": "op-ru", **BASE}))
 
-    reserve = run(idem.reserve("op-ru", binding=real_binding()))
+    reserve = run(idem.reserve("op-ru", binding=real_binding(), tenant_id="t"))
     if transition == "reserved":
         s = run(svc.get_operation_status(tenant_id="t", logical_operation_id="op-ru"))
         assert s.status == expected
         return
-    run(idem.commit_dispatch("op-ru", fence=reserve.fence))
+    run(idem.commit_dispatch("op-ru", fence=reserve.fence, tenant_id="t"))
     if transition == "dispatch_owned":
         s = run(svc.get_operation_status(tenant_id="t", logical_operation_id="op-ru"))
         assert s.status == expected
         return
     if transition == "unknown":
-        run(idem.mark_unknown("op-ru", fence=reserve.fence))
+        run(idem.mark_unknown("op-ru", fence=reserve.fence, tenant_id="t"))
         s = run(svc.get_operation_status(tenant_id="t", logical_operation_id="op-ru"))
         assert s.status == expected
         return
-    run(idem.mark_executed("op-ru", fence=reserve.fence))
+    run(idem.mark_executed("op-ru", fence=reserve.fence, tenant_id="t"))
     s = run(svc.get_operation_status(tenant_id="t", logical_operation_id="op-ru"))
     assert s.status == expected
 
@@ -195,7 +195,7 @@ def test_v_no_proposal_and_no_durable_record_is_not_found():
 
 
 class _DownIdempotency:
-    async def get_state(self, key):
+    async def get_state(self, key, *, tenant_id):
         raise IdempotencyBackendUnavailable("down")
 
 
@@ -240,10 +240,10 @@ def test_y_unknown_never_causes_retry_or_reservation():
     idem = _CountingIdempotency()
     svc = service(durable_execution_state=idem)
     run(svc.submit_proposal(tenant_id="t", request={"logical_operation_id": "op-y", **BASE}))
-    reserve = run(idem.reserve("op-y", binding=real_binding()))
+    reserve = run(idem.reserve("op-y", binding=real_binding(), tenant_id="t"))
     calls["reserve"] = 0  # reset after the direct test-setup call above
-    run(idem.commit_dispatch("op-y", fence=reserve.fence))
-    run(idem.mark_unknown("op-y", fence=reserve.fence))
+    run(idem.commit_dispatch("op-y", fence=reserve.fence, tenant_id="t"))
+    run(idem.mark_unknown("op-y", fence=reserve.fence, tenant_id="t"))
 
     # Re-submitting the SAME proposal (a caller retrying) and reading status
     # repeatedly must never itself call reserve.
@@ -261,7 +261,7 @@ class _ExplodingDurable:
     get_operation_status calls ONLY get_state, and submit_proposal never
     touches the durable registry at all."""
 
-    async def get_state(self, key):
+    async def get_state(self, key, *, tenant_id):
         return None
 
     def __getattr__(self, name):

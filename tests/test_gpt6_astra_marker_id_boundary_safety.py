@@ -124,7 +124,7 @@ def _pre_actuation_audit_entries(stack: LocalAstraDemoStack) -> list:
 def _assert_zero_side_effects(stack: LocalAstraDemoStack, counting: "_CountingUpstream", unsafe_id: str) -> None:
     assert counting.calls == 0
     assert recorded_issues() == []
-    assert run(stack.coordinator.idempotency.get_state(unsafe_id)) is None
+    assert run(stack.coordinator.idempotency.get_state(unsafe_id, tenant_id=stack.tenant_id)) is None
     assert not any(e.get("idempotency_key") == unsafe_id for e in _pre_actuation_audit_entries(stack))
 
 
@@ -201,6 +201,7 @@ def test_run_positive_path_rejects_unsafe_id_direct_bypass(unsafe_id):
             run(run_positive_path(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal, attestation=None,
                 logical_operation_id=unsafe_id,
+                tenant_id=stack.tenant_id,
             ))
         _assert_id_safety_rejection(excinfo)
         _assert_zero_side_effects(stack, counting, unsafe_id)
@@ -217,6 +218,7 @@ def test_issue_authority_rejects_unsafe_id_before_token_issuance_direct_bypass(u
             run(issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal, attestation=None,
                 logical_operation_id=unsafe_id,
+                tenant_id=stack.tenant_id,
             ))
         _assert_id_safety_rejection(excinfo)
         _assert_zero_side_effects(stack, counting, unsafe_id)
@@ -239,6 +241,7 @@ def test_enforce_authority_rejects_genuinely_signed_token_with_unsafe_idempotenc
             verdict="ALLOW", subject=ACTOR, action=ACTION, payload=canonical,
             actor_id=ACTOR, resource_id=DEMO_REPO, auth_claims={},
             idempotency_key=unsafe_id,
+            tenant_id=stack.tenant_id,
         )
         assert token["payload_hash"] == hash_payload(canonical)  # a real, well-formed, signed token
         issued = IssuedAuthority(token=token, canonical_payload=canonical, evidence_digest=None)
@@ -286,6 +289,7 @@ def test_id_accepted_by_protected_execution_is_safe_for_reconciliation_marker_re
         issued = run(issue_authority(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         ))
         outcome = run(enforce_authority(
             stack.service, issued=issued, actor=ACTOR, resource=DEMO_REPO, action=ACTION,

@@ -64,6 +64,7 @@ class DecisionEngine:
         now: Optional[int] = None,
         transaction_id: Optional[str] = None,
         idempotency_key: Optional[str] = None,
+        tenant_id: Optional[str] = None,
         actor_id: Optional[str] = None,
         resource_id: Optional[str] = None,
         auth_claims: Optional[Dict[str, Any]] = None,
@@ -100,6 +101,14 @@ class DecisionEngine:
             # which the Ed25519 signature covers like every other claim.
             "transaction_id": transaction_id,
             "idempotency_key": idempotency_key,
+            # PR #105: the trusted tenant/security-domain identity that,
+            # together with idempotency_key, forms the mandatory durable
+            # operation identity EnforcementCoordinator requires. Signed like
+            # every other claim -- the caller cannot forge or omit it once
+            # issued. Optional HERE (this engine issues tokens for many
+            # non-actuating/legacy callers too); the coordinator, not this
+            # engine, is what makes it mandatory before actuation.
+            "tenant_id": tenant_id,
             "actor_id": actor_id,
             "resource_id": resource_id,
             "auth_claims": auth_claims or {},

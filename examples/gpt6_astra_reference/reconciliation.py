@@ -179,11 +179,22 @@ async def reconcile_github_issue_operation(
     ``token`` must be the real, gate-verified signed decision token this
     exact operation ran under (the same dict ``enforce_authority``/the
     coordinator used) — this function reads ``idempotency_key``, ``action``,
-    ``resource_id``, and ``payload_hash`` from it and nowhere else; it never
-    accepts an independently-suppliable id/action/resource that could drift
-    from what was actually admitted (Round 18's "bind verified context to
-    the final call" requirement, applied symmetrically at the reconciliation
-    end of the same operation's lifecycle).
+    ``resource_id``, ``payload_hash``, and (PR #105) ``tenant_id`` from it
+    and nowhere else; it never accepts an independently-suppliable id/
+    action/resource/tenant that could drift from what was actually admitted
+    (Round 18's "bind verified context to the final call" requirement,
+    applied symmetrically at the reconciliation end of the same operation's
+    lifecycle — now including the tenant scope the operation was durably
+    admitted under).
+
+    PR #105: durable identity is tenant-scoped, so both the ``get_state``
+    lookup below and the terminal ``resolve_unknown`` call are scoped to
+    ``token["tenant_id"]`` — reconciliation for one tenant's operation can
+    never observe or resolve a different tenant's durable record, even one
+    that happens to share the same raw ``logical_operation_id``. A token
+    missing ``tenant_id`` is refused before any durable lookup, exactly as a
+    token missing ``idempotency_key``/``action``/``resource_id``/
+    ``payload_hash`` already is.
 
     ``expected_generation`` is the generation observed via
     ``idempotency.get_state(logical_operation_id)`` immediately before
@@ -210,12 +221,19 @@ async def reconcile_github_issue_operation(
     action = token.get("action")
     resource = token.get("resource_id")
     payload_hash = token.get("payload_hash")
+    tenant_id = token.get("tenant_id")
 
     if not logical_operation_id or not action or not resource or not payload_hash:
         return ReconciliationOutcome(
             found=False, applied=False,
             reason="token is missing a required binding field (idempotency_key/action/resource_id/"
                    "payload_hash); refusing to reconcile",
+        )
+    if not isinstance(tenant_id, str) or not tenant_id.strip():
+        return ReconciliationOutcome(
+            found=False, applied=False,
+            reason="token is missing a valid tenant_id; refusing to reconcile (PR #105: durable "
+                   "identity is tenant-scoped)",
         )
     if action != RECONCILABLE_ACTION:
         return ReconciliationOutcome(
@@ -231,7 +249,7 @@ async def reconcile_github_issue_operation(
 
     expected_binding = hash_document({"action": action, "resource": resource, "payload_hash": payload_hash})
 
-    record = await idempotency.get_state(logical_operation_id)
+    record = await idempotency.get_state(logical_operation_id, tenant_id=tenant_id)
     if record is None:
         return ReconciliationOutcome(
             found=False, applied=False, reason="no stored logical-operation record for this id",
@@ -290,6 +308,7 @@ async def reconcile_github_issue_operation(
     })
     result = await idempotency.resolve_unknown(
         logical_operation_id, expected_generation=expected_generation, result_ref=result_ref,
+        tenant_id=tenant_id,
     )
     if result.status == ReconcileStatus.RESOLVED:
         return ReconciliationOutcome(found=True, applied=True, reason=result.reason, issue=issue)

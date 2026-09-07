@@ -45,6 +45,10 @@ from .mock_github_service import app as mock_github_app, reset_issues
 
 ACTION = "create_github_issue"
 ACTOR = "agent/astra-demo"
+# PR #105: this demo's fixed, trusted tenant/security-domain identity.
+# Exposed as ``self.tenant_id`` on the stack for tests to pass into any
+# direct ``stack.coordinator.idempotency.<method>(..., tenant_id=...)`` call.
+TENANT_ID = "astra-demo-tenant"
 ISSUER = "axlogiq/astra-demo"
 ATTESTER_ID = "attester.astra-demo.v1"
 SCOPE_TEMPLATE = "github:{resource}"
@@ -89,6 +93,7 @@ class LocalAstraDemoStack:
         reset_issues()
         self.demo_repo = demo_repo
         self.profiles = ProfileRegistry.default_pilot()
+        self.tenant_id = TENANT_ID
 
         # 1. Mock external GitHub service (loopback).
         self.github_port = _free_port()

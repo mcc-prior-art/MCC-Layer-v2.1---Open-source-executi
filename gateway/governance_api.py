@@ -181,11 +181,17 @@ class ChallengeCreateResponse(_Strict):
 
 # ---------- auth boundaries ----------
 
-def _auth_deps(api_key: str, operator_key: Optional[str]):
+def _auth_deps(api_key: str, operator_key: Optional[str], tenant_id: str):
     def require_agent(x_api_key: str = Header(...)) -> str:
         if x_api_key != api_key:
             raise HTTPException(status_code=401, detail="INVALID_API_KEY")
-        return "agent"
+        # PR #105: the trusted tenant/security-domain identity for THIS
+        # gateway instance's agent credential -- resolved server-side at
+        # mount time (see ``tenant_id`` on ``build_governance_service`` /
+        # ``MCC_GATEWAY_TENANT_ID``), never accepted from the request body.
+        # A caller cannot widen, override, or spoof it via any payload
+        # field: it is not read from ``req`` anywhere in this module.
+        return tenant_id
 
     def require_operator(x_operator_key: Optional[str] = Header(default=None)) -> str:
         # No operator key configured, or a missing/incorrect one -> no operator
@@ -198,8 +204,8 @@ def _auth_deps(api_key: str, operator_key: Optional[str]):
 
 
 def mount_mandate_routes(app: FastAPI, service: GovernanceService, *, api_key: str,
-                         operator_key: Optional[str]) -> None:
-    require_agent, require_operator = _auth_deps(api_key, operator_key)
+                         operator_key: Optional[str], tenant_id: str = "pilot") -> None:
+    require_agent, require_operator = _auth_deps(api_key, operator_key, tenant_id)
 
     @app.post("/mandates/verify", response_model=MandateVerifyResponse)
     async def verify_mandate(req: MandateVerifyRequest, _=Depends(require_agent)):
@@ -212,11 +218,11 @@ def mount_mandate_routes(app: FastAPI, service: GovernanceService, *, api_key: s
                                      constraints=out.constraints)
 
     @app.post("/mandates/execute", response_model=ExecuteResponse)
-    async def execute_with_mandate(req: MandateExecuteRequest, _=Depends(require_agent)):
+    async def execute_with_mandate(req: MandateExecuteRequest, tenant: str = Depends(require_agent)):
         out = await service.execute_with_mandate(
             mandate=req.mandate, actor=req.actor, action=req.action, resource=req.resource,
             context=req.context, transaction_id=req.transaction_id,
-            idempotency_key=req.idempotency_key, attestation=req.attestation,
+            idempotency_key=req.idempotency_key, tenant_id=tenant, attestation=req.attestation,
         )
         return ExecuteResponse(status=out.status, reason=out.reason, decision=out.decision,
                                audit_ref=out.audit_ref, execution=out.execution)
@@ -246,11 +252,11 @@ def mount_mandate_routes(app: FastAPI, service: GovernanceService, *, api_key: s
 
 
 def mount_approval_routes(app: FastAPI, service: GovernanceService, *, api_key: str,
-                          operator_key: Optional[str]) -> None:
+                          operator_key: Optional[str], tenant_id: str = "pilot") -> None:
     """ESCALATE approval endpoints. Operators approve/deny/invalidate; agents
     create requests and execute the approved single-use mandate. Human approval
     never executes — it only mints bounded authority."""
-    require_agent, require_operator = _auth_deps(api_key, operator_key)
+    require_agent, require_operator = _auth_deps(api_key, operator_key, tenant_id)
 
     @app.post("/approvals", response_model=ApprovalCreateResponse)
     async def create_approval(req: ApprovalCreateRequest, _=Depends(require_agent)):
@@ -292,22 +298,22 @@ def mount_approval_routes(app: FastAPI, service: GovernanceService, *, api_key: 
 
     @app.post("/approvals/{request_id}/execute", response_model=ExecuteResponse)
     async def execute_with_approval(request_id: str, req: ApprovalExecuteRequest,
-                                    _=Depends(require_agent)):
+                                    tenant: str = Depends(require_agent)):
         out = await service.execute_with_approval(
             mandate=req.mandate, actor=req.actor, action=req.action, resource=req.resource,
             context=req.context, transaction_id=req.transaction_id,
-            idempotency_key=req.idempotency_key, attestation=req.attestation,
+            idempotency_key=req.idempotency_key, tenant_id=tenant, attestation=req.attestation,
         )
         return ExecuteResponse(status=out.status, reason=out.reason, decision=out.decision,
                                audit_ref=out.audit_ref, execution=out.execution)
 
 
 def mount_consensus_routes(app: FastAPI, service: GovernanceService, *, api_key: str,
-                           operator_key: Optional[str]) -> None:
+                           operator_key: Optional[str], tenant_id: str = "pilot") -> None:
     """Multi-Context Consensus endpoints: N-of-M independent signed evaluators
     must agree before a token is issued. /verify is a pure check; /execute runs
     the one coordinator path only on consensus."""
-    require_agent, _ = _auth_deps(api_key, operator_key)
+    require_agent, _ = _auth_deps(api_key, operator_key, tenant_id)
 
     @app.post("/consensus/challenge", response_model=ChallengeCreateResponse)
     async def create_challenge(req: ChallengeCreateRequest, _=Depends(require_agent)):
@@ -326,11 +332,11 @@ def mount_consensus_routes(app: FastAPI, service: GovernanceService, *, api_key:
         return ConsensusVerifyResponse(**out)
 
     @app.post("/consensus/execute", response_model=ExecuteResponse)
-    async def execute_with_consensus(req: ConsensusExecuteRequest, _=Depends(require_agent)):
+    async def execute_with_consensus(req: ConsensusExecuteRequest, tenant: str = Depends(require_agent)):
         out = await service.execute_with_consensus(
             votes=req.votes, actor=req.actor, action=req.action, resource=req.resource,
             context=req.context, transaction_id=req.transaction_id,
-            idempotency_key=req.idempotency_key, nonce=req.nonce,
+            idempotency_key=req.idempotency_key, tenant_id=tenant, nonce=req.nonce,
             challenge_id=req.challenge_id, attestation=req.attestation)
         return ExecuteResponse(status=out.status, reason=out.reason, decision=out.decision,
                                audit_ref=out.audit_ref, execution=out.execution)
