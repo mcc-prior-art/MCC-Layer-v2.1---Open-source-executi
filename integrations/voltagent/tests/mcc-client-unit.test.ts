@@ -57,15 +57,20 @@ beforeAll(async () => {
       const existing = mockProposals.get(logicalOperationId);
       if (existing && existing.binding !== binding) {
         return json(res, 200, {
-          contract_version: "v1", accepted: false,
-          logical_operation_id: logicalOperationId, status: "BINDING_CONFLICT",
+          contract_version: "v1",
+          accepted: false,
+          logical_operation_id: logicalOperationId,
+          status: "BINDING_CONFLICT",
           reason: "logical_operation_id is already bound to a different action/resource/payload",
         });
       }
       mockProposals.set(logicalOperationId, { binding });
       return json(res, 200, {
-        contract_version: "v1", accepted: true, logical_operation_id: logicalOperationId,
-        status: "PROPOSED", proposal_binding: binding,
+        contract_version: "v1",
+        accepted: true,
+        logical_operation_id: logicalOperationId,
+        status: "PROPOSED",
+        proposal_binding: binding,
       });
     }
     if (url.pathname.startsWith("/v1/operations/") && req.method === "GET") {
@@ -73,11 +78,15 @@ beforeAll(async () => {
       const existing = mockProposals.get(logicalOperationId);
       if (!existing) {
         return json(res, 200, {
-          contract_version: "v1", logical_operation_id: logicalOperationId, status: "NOT_FOUND",
+          contract_version: "v1",
+          logical_operation_id: logicalOperationId,
+          status: "NOT_FOUND",
         });
       }
       return json(res, 200, {
-        contract_version: "v1", logical_operation_id: logicalOperationId, status: "PROPOSED",
+        contract_version: "v1",
+        logical_operation_id: logicalOperationId,
+        status: "PROPOSED",
         proposal_binding: existing.binding,
       });
     }
@@ -310,7 +319,8 @@ describe("Universal Proposal Service Phase 1 — submitProposal / getOperationSt
     expect(captured.paths).not.toContain("/evaluate");
     expect(captured.paths).not.toContain("/consensus/execute");
     expect(captured.paths).not.toContain("/approvals");
-    const sent = captured.proposalBodies[0]!;
+    expect(captured.proposalBodies.length).toBeGreaterThan(0);
+    const sent = captured.proposalBodies[0] as Record<string, unknown>;
     expect(Object.keys(sent).sort()).toEqual(
       ["action", "actor", "logical_operation_id", "payload", "resource"].sort(),
     );
@@ -323,8 +333,11 @@ describe("Universal Proposal Service Phase 1 — submitProposal / getOperationSt
     const c = client();
     await c.submitProposal(
       {
-        logicalOperationId: "op-volt-2", actor: "agent/notify-bot",
-        action: "send_notification", resource: "crm", payload: { recipient: "c-2" },
+        logicalOperationId: "op-volt-2",
+        actor: "agent/notify-bot",
+        action: "send_notification",
+        resource: "crm",
+        payload: { recipient: "c-2" },
       },
       "corr-volt-2",
     );
@@ -343,15 +356,21 @@ describe("Universal Proposal Service Phase 1 — submitProposal / getOperationSt
     const c = client();
     await c.submitProposal(
       {
-        logicalOperationId: "op-volt-4", actor: "agent/notify-bot",
-        action: "send_notification", resource: "crm", payload: { recipient: "c-4" },
+        logicalOperationId: "op-volt-4",
+        actor: "agent/notify-bot",
+        action: "send_notification",
+        resource: "crm",
+        payload: { recipient: "c-4" },
       },
       "corr-volt-4a",
     );
     const conflict = await c.submitProposal(
       {
-        logicalOperationId: "op-volt-4", actor: "agent/notify-bot",
-        action: "send_notification", resource: "crm", payload: { recipient: "DIFFERENT" },
+        logicalOperationId: "op-volt-4",
+        actor: "agent/notify-bot",
+        action: "send_notification",
+        resource: "crm",
+        payload: { recipient: "DIFFERENT" },
       },
       "corr-volt-4b",
     );
@@ -368,7 +387,10 @@ describe("Universal Proposal Service Phase 1 — submitProposal / getOperationSt
     const out = await client().submitProposal(
       {
         logicalOperationId: "   ",
-        actor: "agent/notify-bot", action: "send_notification", resource: "crm", payload: {},
+        actor: "agent/notify-bot",
+        action: "send_notification",
+        resource: "crm",
+        payload: {},
       },
       "corr-volt-5",
     );
