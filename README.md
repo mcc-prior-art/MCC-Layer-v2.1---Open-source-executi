@@ -1,12 +1,14 @@
 # MCC-Core: Execution Governance Infrastructure
 
+**MCC-Core = Meta-Cognitive Control Core. Proposal ≠ Permission. Intelligence proposes; MCC-Core verifies signed authority; a server-controlled actuator executes.**
+
 **Public technical record established:** May 2026  
 **Author:** Alexandr Ponomariov / AXLOGIQ Inc.  
 **Repository:** https://github.com/mcc-prior-art/mcc-layer  
 **Version:** `v1.12.0`  
-**Current capability baseline:** through [PR #100 — GPT-6 Astra Reference Integration](https://github.com/mcc-prior-art/mcc-layer/pull/100)  
-**Baseline commit:** [`da82dd6`](https://github.com/mcc-prior-art/mcc-layer/commit/da82dd626bfd8a73344d48ba9072b5db72282d76)  
-**Baseline date:** `2026-09-06`  
+**Current capability baseline:** through [PR #106 — Phase 2: Proposal -> Signed Authority -> Governed Execution](https://github.com/mcc-prior-art/mcc-layer/pull/106)  
+**Baseline commit:** [`f01f0d6`](https://github.com/mcc-prior-art/mcc-layer/commit/f01f0d67733382630066d10d61db6c6f60580e7f)  
+**Baseline date:** `2026-09-08`  
 **Doctrine record:** `2026-06-02`
 
 ## Reproducible Assurance Baseline
@@ -182,7 +184,7 @@ Its reference runtime was implemented with an AI coding agent, tested against do
 
 **Historical evidence:** [PR #4 — Runtime Upgrade Merge](https://github.com/mcc-prior-art/mcc-layer/pull/4)
 
-Runtime upgrade record: PR #4 merged as commit `32d4d3a`, extending the reference runtime with a bounded 10,000-entry cache invariant under public CI verification. This is an early historical milestone; the repository's current capability baseline is tracked in the metadata block above and reflects PR #100.
+Runtime upgrade record: PR #4 merged as commit `32d4d3a`, extending the reference runtime with a bounded 10,000-entry cache invariant under public CI verification. This is an early historical milestone; the repository's current capability baseline is tracked in the metadata block above and reflects PR #106.
 
 ---
 
