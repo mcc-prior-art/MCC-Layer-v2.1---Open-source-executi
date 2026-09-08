@@ -49,6 +49,20 @@ def _missing_logical_operation_id(idempotency_key: Optional[str]) -> bool:
     rejected before any authority is spent minting a signed token, never as
     a substitute for the coordinator's own check."""
     return not isinstance(idempotency_key, str) or not idempotency_key.strip()
+
+
+def _missing_tenant_id(tenant_id: Optional[str]) -> bool:
+    """PR #105 remediation — transport-layer defense-in-depth ONLY, mirroring
+    ``_missing_logical_operation_id`` exactly: the real, unavoidable
+    enforcement point is ``EnforcementCoordinator.enforce()`` itself (it
+    fails closed on a missing/empty/whitespace ``tenant_id`` claim on the
+    token regardless of what happens here). This early check exists purely
+    so an execution request without a trusted tenant/security-domain
+    identity is rejected before any authority is spent minting a signed
+    token, never as a substitute for the coordinator's own check."""
+    return not isinstance(tenant_id, str) or not tenant_id.strip()
+
+
 from .trust import TrustSet
 
 # An upstream executor performs the real side effect for governed execution.
@@ -189,7 +203,8 @@ class GovernanceService:
     async def execute_with_mandate(
         self, *, mandate: Any, actor: str, action: str, resource: Optional[str],
         context: Dict[str, Any], transaction_id: Optional[str] = None,
-        idempotency_key: Optional[str] = None, headers: Optional[Dict[str, str]] = None,
+        idempotency_key: Optional[str] = None, tenant_id: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
         extra_auth_claims: Optional[Dict[str, Any]] = None,
         attestation: Optional[Dict[str, Any]] = None,
     ) -> ExecOutcome:
@@ -242,6 +257,21 @@ class GovernanceService:
                 decision=decision.verdict.value,
             )
 
+        # PR #105 remediation — defense-in-depth only (see
+        # ``_missing_tenant_id``): the coordinator itself is the
+        # authoritative, unavoidable enforcement point for this invariant.
+        # ``tenant_id`` MUST already be the trusted server-side/authenticated
+        # identity the HTTP layer (``governance_api.py``) resolved from the
+        # caller's credential -- this method never derives, infers, or
+        # accepts one from a request-body/payload field.
+        if _missing_tenant_id(tenant_id):
+            return ExecOutcome(
+                "BLOCKED",
+                "MISSING_TENANT_IDENTITY: a valid, non-empty tenant_id "
+                "is required for protected execution; fail-closed",
+                decision=decision.verdict.value,
+            )
+
         auth_claims = dict(profile.auth_claims(forward_context))
         if extra_auth_claims:
             auth_claims.update(extra_auth_claims)
@@ -249,7 +279,7 @@ class GovernanceService:
             verdict=decision.verdict.value, subject=actor, action=action,
             payload=forward_context, constraints=decision.constraints,
             transaction_id=transaction_id, idempotency_key=idempotency_key,
-            actor_id=actor, resource_id=resource,
+            tenant_id=tenant_id, actor_id=actor, resource_id=resource,
             auth_claims=auth_claims, mandate_id=decision.mandate_id,
             evidence_digest=evidence_digest,
         )
@@ -258,7 +288,7 @@ class GovernanceService:
         # path, to be checked by ExecutionGate against evidence_digest --
         # never a second, separate execution route.
         return await self._run(token, action, forward_context, actor, resource,
-                               transaction_id, headers, evidence=attestation)
+                               transaction_id, headers, tenant_id=tenant_id, evidence=attestation)
 
     # ---- approval operations (ESCALATE loop) ----
 
@@ -302,7 +332,8 @@ class GovernanceService:
     async def execute_with_approval(
         self, *, mandate: Any, actor: str, action: str, resource: Optional[str],
         context: Dict[str, Any], transaction_id: Optional[str] = None,
-        idempotency_key: Optional[str] = None, attestation: Optional[Dict[str, Any]] = None,
+        idempotency_key: Optional[str] = None, tenant_id: Optional[str] = None,
+        attestation: Optional[Dict[str, Any]] = None,
     ) -> ExecOutcome:
         """Re-evaluate against the approval mandate and execute through the one
         coordinator path. The token carries the approval_id, so the coordinator
@@ -313,6 +344,7 @@ class GovernanceService:
         return await self.execute_with_mandate(
             mandate=mandate, actor=actor, action=action, resource=resource,
             context=context, transaction_id=transaction_id, idempotency_key=idempotency_key,
+            tenant_id=tenant_id,
             extra_auth_claims={"approval_id": approval_id} if approval_id else None,
             attestation=attestation,
         )
@@ -364,7 +396,8 @@ class GovernanceService:
     async def execute_with_consensus(
         self, *, votes, actor: str, action: str, resource: Optional[str],
         context: Dict[str, Any], transaction_id: Optional[str] = None,
-        idempotency_key: Optional[str] = None, nonce: Optional[str] = None,
+        idempotency_key: Optional[str] = None, tenant_id: Optional[str] = None,
+        nonce: Optional[str] = None,
         challenge_id: Optional[str] = None, attestation: Optional[Dict[str, Any]] = None,
     ) -> ExecOutcome:
         """Require N-of-M independent signed evaluators to agree — bound to the
@@ -422,21 +455,32 @@ class GovernanceService:
                 decision=result.verdict.value,
             )
 
+        # PR #105 remediation — defense-in-depth only; see
+        # ``_missing_tenant_id`` / execute_with_mandate.
+        if _missing_tenant_id(tenant_id):
+            return ExecOutcome(
+                "BLOCKED",
+                "MISSING_TENANT_IDENTITY: a valid, non-empty tenant_id "
+                "is required for protected execution; fail-closed",
+                decision=result.verdict.value,
+            )
+
         auth_claims = dict(profile.auth_claims(canonical))
         auth_claims["consensus"] = result.summary()
         auth_claims.update(auth_claims_extra)
         token = self.engine.issue_token(
             verdict="ALLOW", subject=actor, action=action, payload=canonical,
             transaction_id=transaction_id, idempotency_key=idempotency_key,
-            actor_id=actor, resource_id=resource, auth_claims=auth_claims, nonce=nonce,
+            tenant_id=tenant_id, actor_id=actor, resource_id=resource,
+            auth_claims=auth_claims, nonce=nonce,
             evidence_digest=evidence_digest)
         return await self._run(token, action, canonical, actor, resource, transaction_id, None,
-                               consensus_votes=votes, evidence=attestation)
+                               tenant_id=tenant_id, consensus_votes=votes, evidence=attestation)
 
     # ---- the one governed execution path ----
 
     async def _run(self, token, action, forward_context, actor, resource,
-                   transaction_id, headers, consensus_votes=None,
+                   transaction_id, headers, tenant_id=None, consensus_votes=None,
                    evidence: Optional[Dict[str, Any]] = None) -> ExecOutcome:
         async def executor():
             if self.upstream is None:
@@ -446,7 +490,7 @@ class GovernanceService:
         result = await self.coordinator.enforce(
             token=token, action=action, payload=forward_context, executor=executor,
             request_binding={"actor_id": actor, "resource_id": resource,
-                             "transaction_id": transaction_id},
+                             "transaction_id": transaction_id, "tenant_id": tenant_id},
             consensus_votes=consensus_votes, evidence=evidence,
         )
         status = (ActuationStatus.EXECUTED if result.status == ActuationStatus.EXECUTED

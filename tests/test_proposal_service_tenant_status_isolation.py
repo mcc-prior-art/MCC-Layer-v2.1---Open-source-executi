@@ -18,21 +18,33 @@ NOT_FOUND unconditionally — never RESERVED/DISPATCH_OWNED/UNKNOWN/EXECUTED,
 and never a binding, regardless of what any other tenant did with that same
 id, and regardless of whether the durable backend is up or down.
 
-A second layer closes a subtler variant of the same defect: two tenants may
+A second layer closed a subtler variant of the same defect: two tenants may
 LEGITIMATELY register the identical raw ``logical_operation_id`` with
 DIFFERENT bindings (Section 4 explicitly permits this). "Has a proposal for
-this id" alone therefore cannot tell which tenant's binding a shared,
-globally-keyed durable record belongs to. The fix compares the durable
-record's own ``binding`` against THIS tenant's registered binding -- both
-computed by the identical ``hash_document({action, resource, payload_hash})``
-formula (``mcc_proposal.binding.compute_proposal_binding`` and
-``EnforcementCoordinator``'s ``binding_ref``) -- and only discloses the
-durable state on a match. A mismatch means the durable record belongs to a
-different registrant that reused the same id; that tenant's status falls
-through to its own proposal-only view instead.
+this id" alone could not tell which tenant's binding a shared, globally-keyed
+durable record belonged to. At the time this file was first written, that was
+closed by comparing the durable record's own ``binding`` against THIS
+tenant's registered binding and only disclosing on a match.
 
-This file proves the eight behaviors required by the remediation task,
-numbered to match.
+PR #105 superseded that binding-comparison mechanism: durable identity
+itself is now the pair ``(tenant_id, key)`` at the registry level (see
+``src/mcc_core/idempotency.py`` and ``tests/test_idempotency.py``), so
+``get_operation_status`` performs a TENANT-SCOPED ``get_state(key,
+tenant_id=tenant_id)`` lookup directly (Section 6) -- the registry itself,
+not a binding comparison, is what proves a returned record belongs to this
+tenant. Binding comparison is retained in ``service.py`` only as
+defense-in-depth / internal-consistency checking within an
+already-tenant-proven record. Every cross-tenant assertion below (tenant B
+never observes tenant A's durable state, even for the identical raw id)
+now holds structurally because of THAT tenant-scoped registry keying, not
+because of a binding mismatch fallback -- proven directly by
+``tests/test_idempotency.py``'s own PR #105 cross-tenant test matrix and
+re-asserted here at the ``MCCProposalService`` boundary specifically.
+
+This file proves the eight behaviors required by the original remediation
+task, numbered to match; the mechanism producing each result has moved (see
+above) but the observable guarantee at this boundary is unchanged and, per
+requirement 8, must never regress.
 """
 
 from __future__ import annotations
@@ -76,9 +88,9 @@ def test_1_tenant_a_proposal_plus_durable_executed_is_visible_to_tenant_a():
     idem = InMemoryIdempotencyRegistry()
     svc = _service(durable=idem)
     run(svc.submit_proposal(tenant_id="tenant-a", request={"logical_operation_id": "op-1", **BASE}))
-    reserve = run(idem.reserve("op-1", binding=real_binding(BASE)))
-    run(idem.commit_dispatch("op-1", fence=reserve.fence))
-    run(idem.mark_executed("op-1", fence=reserve.fence))
+    reserve = run(idem.reserve("op-1", binding=real_binding(BASE), tenant_id="tenant-a"))
+    run(idem.commit_dispatch("op-1", fence=reserve.fence, tenant_id="tenant-a"))
+    run(idem.mark_executed("op-1", fence=reserve.fence, tenant_id="tenant-a"))
 
     s = run(svc.get_operation_status(tenant_id="tenant-a", logical_operation_id="op-1"))
     assert s.status == OperationStatusValue.EXECUTED.value
@@ -88,9 +100,9 @@ def test_2_tenant_a_proposal_plus_durable_unknown_is_visible_to_tenant_a():
     idem = InMemoryIdempotencyRegistry()
     svc = _service(durable=idem)
     run(svc.submit_proposal(tenant_id="tenant-a", request={"logical_operation_id": "op-2", **BASE}))
-    reserve = run(idem.reserve("op-2", binding=real_binding(BASE)))
-    run(idem.commit_dispatch("op-2", fence=reserve.fence))
-    run(idem.mark_unknown("op-2", fence=reserve.fence))
+    reserve = run(idem.reserve("op-2", binding=real_binding(BASE), tenant_id="tenant-a"))
+    run(idem.commit_dispatch("op-2", fence=reserve.fence, tenant_id="tenant-a"))
+    run(idem.mark_unknown("op-2", fence=reserve.fence, tenant_id="tenant-a"))
 
     s = run(svc.get_operation_status(tenant_id="tenant-a", logical_operation_id="op-2"))
     assert s.status == OperationStatusValue.UNKNOWN.value  # UNKNOWN semantics not weakened
@@ -102,9 +114,9 @@ def test_3_tenant_b_same_id_no_tenant_b_proposal_is_not_found_no_disclosure():
     idem = InMemoryIdempotencyRegistry()
     svc = _service(durable=idem)
     run(svc.submit_proposal(tenant_id="tenant-a", request={"logical_operation_id": "op-3", **BASE}))
-    reserve = run(idem.reserve("op-3", binding="tenant-a-secret-binding"))
-    run(idem.commit_dispatch("op-3", fence=reserve.fence))
-    run(idem.mark_executed("op-3", fence=reserve.fence))
+    reserve = run(idem.reserve("op-3", binding="tenant-a-secret-binding", tenant_id="tenant-a"))
+    run(idem.commit_dispatch("op-3", fence=reserve.fence, tenant_id="tenant-a"))
+    run(idem.mark_executed("op-3", fence=reserve.fence, tenant_id="tenant-a"))
 
     s = run(svc.get_operation_status(tenant_id="tenant-b", logical_operation_id="op-3"))
     assert s.status == OperationStatusValue.NOT_FOUND.value
@@ -125,13 +137,13 @@ def test_3b_tenant_b_same_id_not_found_even_while_durable_state_is_reserved_or_u
         svc = _service(durable=idem)
         op_id = f"op-3b-{transition}"
         run(svc.submit_proposal(tenant_id="tenant-a", request={"logical_operation_id": op_id, **BASE}))
-        reserve = run(idem.reserve(op_id, binding="b"))
+        reserve = run(idem.reserve(op_id, binding="b", tenant_id="tenant-a"))
         if transition != "reserved":
-            run(idem.commit_dispatch(op_id, fence=reserve.fence))
+            run(idem.commit_dispatch(op_id, fence=reserve.fence, tenant_id="tenant-a"))
         if transition == "unknown":
-            run(idem.mark_unknown(op_id, fence=reserve.fence))
+            run(idem.mark_unknown(op_id, fence=reserve.fence, tenant_id="tenant-a"))
         elif transition == "executed":
-            run(idem.mark_executed(op_id, fence=reserve.fence))
+            run(idem.mark_executed(op_id, fence=reserve.fence, tenant_id="tenant-a"))
 
         s = run(svc.get_operation_status(tenant_id="tenant-b", logical_operation_id=op_id))
         assert s.status == OperationStatusValue.NOT_FOUND.value, transition
@@ -156,6 +168,11 @@ def test_4_two_tenants_independently_register_the_same_id_different_bindings():
 
 
 # -- 5: a durable record for tenant A never overrides/leaks into tenant B --- #
+#
+# PR #105: this now holds because the durable registry itself is
+# tenant-scoped -- tenant-b's get_state("op-5", tenant_id="tenant-b") finds
+# NO record at all (tenant-a's reservation lives under a structurally
+# different (tenant_id, key) entry), never because of a binding mismatch.
 
 def test_5_tenant_a_durable_record_never_overrides_or_leaks_into_tenant_b_status():
     idem = InMemoryIdempotencyRegistry()
@@ -164,9 +181,9 @@ def test_5_tenant_a_durable_record_never_overrides_or_leaks_into_tenant_b_status
     r_b = run(svc.submit_proposal(tenant_id="tenant-b", request={"logical_operation_id": "op-5", **BASE_B}))
 
     # Tenant A's operation reaches real EXECUTED durable state.
-    reserve = run(idem.reserve("op-5", binding=real_binding(BASE)))
-    run(idem.commit_dispatch("op-5", fence=reserve.fence))
-    run(idem.mark_executed("op-5", fence=reserve.fence))
+    reserve = run(idem.reserve("op-5", binding=real_binding(BASE), tenant_id="tenant-a"))
+    run(idem.commit_dispatch("op-5", fence=reserve.fence, tenant_id="tenant-a"))
+    run(idem.mark_executed("op-5", fence=reserve.fence, tenant_id="tenant-a"))
 
     s_a = run(svc.get_operation_status(tenant_id="tenant-a", logical_operation_id="op-5"))
     s_b = run(svc.get_operation_status(tenant_id="tenant-b", logical_operation_id="op-5"))
@@ -182,7 +199,7 @@ def test_5_tenant_a_durable_record_never_overrides_or_leaks_into_tenant_b_status
 # -- 6: durable backend unavailable for an OWNED operation -> UNAVAILABLE --- #
 
 class _DownIdempotency:
-    async def get_state(self, key):
+    async def get_state(self, key, *, tenant_id):
         raise IdempotencyBackendUnavailable("down")
 
 
@@ -210,7 +227,7 @@ class _ExplodingDurable:
     (now ownership-gated) still calls ONLY get_state on the durable
     registry, never a mutator, and still no actuator exists to call."""
 
-    async def get_state(self, key):
+    async def get_state(self, key, *, tenant_id):
         return None
 
     def __getattr__(self, name):

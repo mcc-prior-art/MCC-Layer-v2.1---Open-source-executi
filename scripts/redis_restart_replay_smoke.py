@@ -195,6 +195,7 @@ async def main() -> int:
     first = await service_a.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=raw_attestation, idempotency_key="op-restart-replay-smoke",
+        tenant_id="redis-restart-smoke-tenant",
     )
 
     # ---- Simulated restart: destroy every instance-A Python object. ----
@@ -211,6 +212,7 @@ async def main() -> int:
     replay = await service_b.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=raw_attestation, idempotency_key="op-restart-replay-smoke",
+        tenant_id="redis-restart-smoke-tenant",
     )
 
     print(f"instance A first use:      status={first.status}  decision={first.decision}  ({first.reason})")

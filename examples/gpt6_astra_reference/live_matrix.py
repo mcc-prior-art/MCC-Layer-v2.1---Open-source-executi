@@ -187,6 +187,7 @@ async def _run_one_task(provider: AstraProvider, case: str, task: str, actuator,
     outcome = await run_positive_path(
         stack.service, mandate=stack.mandate, actor="agent/astra-demo", proposal=marked_proposal,
         attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+        tenant_id=stack.tenant_id,
     )
     terminal = TerminalStatus.EXECUTED if outcome.status == "EXECUTED" else classify_exec_outcome(outcome.reason)
     calls_after = actuator.calls

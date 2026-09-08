@@ -121,10 +121,16 @@ class GovernedMCCClient:
         trusted_evaluators: Optional[Dict[str, Any]] = None,
         challenge_registry: Optional[Any] = None,
         challenge_ttl_seconds: int = 120,
+        # PR #105: this client IS the trusted server-side boundary for this
+        # single reference deployment (there is no separate HTTP auth layer
+        # here) -- tenant_id is therefore a fixed, deployment-level identity,
+        # never taken from ``ProposedAction``/model-controlled input.
+        tenant_id: str = "governed-agent-demo",
     ) -> None:
         self.executor = executor
         self.authority = authority or default_demo_authority()
         self.policy_hash = policy_hash
+        self.tenant_id = tenant_id
         self._op_timeout = op_timeout_seconds
         self.consensus_required = consensus_required
         signing_key = signing_key or SigningKey.generate("mcc-demo-signer")
@@ -195,7 +201,7 @@ class GovernedMCCClient:
         return await self.coordinator.enforce(
             token=token, action=action, payload=payload, executor=executor,
             request_binding={"actor_id": proposed.actor, "resource_id": proposed.resource,
-                             "transaction_id": proposed.transaction_id},
+                             "transaction_id": proposed.transaction_id, "tenant_id": self.tenant_id},
             consensus_votes=consensus_votes)
 
     def _issue_token(self, proposed: ProposedAction, verdict: Verdict,
@@ -212,7 +218,7 @@ class GovernedMCCClient:
             payload=forward_context, constraints=constraints,
             nonce=nonce if nonce is not None else proposed.nonce,
             transaction_id=proposed.transaction_id, idempotency_key=proposed.idempotency_key,
-            actor_id=proposed.actor, resource_id=proposed.resource,
+            tenant_id=self.tenant_id, actor_id=proposed.actor, resource_id=proposed.resource,
             auth_claims=auth_claims, audit_ref=audit_ref)
 
     # ---- consensus: the gateway issues the challenge (agent never controls it) ----

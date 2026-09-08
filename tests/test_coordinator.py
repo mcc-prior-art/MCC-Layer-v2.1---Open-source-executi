@@ -59,13 +59,14 @@ def build(tmp_path, *, limits=None, idempotency=None, velocity=None):
     return engine, coord, audit
 
 
-def payment(engine, *, idem, amount=1000, actor="actor-1", txn=None, beneficiary="ben-1"):
+def payment(engine, *, idem, amount=1000, actor="actor-1", txn=None, beneficiary="ben-1", tenant="tenant-1"):
     ctx = {"source": "acct-1", "beneficiary_id": beneficiary, "amount": amount, "currency": "usd"}
     payload = PROFILE.canonical_payload(ctx)
     token = engine.issue_token(
         verdict="ALLOW", subject=actor, action="send_payment", payload=payload,
         transaction_id=txn or idem, idempotency_key=idem, actor_id=actor,
         resource_id="acct-1", auth_claims=PROFILE.auth_claims(ctx), now=NOW,
+        tenant_id=tenant,
     )
     return token, payload
 
@@ -88,7 +89,7 @@ def test_happy_path_executes_and_finalizes(tmp_path):
     assert res.status == ActuationStatus.EXECUTED
     assert res.execution == "upstream-ok"
     assert seen == ["executed"]
-    assert run(coord.idempotency.get_state("op-1")).state.value == "EXECUTED"
+    assert run(coord.idempotency.get_state("op-1", tenant_id="tenant-1")).state.value == "EXECUTED"
 
 
 def test_audit_before_actuation_ordering(tmp_path):
@@ -222,7 +223,7 @@ def test_execution_exception_marks_unknown_not_released(tmp_path):
     res = run(coord.enforce(token=token, action="send_payment", payload=payload,
                             executor=boom, now=NOW))
     assert res.status == ActuationStatus.EXECUTION_FAILED
-    record = run(coord.idempotency.get_state("op-1"))
+    record = run(coord.idempotency.get_state("op-1", tenant_id="tenant-1"))
     assert record is not None
     assert record.state == IdempotencyState.UNKNOWN
 
@@ -240,7 +241,7 @@ def test_fresh_authorization_for_unknown_operation_blocks_second_actuation(tmp_p
     first = run(coord.enforce(token=token1, action="send_payment", payload=payload1,
                               executor=boom, now=NOW))
     assert first.status == ActuationStatus.EXECUTION_FAILED
-    assert run(coord.idempotency.get_state("op-1")).state == IdempotencyState.UNKNOWN
+    assert run(coord.idempotency.get_state("op-1", tenant_id="tenant-1")).state == IdempotencyState.UNKNOWN
 
     token2, payload2 = payment(engine, idem="op-1", txn="txn-B")  # fresh, valid, different nonce
     seen = []
@@ -326,7 +327,7 @@ def test_binding_conflict_different_action_same_key(tmp_path):
     t2 = engine.issue_token(
         verdict="ALLOW", subject="actor-1", action="close_issue", payload=generic_payload,
         transaction_id="txn-B", idempotency_key="op-1", actor_id="actor-1",
-        resource_id="acct-1", now=NOW,
+        resource_id="acct-1", now=NOW, tenant_id="tenant-1",
     )
     seen = []
     first = run(coord.enforce(token=t1, action="send_payment", payload=p1,
@@ -347,7 +348,7 @@ def test_binding_conflict_different_resource_same_key(tmp_path):
         verdict="ALLOW", subject="actor-1", action="send_payment", payload=p2,
         transaction_id="txn-B", idempotency_key="op-1", actor_id="actor-1",
         resource_id="acct-2",  # different resource than t1's "acct-1"
-        auth_claims=PROFILE.auth_claims(ctx), now=NOW,
+        auth_claims=PROFILE.auth_claims(ctx), now=NOW, tenant_id="tenant-1",
     )
     seen = []
     first = run(coord.enforce(token=t1, action="send_payment", payload=p1,
@@ -366,7 +367,7 @@ class _UnfinalizableIdempotency(InMemoryIdempotencyRegistry):
     to durably persist EXECUTED -- models a backend outage occurring exactly
     between a successful external call and the durable success write."""
 
-    async def mark_executed(self, key, *, fence, binding="", result_ref=None):
+    async def mark_executed(self, key, *, tenant_id, fence, binding="", result_ref=None):
         return False
 
 
@@ -378,7 +379,7 @@ def test_durable_executed_persistence_failure_yields_unknown_not_false_success(t
                             executor=runner(seen), now=NOW))
     assert seen == ["executed"]  # the external call genuinely happened
     assert res.status == ActuationStatus.EXECUTION_FAILED  # never a false EXECUTED
-    assert run(coord.idempotency.get_state("op-1")).state == IdempotencyState.UNKNOWN
+    assert run(coord.idempotency.get_state("op-1", tenant_id="tenant-1")).state == IdempotencyState.UNKNOWN
     # Not retry-eligible: a fresh valid token for the same key is blocked.
     token2, payload2 = payment(engine, idem="op-1", txn="txn-B")
     seen2 = []
@@ -392,22 +393,22 @@ def test_stale_fence_cannot_mark_executed_or_release(tmp_path):
     """Test scenarios 15/16: a stale owner (wrong fence) can neither finalize
     nor release/fail an operation it does not currently own."""
     reg = InMemoryIdempotencyRegistry()
-    first = run(reg.reserve("op-1", binding="b"))
+    first = run(reg.reserve("op-1", binding="b", tenant_id="tenant-1"))
     assert first.ok
     stale_fence = first.fence
     # A legitimate recovery cycle: release, then a fresh reservation gets a
     # NEW fence.
-    assert run(reg.release("op-1", fence=stale_fence))
-    second = run(reg.reserve("op-1", binding="b"))
+    assert run(reg.release("op-1", fence=stale_fence, tenant_id="tenant-1"))
+    second = run(reg.reserve("op-1", binding="b", tenant_id="tenant-1"))
     assert second.ok and second.fence != stale_fence
-    assert run(reg.commit_dispatch("op-1", fence=second.fence))
+    assert run(reg.commit_dispatch("op-1", fence=second.fence, tenant_id="tenant-1"))
     # The stale (first) fence can no longer affect the (new) current owner.
-    assert run(reg.mark_executed("op-1", fence=stale_fence, binding="b")) is False
-    assert run(reg.mark_unknown("op-1", fence=stale_fence)) is False
-    assert run(reg.release("op-1", fence=stale_fence)) is False
+    assert run(reg.mark_executed("op-1", fence=stale_fence, binding="b", tenant_id="tenant-1")) is False
+    assert run(reg.mark_unknown("op-1", fence=stale_fence, tenant_id="tenant-1")) is False
+    assert run(reg.release("op-1", fence=stale_fence, tenant_id="tenant-1")) is False
     # The legitimate (current) owner still can.
-    assert run(reg.mark_executed("op-1", fence=second.fence, binding="b"))
-    record = run(reg.get_state("op-1"))
+    assert run(reg.mark_executed("op-1", fence=second.fence, binding="b", tenant_id="tenant-1"))
+    record = run(reg.get_state("op-1", tenant_id="tenant-1"))
     assert record.state == IdempotencyState.EXECUTED
 
 
@@ -430,7 +431,7 @@ def test_audit_before_actuation_failure_zero_actuator_calls(tmp_path):
     assert "audit-before-actuation" in res.reason.lower()
     assert seen == []  # zero actuator calls
     # Pre-dispatch failure: the logical operation is released, safe to retry.
-    assert run(coord.idempotency.get_state("op-1")) is None
+    assert run(coord.idempotency.get_state("op-1", tenant_id="tenant-1")) is None
 
 
 def test_dispatch_ownership_committed_before_executor_invoked(tmp_path):
@@ -439,10 +440,10 @@ def test_dispatch_ownership_committed_before_executor_invoked(tmp_path):
     (models a crash between commitment and invocation) -- no automatic
     redispatch is possible because ``reserve`` on the same key is blocked."""
     reg = InMemoryIdempotencyRegistry()
-    reserved = run(reg.reserve("op-1", binding="b"))
-    assert run(reg.commit_dispatch("op-1", fence=reserved.fence))
-    record = run(reg.get_state("op-1"))
+    reserved = run(reg.reserve("op-1", binding="b", tenant_id="tenant-1"))
+    assert run(reg.commit_dispatch("op-1", fence=reserved.fence, tenant_id="tenant-1"))
+    record = run(reg.get_state("op-1", tenant_id="tenant-1"))
     assert record.state == IdempotencyState.DISPATCH_OWNED
-    retry = run(reg.reserve("op-1", binding="b"))
+    retry = run(reg.reserve("op-1", binding="b", tenant_id="tenant-1"))
     assert not retry.ok
     assert retry.status == ReserveStatus.DUPLICATE_INFLIGHT

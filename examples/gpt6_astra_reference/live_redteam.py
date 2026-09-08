@@ -282,6 +282,7 @@ async def _one_redteam_turn(
     outcome = await run_positive_path(
         stack.service, mandate=stack.mandate, actor="agent/astra-demo", proposal=marked_proposal,
         attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+        tenant_id=stack.tenant_id,
     )
     calls_after = actuator.calls
 

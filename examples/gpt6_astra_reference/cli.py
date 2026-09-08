@@ -268,6 +268,7 @@ async def run_positive(*, live_astra: bool = False) -> RunTrace:
         outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         )
         terminal = TerminalStatus.EXECUTED if outcome.status == "EXECUTED" else classify_exec_outcome(outcome.reason)
         issues = recorded_issues()
@@ -307,6 +308,7 @@ async def run_wrong_scope(*, live_astra: bool = False) -> RunTrace:
         outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         )
         terminal = classify_exec_outcome(outcome.reason)
         return RunTrace(
@@ -384,6 +386,7 @@ async def run_autonomous_expansion(*, live_astra: bool = False) -> RunTrace:
         primary_outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_primary,
             attestation=att_primary.raw_attestation, logical_operation_id=primary_logical_operation_id,
+            tenant_id=stack.tenant_id,
         )
 
         # The extra action is never authorized (outside the mandate's action
@@ -403,6 +406,7 @@ async def run_autonomous_expansion(*, live_astra: bool = False) -> RunTrace:
         extra_outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_extra,
             attestation=att_extra.raw_attestation, logical_operation_id=extra_logical_operation_id,
+            tenant_id=stack.tenant_id,
         )
 
         extra_terminal = classify_exec_outcome(extra_outcome.reason)
@@ -455,6 +459,7 @@ async def run_tamper(*, live_astra: bool = False) -> RunTrace:
             issued = await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("tamper", resp, proposal, att, exc, counting)
@@ -507,6 +512,7 @@ async def run_replay(*, live_astra: bool = False) -> RunTrace:
             issued = await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("replay", resp, proposal, att, exc, counting)
@@ -571,6 +577,7 @@ async def run_expired(*, live_astra: bool = False) -> RunTrace:
             issued = await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
         except AuthorityDeniedError as exc:
             return _authority_denied_trace("expired", resp, proposal, att, exc, counting)

@@ -231,6 +231,7 @@ def test_scenarios_1_to_4_extraneous_or_self_declared_fields_do_not_grant_trust(
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=hostile_doc,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -250,6 +251,7 @@ def test_scenario_5_supplies_trusted_attester_id_but_signs_with_untrusted_key():
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=forged,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -269,6 +271,7 @@ def test_scenario_6_supplies_a_kid_never_registered_to_the_trusted_attester():
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=hostile_doc,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -287,6 +290,7 @@ def test_scenario_7_supplies_a_self_crafted_signature():
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=hostile_doc,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -309,6 +313,7 @@ def test_scenario_8_supplies_forged_action_and_payload_hashes():
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=forged,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -328,6 +333,7 @@ def test_scenario_9_supplies_self_chosen_nonce_and_backdated_timestamps():
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=forged,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -380,6 +386,7 @@ def test_scenario_11_fully_self_fabricated_attestation_is_rejected():
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=forged,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -411,6 +418,7 @@ def test_scenario_12_genuine_attestation_without_valid_mandate_is_blocked():
     out = run(service.execute_with_mandate(
         mandate=forged_mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=genuine,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -435,6 +443,7 @@ def test_scenario_13_valid_mandate_but_substituted_evidence_payload_is_blocked()
     out = run(service.execute_with_mandate(
         mandate=_mandate(mandate_key), actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=substituted_context, attestation=genuine,
+        tenant_id="tenant-adv-1",
     ))
     _assert_no_actuation_and_blocked(out, actuator)
 
@@ -458,6 +467,7 @@ def test_scenario_14_replay_after_successful_use_cannot_actuate_again():
     first = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=copy.deepcopy(genuine), idempotency_key="op-scenario14-a",
+        tenant_id="tenant-adv-1",
     ))
     assert first.status == "EXECUTED", first.reason
     assert actuator.calls == 1
@@ -465,6 +475,7 @@ def test_scenario_14_replay_after_successful_use_cannot_actuate_again():
     replay = run(service.execute_with_mandate(
         mandate=mandate, actor="agent/payments-bot", action=ACTION, resource=RESOURCE,
         context=context, attestation=copy.deepcopy(genuine), idempotency_key="op-scenario14-b",
+        tenant_id="tenant-adv-1",
     ))
     assert replay.status != "EXECUTED", f"replay was EXECUTED: {replay.reason}"
     assert actuator.calls == 1, "replay incremented the actuator -- dual-oracle failure"

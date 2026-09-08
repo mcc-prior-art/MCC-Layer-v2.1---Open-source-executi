@@ -106,7 +106,7 @@ def _e2e(tmp_path, approval_registry=None):
 
 
 def _token_from_mandate(engine, authority, mandate, *, actor, action, resource, context,
-                        transaction_id, approval_id, now=NOW, idempotency_key=None):
+                        transaction_id, approval_id, now=NOW, idempotency_key=None, tenant_id="tenant-1"):
     decision = run(authority.authorize(mandate, subject=actor, action=action, resource=resource,
                                        context=context, now=now, policy_hash=POLICY_HASH))
     if decision.verdict not in (Verdict.ALLOW, Verdict.CONSTRAIN):
@@ -117,6 +117,7 @@ def _token_from_mandate(engine, authority, mandate, *, actor, action, resource, 
         transaction_id=transaction_id, idempotency_key=idempotency_key or transaction_id,
         actor_id=actor, resource_id=resource,
         mandate_id=mandate["mandate_id"], auth_claims={"approval_id": approval_id}, now=now,
+        tenant_id=tenant_id,
     )
     return token, decision
 

@@ -405,6 +405,7 @@ async def run_semantic_action_alias(alias: str) -> AdversarialResult:
             await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
             raise AssertionError(f"alias {alias!r} was WRONGLY granted authority — this is a real failure")
         except AuthorityDeniedError as exc:
@@ -455,6 +456,7 @@ async def run_resource_form(resource_form: str) -> AdversarialResult:
             await issue_authority(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
             raise AssertionError(f"resource form {resource_form!r} was WRONGLY granted authority")
         except AuthorityDeniedError as exc:
@@ -501,6 +503,7 @@ async def run_persuasive_override(reason_text: str) -> AdversarialResult:
         outcome = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         )
         trace = _positive_path_trace(
             f"persuasive-override:{reason_text!r}", resp, proposal, att, outcome, actuator.calls,
@@ -546,6 +549,7 @@ async def run_tool_substitution() -> AdversarialResult:
         outcome_a = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_a,
             attestation=att_a.raw_attestation, logical_operation_id=logical_operation_id_a,
+            tenant_id=stack.tenant_id,
         )
         trace_a = _positive_path_trace("tool-substitution:path-A", resp_a, proposal_a, att_a, outcome_a, actuator.calls)
 
@@ -566,6 +570,7 @@ async def run_tool_substitution() -> AdversarialResult:
         outcome_b = await run_positive_path(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_b,
             attestation=att_b.raw_attestation, logical_operation_id=logical_operation_id_b,
+            tenant_id=stack.tenant_id,
         )
         trace_b = _positive_path_trace("tool-substitution:path-B", resp_b, proposal_b, att_b, outcome_b, actuator.calls)
 
@@ -610,6 +615,7 @@ async def run_multi_step_allowed_then_unauthorized() -> AdversarialResult:
             outcome = await run_positive_path(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
             traces.append(_positive_path_trace(f"multi-step-drift-A:{action}", resp, proposal, att, outcome, actuator.calls))
 
@@ -645,6 +651,7 @@ async def run_multi_step_denied_then_alternative_unauthorized() -> AdversarialRe
             outcome = await run_positive_path(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
             traces.append(_positive_path_trace(f"multi-step-drift-B:{action}", resp, proposal, att, outcome, actuator.calls))
 
@@ -697,6 +704,7 @@ async def run_adaptive_retry() -> AdversarialResult:
             outcome = await run_positive_path(
                 stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
                 attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+                tenant_id=stack.tenant_id,
             )
             traces.append(_positive_path_trace("adaptive-retry", resp, proposal, att, outcome, actuator.calls))
 
@@ -732,6 +740,7 @@ async def run_stale_authority_rebinding(*, tamper: str) -> AdversarialResult:
         issued = await issue_authority(
             stack.service, mandate=stack.mandate, actor=ACTOR, proposal=marked_proposal,
             attestation=att.raw_attestation, logical_operation_id=logical_operation_id,
+            tenant_id=stack.tenant_id,
         )
 
         kwargs: Dict[str, Any] = {"action": marked_proposal.action, "resource": marked_proposal.resource}

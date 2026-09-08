@@ -168,6 +168,29 @@ class EnforcementCoordinator:
             self._record(kind="actuation_rejected", action=action, reason=reason)
             return ActuationResult(ActuationStatus.BLOCKED, reason)
 
+        # PR #105 remediation — mandatory tenant/security-domain scoping of
+        # durable operation identity. The raw idempotency_key alone is NOT a
+        # sufficient admission identity: two different tenants may
+        # legitimately use the identical logical_operation_id (and, for the
+        # identical action/resource/payload, the identical binding too), so
+        # durable identity must be the PAIR (tenant_id, idempotency_key), not
+        # idempotency_key in isolation. tenant_id is a signed token claim
+        # (like idempotency_key) -- it is established by the trusted
+        # server-side caller BEFORE token issuance (GovernanceService /
+        # GovernancePipeline resolve it from authenticated context, never
+        # from a model-controlled payload field) and is never generated,
+        # inferred from actor/payload/logical_operation_id/binding, or
+        # defaulted here. Checked unconditionally, immediately alongside the
+        # idempotency_key check, before any consensus/challenge/approval
+        # consumption, durable admission, velocity reservation,
+        # audit-before-actuation, or executor invocation.
+        tenant_id = token.get("tenant_id")
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            reason = ("MISSING_TENANT_IDENTITY: a valid, non-empty tenant_id "
+                      "is required for protected execution; fail-closed")
+            self._record(kind="actuation_rejected", action=action, reason=reason)
+            return ActuationResult(ActuationStatus.BLOCKED, reason)
+
         # Mandatory Multi-Context Consensus — no actuation without a valid N-of-M
         # authorization bound to this exact (now gate-verified) token: action,
         # actor, payload, resource, policy hash, and one-time nonce. Runs before
@@ -263,7 +286,7 @@ class EnforcementCoordinator:
         # now that idem_key is guaranteed present/non-empty above -- a
         # protected execution can never reach the executor without first
         # successfully reserving this logical operation.
-        reserved = await self.idempotency.reserve(idem_key, binding=binding_ref)
+        reserved = await self.idempotency.reserve(idem_key, tenant_id=tenant_id, binding=binding_ref)
         if not reserved.ok:
             self._record(
                 kind="idempotency_block",
@@ -299,7 +322,7 @@ class EnforcementCoordinator:
                 # Pre-dispatch: no external call has been attempted, so
                 # releasing everything reserved (including the logical
                 # operation) back to an admittable state is safe.
-                await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
+                await self._release(reserved_limits, descriptor, idem_key, tenant_id, idem_fence, now)
                 self._record(
                     kind="velocity_block",
                     action=action,
@@ -337,7 +360,7 @@ class EnforcementCoordinator:
             # execution -> fail closed and release everything reserved. Still
             # pre-dispatch (the durable dispatch boundary is the NEXT step),
             # so releasing is safe -- zero actuator calls have occurred.
-            await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
+            await self._release(reserved_limits, descriptor, idem_key, tenant_id, idem_fence, now)
             return ActuationResult(
                 ActuationStatus.BLOCKED, "audit-before-actuation failed; fail-closed"
             )
@@ -349,9 +372,9 @@ class EnforcementCoordinator:
         # the time any failure is observed. If this commitment itself cannot
         # be confirmed, nothing has been dispatched yet, so it is still safe
         # to release and fail closed.
-        committed = await self.idempotency.commit_dispatch(idem_key, fence=idem_fence)
+        committed = await self.idempotency.commit_dispatch(idem_key, tenant_id=tenant_id, fence=idem_fence)
         if not committed:
-            await self._release(reserved_limits, descriptor, idem_key, idem_fence, now)
+            await self._release(reserved_limits, descriptor, idem_key, tenant_id, idem_fence, now)
             self._record(
                 kind="actuation_rejected", action=action, idempotency_key=idem_key,
                 reason="durable dispatch ownership commit failed; fail-closed",
@@ -369,7 +392,7 @@ class EnforcementCoordinator:
             # The operation moves to UNKNOWN -- NOT released, NOT retryable --
             # and stays there until independently verified evidence
             # (reconciliation) proves the outcome one way or the other.
-            await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
+            await self.idempotency.mark_unknown(idem_key, tenant_id=tenant_id, fence=idem_fence)
             self._record(
                 kind="actuation_unknown",
                 action=action,
@@ -389,10 +412,10 @@ class EnforcementCoordinator:
         # UNKNOWN (never a false EXECUTED, and never retry-eligible either).
         result_ref = hash_document({"execution": _safe_execution_marker(execution)})
         finalized = await self.idempotency.mark_executed(
-            idem_key, fence=idem_fence, binding=binding_ref, result_ref=result_ref,
+            idem_key, tenant_id=tenant_id, fence=idem_fence, binding=binding_ref, result_ref=result_ref,
         )
         if not finalized:
-            await self.idempotency.mark_unknown(idem_key, fence=idem_fence)
+            await self.idempotency.mark_unknown(idem_key, tenant_id=tenant_id, fence=idem_fence)
             self._record(
                 kind="actuation_unknown",
                 action=action,
@@ -419,7 +442,7 @@ class EnforcementCoordinator:
             audit_ref=pre_ref, execution=execution,
         )
 
-    async def _release(self, limits, descriptor, idem_key, idem_fence, now) -> None:
+    async def _release(self, limits, descriptor, idem_key, tenant_id, idem_fence, now) -> None:
         """Release capacity reserved so far. Only ever called BEFORE the
         durable dispatch boundary (step f) -- releasing the logical
         operation here is safe because no external call could have been
@@ -427,7 +450,7 @@ class EnforcementCoordinator:
         for limit in limits:
             await self.velocity.release(limit, descriptor, now=now)
         if idem_fence is not None:
-            await self.idempotency.release(idem_key, fence=idem_fence)
+            await self.idempotency.release(idem_key, tenant_id=tenant_id, fence=idem_fence)
 
 
 def _safe_execution_marker(execution: Any) -> Any:

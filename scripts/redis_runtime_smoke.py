@@ -61,14 +61,16 @@ async def main() -> int:
     idem_a = RedisIdempotencyRegistry(client_a, namespace=ns_idem)
     idem_b = RedisIdempotencyRegistry(client_b, namespace=ns_idem)
     k = "op-" + uuid.uuid4().hex
-    r1 = await idem_a.reserve(k, binding="A")
-    r2 = await idem_b.reserve(k, binding="B")
+    idem_tenant = "runtime-smoke-tenant-" + uuid.uuid4().hex[:8]
+    r1 = await idem_a.reserve(k, tenant_id=idem_tenant, binding="A")
+    r2 = await idem_b.reserve(k, tenant_id=idem_tenant, binding="B")
     print(f"[idem] A={r1.status.value} B={r2.status.value}")
     if not (r1.status == ReserveStatus.RESERVED and not r2.ok):
         failures.append("idempotency allowed a conflicting rebinding across instances")
     k2 = "op-" + uuid.uuid4().hex
     results = await asyncio.gather(*[
-        (idem_a if i % 2 == 0 else idem_b).reserve(k2, binding=f"b{i}") for i in range(16)])
+        (idem_a if i % 2 == 0 else idem_b).reserve(k2, tenant_id=idem_tenant, binding=f"b{i}")
+        for i in range(16)])
     winners = sum(1 for r in results if r.status == ReserveStatus.RESERVED)
     print(f"[idem] concurrent winners={winners} (want 1)")
     if winners != 1:

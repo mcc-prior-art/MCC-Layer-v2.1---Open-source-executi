@@ -111,6 +111,7 @@ def test_payload_mutation_during_await_window_cannot_smuggle_stale_content():
         token_b = stack.engine.issue_token(
             verdict="ALLOW", subject=ACTOR, action=ACTION, payload=canonical_b,
             actor_id=ACTOR, resource_id=DEMO_REPO, auth_claims={}, idempotency_key="op-toctou-B",
+            tenant_id=stack.tenant_id,
         )
         issued_b = IssuedAuthority(token=token_b, canonical_payload=canonical_b, evidence_digest=None)
 
@@ -143,6 +144,7 @@ def test_frozen_snapshot_does_not_break_the_normal_golden_path():
         token = stack.engine.issue_token(
             verdict="ALLOW", subject=ACTOR, action=ACTION, payload=payload,
             actor_id=ACTOR, resource_id=DEMO_REPO, auth_claims={}, idempotency_key="op-toctou-control",
+            tenant_id=stack.tenant_id,
         )
         issued = IssuedAuthority(token=token, canonical_payload=payload, evidence_digest=None)
         slot.expect(action=ACTION, resource=DEMO_REPO, payload_hash=hash_payload(payload))
@@ -179,6 +181,7 @@ def test_resource_binding_rejects_a_token_for_a_different_resource_than_the_slot
         token = stack.engine.issue_token(
             verdict="ALLOW", subject=ACTOR, action=ACTION, payload=payload,
             actor_id=ACTOR, resource_id=repo_b, auth_claims={}, idempotency_key="op-resource-bind-1",
+            tenant_id=stack.tenant_id,
         )
         issued = IssuedAuthority(token=token, canonical_payload=payload, evidence_digest=None)
         slot.expect(action=ACTION, resource=repo_b, payload_hash=hash_payload(payload))
@@ -237,15 +240,16 @@ async def _park_operation_unknown(stack, *, op_id, title, body):
     issued = await issue_authority(
         stack.service, mandate=stack.mandate, actor=ACTOR, proposal=proposal,
         attestation=att.raw_attestation, logical_operation_id=op_id,
+        tenant_id=stack.tenant_id,
     )
     binding_ref = hash_document({
         "action": issued.token["action"], "resource": issued.token["resource_id"],
         "payload_hash": issued.token["payload_hash"],
     })
-    reserved = await stack.coordinator.idempotency.reserve(op_id, binding=binding_ref)
-    await stack.coordinator.idempotency.commit_dispatch(op_id, fence=reserved.fence)
-    await stack.coordinator.idempotency.mark_unknown(op_id, fence=reserved.fence)
-    record = await stack.coordinator.idempotency.get_state(op_id)
+    reserved = await stack.coordinator.idempotency.reserve(op_id, binding=binding_ref, tenant_id=stack.tenant_id)
+    await stack.coordinator.idempotency.commit_dispatch(op_id, fence=reserved.fence, tenant_id=stack.tenant_id)
+    await stack.coordinator.idempotency.mark_unknown(op_id, fence=reserved.fence, tenant_id=stack.tenant_id)
+    record = await stack.coordinator.idempotency.get_state(op_id, tenant_id=stack.tenant_id)
     return issued, record
 
 
@@ -266,7 +270,7 @@ def test_reconciliation_rejects_candidate_with_wrong_content_even_with_right_mar
         assert not outcome.found
         assert not outcome.applied
         assert "content" in outcome.reason.lower()
-        still = run(stack.coordinator.idempotency.get_state(op_id))
+        still = run(stack.coordinator.idempotency.get_state(op_id, tenant_id=stack.tenant_id))
         assert still.state == IdempotencyState.UNKNOWN
 
 
@@ -288,7 +292,7 @@ def test_reconciliation_accepts_candidate_whose_content_matches_exactly():
             actuator_repo=stack.demo_repo,
         ))
         assert outcome.found and outcome.applied
-        resolved = run(stack.coordinator.idempotency.get_state(op_id))
+        resolved = run(stack.coordinator.idempotency.get_state(op_id, tenant_id=stack.tenant_id))
         assert resolved.state == IdempotencyState.EXECUTED
 
 
@@ -340,5 +344,5 @@ def test_reconciliation_resolves_candidate_reported_only_via_repository_url():
             actuator_repo=stack.demo_repo,
         ))
         assert outcome.found and outcome.applied, outcome.reason
-        resolved = run(stack.coordinator.idempotency.get_state(op_id))
+        resolved = run(stack.coordinator.idempotency.get_state(op_id, tenant_id=stack.tenant_id))
         assert resolved.state == IdempotencyState.EXECUTED

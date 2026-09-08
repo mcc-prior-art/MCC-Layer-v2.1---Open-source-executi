@@ -104,7 +104,7 @@ async def obtain_attestation(
 
 async def run_positive_path(
     service: GovernanceService, *, mandate: Any, actor: str, proposal: AstraProposal,
-    attestation: Optional[Dict[str, Any]], logical_operation_id: str,
+    attestation: Optional[Dict[str, Any]], logical_operation_id: str, tenant_id: str,
 ) -> ExecOutcome:
     """The single supported public path. Used whenever a scenario needs
     exactly one governed call — positive, wrong-scope, and
@@ -123,6 +123,13 @@ async def run_positive_path(
     any attestation/authority/gate call is made — the executor is never
     reached.
 
+    ``tenant_id`` is MANDATORY (PR #105) — the trusted, authenticated
+    identity that scopes the durable execution identity
+    ``(tenant_id, logical_operation_id)``. Forwarded to
+    ``GovernanceService.execute_with_mandate`` unchanged; the coordinator
+    itself is what fails closed if it is ever missing or empty when the
+    signed token actually reaches it.
+
     Round 21 requirement 3: for the one action this integration's real
     actuator understands, this ALSO independently validates the strict
     request schema and operation-context coherence (the payload's own
@@ -137,6 +144,7 @@ async def run_positive_path(
     return await service.execute_with_mandate(
         mandate=mandate, actor=actor, action=proposal.action, resource=proposal.resource,
         context=proposal.payload, attestation=attestation, idempotency_key=logical_operation_id,
+        tenant_id=tenant_id,
     )
 
 
@@ -165,7 +173,7 @@ class AuthorityDeniedError(Exception):
 
 async def issue_authority(
     service: GovernanceService, *, mandate: Any, actor: str, proposal: AstraProposal,
-    attestation: Optional[Dict[str, Any]], logical_operation_id: str,
+    attestation: Optional[Dict[str, Any]], logical_operation_id: str, tenant_id: str,
 ) -> IssuedAuthority:
     """Reproduces ``GovernanceService.execute_with_mandate``'s OWN sequence
     up to (and including) token issuance, stopping BEFORE
@@ -188,6 +196,15 @@ async def issue_authority(
     calls below run. A missing or empty id raises
     :class:`~.models.MissingLogicalOperationIdError` immediately; no token
     is ever issued.
+
+    ``tenant_id`` is MANDATORY (PR #105) — the trusted, authenticated
+    identity that becomes the signed token's own ``tenant_id`` claim, the
+    other half (alongside ``logical_operation_id``) of the durable
+    execution identity ``EnforcementCoordinator``/``IdempotencyRegistry``
+    scope to. Never accepted from ``proposal``/payload/mandate content —
+    this reference integration's trusted boundary is the caller of this
+    function (mirroring ``examples/governed_agent/mcc_client.py``'s
+    ``self.tenant_id``), not anything the intelligence proposed.
 
     Round 21 requirement 3: for the one action this integration's real
     actuator understands, this ALSO independently validates the strict
@@ -250,6 +267,7 @@ async def issue_authority(
         actor_id=actor, resource_id=proposal.resource,
         auth_claims=auth_claims, mandate_id=decision.mandate_id,
         evidence_digest=evidence_digest, idempotency_key=logical_operation_id,
+        tenant_id=tenant_id,
     )
     return IssuedAuthority(token=token, canonical_payload=forward_context, evidence_digest=evidence_digest)
 
@@ -304,7 +322,18 @@ async def enforce_authority(
     every subsequent read (context coherence, the Gate via
     ``coordinator.enforce``, and ``executor()``'s own dispatch) uses this
     SAME private, frozen-in-effect copy, which no external reference can
-    reach or mutate."""
+    reach or mutate.
+
+    PR #105: ``tenant_id`` is read directly off ``issued.token`` (the
+    signed claim :func:`issue_authority` already put there), never as a
+    separate parameter here -- this function only ever presents an
+    already-issued token to the real coordinator, so there is no second,
+    independently-trusted tenant identity for it to accept. Included in
+    ``request_binding`` purely as the same free defense-in-depth every
+    other production call site in this repository now carries (see
+    ``gate.py``'s generic binding-dict mechanism); the coordinator's
+    mandatory fail-closed check is already satisfied by the token's own
+    claim regardless."""
     require_logical_operation_id(issued.token.get("idempotency_key"))
     effective_payload = copy.deepcopy(payload if payload is not None else issued.canonical_payload)
     _require_github_issue_context_coherence(
@@ -319,7 +348,10 @@ async def enforce_authority(
 
     result = await service.coordinator.enforce(
         token=issued.token, action=action, payload=effective_payload, executor=executor,
-        request_binding={"actor_id": actor, "resource_id": resource, "transaction_id": None},
+        request_binding={
+            "actor_id": actor, "resource_id": resource, "transaction_id": None,
+            "tenant_id": issued.token.get("tenant_id"),
+        },
         evidence=attestation,
     )
     return ExecOutcome(

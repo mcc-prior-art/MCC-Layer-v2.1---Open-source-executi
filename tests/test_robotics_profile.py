@@ -183,7 +183,8 @@ def test_full_robotics_execution_through_coordinator(tmp_path):
     token = engine.issue_token(
         verdict="ALLOW", subject="op-1", action="move_to_zone", payload=ctx,
         actor_id="op-1", resource_id="arm-7", idempotency_key="robot-op-1",
-        mandate_id=decision.mandate_id, auth_claims=PROFILE.auth_claims(ctx), now=NOW)
+        mandate_id=decision.mandate_id, auth_claims=PROFILE.auth_claims(ctx), now=NOW,
+        tenant_id="tenant-robotics-1")
     moved = []
 
     async def ex():

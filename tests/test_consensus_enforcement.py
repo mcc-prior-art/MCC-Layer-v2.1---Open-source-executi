@@ -57,10 +57,11 @@ def build(tmp_path, *, threshold=3, require_consensus=True):
     return keys, engine, coord, audit
 
 
-def token_for(engine, *, nonce=NONCE, idem="op-1", actor=ACTOR, resource=RESOURCE):
+def token_for(engine, *, nonce=NONCE, idem="op-1", actor=ACTOR, resource=RESOURCE, tenant_id="tenant-1"):
     return engine.issue_token(
         verdict="ALLOW", subject=actor, action=ACTION, payload=PAYLOAD,
-        idempotency_key=idem, actor_id=actor, resource_id=resource, nonce=nonce, now=NOW)
+        idempotency_key=idem, actor_id=actor, resource_id=resource, nonce=nonce, now=NOW,
+        tenant_id=tenant_id)
 
 
 def votes_for(keys, *, verdicts=("ALLOW", "ALLOW", "ALLOW"), actor=ACTOR, payload=PAYLOAD,

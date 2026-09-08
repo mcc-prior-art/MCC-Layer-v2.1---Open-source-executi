@@ -82,12 +82,13 @@ class MCCProposalService:
         self._profiles = profiles or ProfileRegistry.default_pilot()
         # Optional read-only durable-execution registry (an
         # ``InMemoryIdempotencyRegistry``/``RedisIdempotencyRegistry`` or
-        # anything exposing an async ``get_state(key) -> StateRecord|None``).
-        # ``None`` means this deployment of the proposal service is not wired
-        # to a real execution backend yet -- status composition then never
-        # reports RESERVED/DISPATCH_OWNED/UNKNOWN/EXECUTED, only
-        # PROPOSED/NOT_FOUND, which is the honest answer for that
-        # configuration (documented in
+        # anything exposing an async ``get_state(key, *, tenant_id) ->
+        # StateRecord|None`` -- PR #105: tenant-scoped, matching the real
+        # registry's mandatory ``tenant_id`` keyword). ``None`` means this
+        # deployment of the proposal service is not wired to a real
+        # execution backend yet -- status composition then never reports
+        # RESERVED/DISPATCH_OWNED/UNKNOWN/EXECUTED, only PROPOSED/NOT_FOUND,
+        # which is the honest answer for that configuration (documented in
         # docs/MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE1.md).
         self._durable = durable_execution_state
 
@@ -148,31 +149,36 @@ class MCCProposalService:
     async def get_operation_status(self, *, tenant_id: str, logical_operation_id: str) -> OperationStatusV1:
         """Read-only. Performs zero state writes and calls no actuator.
 
-        Ownership-gated precedence (tenant isolation -- Section 5/7):
+        Ownership-gated, tenant-scoped precedence (PR #105 -- durable
+        identity itself is now tenant-scoped at the registry level, not
+        merely disambiguated after the fact by binding comparison):
 
           1. tenant-scoped proposal ownership lookup uncertain -> UNAVAILABLE
              (cannot prove ownership; never disclose)
           2. no tenant-scoped proposal record for this identity -> NOT_FOUND,
-             WITHOUT ever consulting the durable execution registry. The
-             durable registry is globally keyed (it has no tenant dimension,
-             matching the unmodified EnforcementCoordinator), so it is never
-             read at all unless this tenant has already proven ownership of
-             ``logical_operation_id`` via its own proposal record -- a tenant
-             that never proposed this identity can neither observe another
-             tenant's durable state nor infer that it exists.
+             WITHOUT ever consulting the durable execution registry. A
+             tenant that never proposed this identity can neither observe
+             another tenant's durable state nor infer that it exists.
           3. ownership established; durable execution backend uncertain ->
              UNAVAILABLE
-          4. ownership established; durable execution record exists AND its
-             binding matches this tenant's own registered binding -> the
-             durable record's exact state, verbatim (two tenants may
-             legitimately reuse the same raw id with different bindings --
-             see step 4a)
-          4a. ownership established; durable execution record exists but its
-             binding does NOT match this tenant's own registered binding ->
-             that durable record belongs to a different registrant that
-             reused the same id; never disclosed -> falls through to 5
-          5. ownership established; no (disclosable) durable record ->
+          4. ownership established; a TENANT-SCOPED durable execution record
+             exists (``self._durable.get_state(key, tenant_id=tenant_id)`` --
+             the registry itself, not a binding comparison, is what
+             establishes this is THIS tenant's record; see Section 6) ->
+             its exact state, verbatim
+          5. ownership established; no durable record for this tenant ->
              PROPOSED
+
+        The proposal binding vs. durable binding comparison is retained as
+        defense-in-depth / internal-consistency checking ONLY -- it is no
+        longer the mechanism that establishes tenant ownership (the
+        tenant-scoped registry lookup itself is). A mismatch WITHIN this
+        tenant's own scoped record can only mean an internal corruption
+        (this tenant's proposal and its own durable dispatch record
+        disagree about what operation this id names) -- it is never
+        silently reinterpreted as "must be another tenant's record" (the
+        registry is tenant-scoped; it structurally cannot return another
+        tenant's record here). Fail closed.
         """
         if not isinstance(tenant_id, str) or not tenant_id.strip():
             raise ValueError("tenant_id must be a non-empty authenticated identity")
@@ -197,34 +203,28 @@ class MCCProposalService:
             return OperationStatusV1.of(logical_operation_id=logical_operation_id, status=OperationStatusValue.NOT_FOUND)
 
         # 3-5. Ownership established -- the durable execution registry (if
-        # configured) is now safe to consult and compose.
+        # configured) is queried DIRECTLY for THIS tenant's own scoped
+        # record (Section 6: never the globally-keyed lookup).
         if self._durable is not None:
             try:
-                state = await self._durable.get_state(logical_operation_id)
+                state = await self._durable.get_state(logical_operation_id, tenant_id=tenant_id)
             except IdempotencyBackendUnavailable as exc:  # type: ignore[misc]
                 return OperationStatusV1.of(
                     logical_operation_id=logical_operation_id, status=OperationStatusValue.UNAVAILABLE,
                     detail=f"durable execution backend unavailable: {exc}",
                 )
-            if state is not None and state.binding == record.binding:
-                # Section 4/16: two tenants may independently register the
-                # SAME logical_operation_id with DIFFERENT bindings (this is
-                # explicitly permitted, not a conflict). The durable
-                # execution registry is still a single global-keyed record
-                # per raw logical_operation_id, so "this tenant owns a
-                # proposal for this id" alone cannot tell which tenant's
-                # binding a given durable record belongs to. The durable
-                # registry's own ``binding`` (computed identically --
-                # ``hash_document({action, resource, payload_hash})`` -- by
-                # both ``mcc_proposal.binding.compute_proposal_binding`` and
-                # ``EnforcementCoordinator``'s ``binding_ref``) is the proof:
-                # only when it matches THIS tenant's own registered binding
-                # is the durable record for the operation this tenant
-                # actually proposed. A mismatch means the durable record
-                # belongs to a different registrant that reused the same raw
-                # id with a different action/resource/payload -- it is never
-                # disclosed, and this tenant's status falls through to its
-                # own proposal-only view below.
+            if state is not None:
+                if state.binding != record.binding:
+                    # Internal consistency error (Section 6): the registry is
+                    # tenant-scoped, so this record is structurally already
+                    # proven to belong to THIS tenant -- a binding mismatch
+                    # here cannot be "someone else's record" and must never
+                    # be reinterpreted as one. Fail closed rather than guess.
+                    return OperationStatusV1.of(
+                        logical_operation_id=logical_operation_id, status=OperationStatusValue.UNAVAILABLE,
+                        detail="durable record binding does not match this tenant's own registered "
+                               "proposal binding; internal consistency error, fail-closed",
+                    )
                 mapped = _DURABLE_STATE_MAP.get(state.state)
                 if mapped is None:  # pragma: no cover - defensive; never mask as NOT_FOUND/PROPOSED
                     return OperationStatusV1.of(

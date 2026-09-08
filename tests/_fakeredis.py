@@ -135,29 +135,41 @@ class FakeRedis:
 
         keys = list(args[:numkeys])
         a = list(args[numkeys:])
+
+        if script == _IDEM_RESERVE_LUA:
+            # PR #105: KEYS[1] = tenant-scoped key, KEYS[2] = legacy
+            # (pre-tenant-scoping) key. The legacy key is checked FIRST,
+            # before the scoped key is touched at all -- mirrors the real
+            # Lua script exactly.
+            scoped_key, legacy_key = keys
+            self._evict(legacy_key)
+            if legacy_key in self.kv:
+                return ["LEGACY_UNMIGRATED", "", ""]
+            self._evict(scoped_key)
+            cur = self.kv.get(scoped_key)
+            cur_value = None if cur is None else cur[0]
+            binding, ttl_seconds, generation = a
+            if cur_value is None:
+                self.kv[scoped_key] = (f"RESERVED|{generation}|{binding}|", self.clock() + int(ttl_seconds))
+                return ["RESERVED", generation]
+            state, gen, held_binding = cur_value.split("|", 3)[:3]
+            if held_binding != binding:
+                return ["BINDING_CONFLICT", gen, held_binding]
+            if state == "EXECUTED":
+                return ["DUPLICATE_EXECUTED", gen]
+            if state == "UNKNOWN":
+                return ["DUPLICATE_UNKNOWN", gen]
+            return ["DUPLICATE_INFLIGHT", gen]
+
         (key,) = keys
 
         if script in (
-            _IDEM_RESERVE_LUA, _COMMIT_DISPATCH_LUA, _MARK_EXECUTED_LUA,
+            _COMMIT_DISPATCH_LUA, _MARK_EXECUTED_LUA,
             _MARK_UNKNOWN_LUA, _IDEM_RELEASE_LUA, _RESOLVE_UNKNOWN_LUA,
         ):
             self._evict(key)
             cur = self.kv.get(key)
             cur_value = None if cur is None else cur[0]
-
-            if script == _IDEM_RESERVE_LUA:
-                binding, ttl_seconds, generation = a
-                if cur_value is None:
-                    self.kv[key] = (f"RESERVED|{generation}|{binding}|", self.clock() + int(ttl_seconds))
-                    return ["RESERVED", generation]
-                state, gen, held_binding = cur_value.split("|", 3)[:3]
-                if held_binding != binding:
-                    return ["BINDING_CONFLICT", gen, held_binding]
-                if state == "EXECUTED":
-                    return ["DUPLICATE_EXECUTED", gen]
-                if state == "UNKNOWN":
-                    return ["DUPLICATE_UNKNOWN", gen]
-                return ["DUPLICATE_INFLIGHT", gen]
 
             if script == _COMMIT_DISPATCH_LUA:
                 (expected_gen,) = a

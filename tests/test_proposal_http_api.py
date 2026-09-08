@@ -202,7 +202,7 @@ def test_real_gateway_app_status_reflects_the_real_coordinators_durable_state(re
         action=body["action"], resource=body["resource"], payload=body["payload"],
         profiles=real_gateway_app.gateway.profiles,
     )
-    asyncio.run(idem.reserve("op-real-gw-durable", binding=binding))
+    asyncio.run(idem.reserve("op-real-gw-durable", binding=binding, tenant_id="tenant-a"))
 
     r = client.get("/v1/operations/op-real-gw-durable", headers={"x-api-key": "tenant-a-key"})
     assert r.json()["status"] == "RESERVED"

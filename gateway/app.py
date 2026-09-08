@@ -94,6 +94,16 @@ class GatewaySettings(BaseSettings):
     # Operator boundary for approve/deny/invalidate/revoke/trust admin. Empty
     # disables all operator actions (fail closed).
     operator_api_key: str = ""
+    # PR #105: the trusted tenant/security-domain identity for this gateway
+    # instance's single agent credential (``api_key`` above) -- resolved
+    # here, server-side, at process startup, never from a request body
+    # field. This gateway design has always supported exactly one agent
+    # credential per instance; "pilot" preserves the identity the existing
+    # single-tenant deployment already implicitly used everywhere else
+    # (``gateway.app.get_caller`` below, ``main.py``'s default tenant).
+    # Real multi-tenant HTTP auth (several tenants sharing one gateway
+    # instance) is out of this phase's scope -- see the PR #105 report.
+    tenant_id: str = "pilot"
 
     class Config:
         env_prefix = "MCC_GATEWAY_"
@@ -293,6 +303,12 @@ class Gateway:
                     audit_ref=audit_id,
                     transaction_id=req.transaction_id,
                     idempotency_key=req.idempotency_key,
+                    # PR #105: the trusted tenant identity for THIS gateway
+                    # instance (never a request-body field) -- so any
+                    # downstream coordinator (an interceptor / the egress
+                    # proxy) that later actuates against this token has the
+                    # mandatory tenant-scoped durable identity it requires.
+                    tenant_id=settings.tenant_id,
                     actor_id=req.actor_id or req.identity,
                     resource_id=req.resource_id,
                     # Profile-derived, action-specific authorization claims (e.g.
@@ -469,11 +485,11 @@ governance = build_governance_service(
     policy_hash=gateway.policy_hash, token_audience=settings.token_audience,
 )
 mount_mandate_routes(app, governance, api_key=settings.api_key,
-                     operator_key=settings.operator_api_key)
+                     operator_key=settings.operator_api_key, tenant_id=settings.tenant_id)
 mount_approval_routes(app, governance, api_key=settings.api_key,
-                      operator_key=settings.operator_api_key)
+                      operator_key=settings.operator_api_key, tenant_id=settings.tenant_id)
 mount_consensus_routes(app, governance, api_key=settings.api_key,
-                       operator_key=settings.operator_api_key)
+                       operator_key=settings.operator_api_key, tenant_id=settings.tenant_id)
 
 
 # ---------- Universal Proposal Service (Phase 1) — additive, non-actuating ----------

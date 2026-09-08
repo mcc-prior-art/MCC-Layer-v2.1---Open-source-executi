@@ -45,10 +45,11 @@ async def main() -> int:
     idem_a = RedisIdempotencyRegistry.from_url(URL)
     idem_b = RedisIdempotencyRegistry.from_url(URL)
     key = f"op-{run_id}"
-    first = await idem_a.reserve(key)
-    await idem_a.commit_dispatch(key, fence=first.fence)
-    await idem_a.mark_executed(key, fence=first.fence)
-    cross = await idem_b.reserve(key)  # different instance, same Redis
+    tenant_id = f"redis-smoke-tenant-{run_id}"
+    first = await idem_a.reserve(key, tenant_id=tenant_id)
+    await idem_a.commit_dispatch(key, tenant_id=tenant_id, fence=first.fence)
+    await idem_a.mark_executed(key, tenant_id=tenant_id, fence=first.fence)
+    cross = await idem_b.reserve(key, tenant_id=tenant_id)  # different instance, same Redis, same tenant
     print(f"idempotency: instance A first={first.status.value}  instance B replay={cross.status.value}")
     if not first.ok:
         failures.append("first reservation on instance A should succeed")

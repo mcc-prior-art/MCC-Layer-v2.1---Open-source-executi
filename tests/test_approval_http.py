@@ -202,7 +202,7 @@ def test_concurrent_execute_single_winner():
         return await asyncio.gather(*[
             svc.execute_with_approval(mandate=mandate, actor="agent/x", action="generic_op",
                                       resource="res-1", context=CTX, transaction_id="txn-1",
-                                      idempotency_key=f"op-{i}")
+                                      idempotency_key=f"op-{i}", tenant_id="tenant-1")
             for i in range(8)])
 
     outcomes = asyncio.run(race())
@@ -257,6 +257,6 @@ def test_backend_unavailable_blocks_execution():
                             approvals=down_approvals, upstream=upstream, policy_hash=POLICY)
     out = asyncio.run(svc.execute_with_approval(
         mandate=mandate, actor="agent/x", action="generic_op", resource="res-1",
-        context=CTX, transaction_id="txn-1"))
+        context=CTX, transaction_id="txn-1", tenant_id="tenant-1"))
     assert out.status == "BLOCKED"
     assert calls == []
