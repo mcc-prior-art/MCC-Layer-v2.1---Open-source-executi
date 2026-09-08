@@ -51,7 +51,13 @@ from mcc_core import (  # noqa: E402
 )
 from mcc_proposal import MCCProposalService, RedisProposalRegistry  # noqa: E402
 
-from gateway.proposal_execution_service import ProposalExecStatus, ProposalExecutionService  # noqa: E402
+from gateway.proposal_execution_service import (  # noqa: E402
+    ProposalExecStatus,
+    ProposalExecutionService,
+    ReconcileOutcome,
+    ResourceBoundUpstream,
+    reconcile_proposal_operation,
+)
 
 URL = os.environ.get("MCC_REDIS_URL", "redis://127.0.0.1:6379/0")
 
@@ -95,9 +101,11 @@ async def main() -> int:
 
     dispatched = []
 
-    async def upstream(action: str, payload) -> dict:
+    async def raw_upstream(action: str, payload) -> dict:
         dispatched.append((action, dict(payload)))
         return {"ok": True, "action": action}
+
+    upstream = ResourceBoundUpstream(resource="res-1", call=raw_upstream)
 
     bridge = ProposalExecutionService(
         proposals=proposals, authority=authority, engine=engine,
@@ -176,6 +184,79 @@ async def main() -> int:
         failures.append("replay: a second authorize_and_execute on an already-EXECUTED op reported EXECUTED again")
     if len(dispatched) != dispatched_before_replay:
         failures.append("replay: a second authorize_and_execute on an already-EXECUTED op caused a NEW dispatch")
+
+    # --- Blocker 2: resource binding -- a real-Redis-backed proposal
+    # authorized for "res-1" cannot actuate a differently-configured actuator ---
+    wrong_resource_op = f"op-wrongres-{run_id}"
+    await svc.submit_proposal(tenant_id=tenant_a, request={
+        "logical_operation_id": wrong_resource_op, "actor": "agent/smoke", "action": "smoke_action",
+        "resource": "res-DIFFERENT", "payload": {"n": 3},
+    })
+    mismatched = await bridge.authorize_and_execute(tenant_id=tenant_a, logical_operation_id=wrong_resource_op)
+    print(f"resource-binding: authorized for res-DIFFERENT, actuator configured for res-1 -> {mismatched.status.value}")
+    if mismatched.status != ProposalExecStatus.RESOURCE_MISMATCH:
+        failures.append(f"resource-binding: expected RESOURCE_MISMATCH, got {mismatched.status}")
+    dispatched_before_mismatch_check = len(dispatched)
+    if len(dispatched) != dispatched_before_mismatch_check:
+        failures.append("resource-binding: a resource mismatch caused an actuator dispatch")
+
+    # --- Blocker 1: reconciliation requires operation-bound evidence ---
+    recon_op = f"op-recon-{run_id}"
+    recon_payload = {"n": 4, "run": run_id}
+    await svc.submit_proposal(tenant_id=tenant_a, request={
+        "logical_operation_id": recon_op, "actor": "agent/smoke", "action": "smoke_action",
+        "resource": "res-1", "payload": recon_payload,
+    })
+
+    async def crashing_upstream(action, payload):
+        raise ConnectionError("simulated crash after dispatch")
+
+    bridge_crash = ProposalExecutionService(
+        proposals=proposals, authority=authority, engine=engine, coordinator=coordinator,
+        upstream=ResourceBoundUpstream(resource="res-1", call=crashing_upstream),
+    )
+    crashed = await bridge_crash.authorize_and_execute(tenant_id=tenant_a, logical_operation_id=recon_op)
+    print(f"reconciliation: crash leaves state -> {crashed.status.value}")
+
+    async def unbound_evidence(**kw):
+        return {"marker": "found"}  # the exact Blocker 1 defect
+
+    bad_recon = await reconcile_proposal_operation(
+        proposals=proposals, idempotency=idem, authority=authority, tenant_id=tenant_a,
+        logical_operation_id=recon_op, verify_external_evidence=unbound_evidence,
+    )
+    print(f"reconciliation: unbound evidence -> {bad_recon.outcome.value}")
+    if bad_recon.outcome == ReconcileOutcome.RESOLVED:
+        failures.append("reconciliation: unbound/unrelated evidence WRONGLY resolved the operation")
+
+    async def bound_evidence(*, tenant_id, logical_operation_id, action, resource, payload_hash):
+        return {
+            "tenant_id": tenant_id, "logical_operation_id": logical_operation_id,
+            "action": action, "resource": resource, "payload": recon_payload,
+        }
+
+    good_recon = await reconcile_proposal_operation(
+        proposals=proposals, idempotency=idem, authority=authority, tenant_id=tenant_a,
+        logical_operation_id=recon_op, verify_external_evidence=bound_evidence,
+    )
+    print(f"reconciliation: exact bound evidence -> {good_recon.outcome.value}")
+    if good_recon.outcome != ReconcileOutcome.RESOLVED:
+        failures.append(f"reconciliation: exact bound evidence did not resolve ({good_recon.outcome})")
+
+    # --- Upgrade compatibility: a legacy Phase-1 "binding|created_at" record
+    # is recognized (not corruption) and reported non-executable ---
+    legacy_op = f"op-legacy-{run_id}"
+    legacy_key = proposals._key(tenant_a, legacy_op)
+    await client.set(legacy_key, "sha256:legacy-binding-value|1700000000.0")
+    legacy_record = await proposals.get(tenant_id=tenant_a, logical_operation_id=legacy_op)
+    print(f"legacy-upgrade: recognized legacy record -> binding={legacy_record.binding if legacy_record else None}, "
+          f"action={legacy_record.action if legacy_record else 'N/A'}")
+    if legacy_record is None or legacy_record.action is not None:
+        failures.append("legacy-upgrade: legacy record was not recognized as content-less")
+    legacy_exec = await bridge.authorize_and_execute(tenant_id=tenant_a, logical_operation_id=legacy_op)
+    print(f"legacy-upgrade: authorize_and_execute on legacy record -> {legacy_exec.status.value}")
+    if legacy_exec.status == ProposalExecStatus.EXECUTED:
+        failures.append("legacy-upgrade: a legacy content-less record was WRONGLY executed")
 
     await client.aclose()
 

@@ -231,6 +231,8 @@ class RedisProposalRegistry:
             raise ProposalBackendUnavailable(f"proposal registry unavailable: {exc!r}") from exc
         if current is None:
             return None
+
+        # Phase 2 JSON format (current write path) first.
         try:
             decoded = json.loads(current)
             binding = decoded["binding"]
@@ -240,12 +242,38 @@ class RedisProposalRegistry:
             action = decoded.get("action")
             resource = decoded.get("resource")
             payload = decoded.get("payload")
-        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            return ProposalRecord(
+                tenant_id=tenant_id, logical_operation_id=logical_operation_id,
+                binding=binding, created_at=created_at,
+                action=action, resource=resource, payload=payload,
+            )
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError):
+            pass
+
+        # Phase 1 legacy wire format: "binding|created_at" -- never valid
+        # JSON (a JSON document always starts with '{'), so falling through
+        # here means an upgraded deployment is reading a record written
+        # before this field existed. Explicit, documented upgrade strategy
+        # (Phase 2 remediation, "Upgrade issue"; see
+        # docs/MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE2.md Section 12):
+        # RECOGNIZED, not treated as corruption -- exposed as a proposal
+        # with NO executable content. Status reads keep working (they only
+        # ever read ``.binding``); ``ProposalExecutionService`` already
+        # fails closed on ``record.action is None`` exactly as it does for
+        # any other content-less record (Section 2) -- no separate code
+        # path is needed there. Never guessed/widened/silently reinterpreted
+        # as an executable Phase-2 proposal.
+        try:
+            binding, created = current.split("|", 1)
+            if not binding:
+                raise ValueError("empty binding")
+            created_at = float(created)
+        except (ValueError, AttributeError) as exc:
             raise ProposalBackendUnavailable(f"malformed proposal record for {key!r}") from exc
         return ProposalRecord(
             tenant_id=tenant_id, logical_operation_id=logical_operation_id,
             binding=binding, created_at=created_at,
-            action=action, resource=resource, payload=payload,
+            action=None, resource=None, payload=None,
         )
 
 

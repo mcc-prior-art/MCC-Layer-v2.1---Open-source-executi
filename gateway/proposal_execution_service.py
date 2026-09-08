@@ -55,14 +55,43 @@ from mcc_core import (
     ProfileRegistry,
     Verdict,
     hash_document,
+    hash_payload,
 )
 
 from mcc_proposal.binding import BindingComputationError, compute_proposal_binding
 from mcc_proposal.registry import ProposalBackendUnavailable
 
+
+class ResourceBoundUpstream:
+    """The ONLY actuator contract :class:`ProposalExecutionService` accepts
+    (Phase 2 remediation, Blocker 2). ``resource`` is the actuator's OWN
+    fixed, trusted configured destination -- set once, at construction, by
+    the deployment operator; NEVER derived from proposal content, request
+    payload, or any other untrusted input. Before any dispatch,
+    ``ProposalExecutionService`` independently compares this value against
+    the resource the operation is actually authorized for and refuses (zero
+    I/O) on any mismatch -- proving the real external side effect can only
+    ever be sent to the destination MCC actually authorized, not merely
+    that a resource *string* happened to match inside the signed token.
+
+    ``resource=None`` is a legitimate configuration for an actuator that
+    has no distinguishable destination concept -- it matches only a
+    proposal whose OWN authorized ``resource`` is also ``None``, never a
+    real resource string (``None != "some-resource"``).
+    """
+
+    def __init__(self, resource: Optional[str], call: "Upstream") -> None:
+        self.resource = resource
+        self._call = call
+
+    async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
+        return await self._call(action, payload)
+
+
 # An upstream actuator performs the real side effect. It is the *only* thing
 # the coordinator's executor calls -- identical contract to
-# ``gateway.governance_service.Upstream``.
+# ``gateway.governance_service.Upstream``, wrapped in :class:`ResourceBoundUpstream`
+# so its configured destination can be independently verified before dispatch.
 Upstream = Callable[[str, Dict[str, Any]], Awaitable[Any]]
 
 
@@ -81,6 +110,7 @@ class ProposalExecStatus(str, Enum):
     NOT_FOUND = "NOT_FOUND"            # no tenant-owned proposal for this identity (tenant-safe)
     UNAVAILABLE = "UNAVAILABLE"        # backend uncertainty; never "safe to execute"
     REJECTED = "REJECTED"              # malformed/incomplete input or record; zero calls made
+    RESOURCE_MISMATCH = "RESOURCE_MISMATCH"  # actuator's configured destination != authorized resource
 
 
 @dataclass(frozen=True)
@@ -120,9 +150,22 @@ class ProposalExecutionService:
         authority: AuthorityModel,
         engine: DecisionEngine,
         coordinator: EnforcementCoordinator,
-        upstream: Upstream,
+        upstream: ResourceBoundUpstream,
         profiles: Optional[ProfileRegistry] = None,
     ) -> None:
+        # Phase 2 remediation, Blocker 2: a plain (action, payload) -> ...
+        # callable is refused at construction time -- there would be no
+        # place left to independently verify its real destination against
+        # the authorized resource. ``upstream`` must expose the fixed,
+        # trusted ``.resource`` attribute :class:`ResourceBoundUpstream`
+        # defines, and remain callable exactly like the plain contract.
+        if not hasattr(upstream, "resource") or not callable(upstream):
+            raise TypeError(
+                "upstream must be a ResourceBoundUpstream (or otherwise expose a "
+                "fixed, trusted '.resource' attribute naming its configured "
+                "destination) so ProposalExecutionService can verify it against "
+                "the authorized resource before any external dispatch"
+            )
         self._proposals = proposals
         self._authority = authority
         self._engine = engine
@@ -221,6 +264,23 @@ class ProposalExecutionService:
                 ProposalExecStatus.REJECTED, f"unknown authority verdict {decision.verdict!r}; fail-closed",
             )
 
+        # ---- Phase 2 remediation, Blocker 2: the actuator's OWN configured
+        # destination must equal the authorized resource BEFORE any token is
+        # issued or any I/O is attempted. Signing ``resource_id=resource``
+        # into the token only proves a string matched inside the token --
+        # it proves nothing about where the real side effect is actually
+        # sent. This is the independent check that closes that gap: a
+        # misconfigured or hardcoded actuator targeting a different
+        # resource is refused here, with zero token issuance and zero
+        # actuator invocation. ----
+        if self._upstream.resource != resource:
+            return ProposalExecOutcome(
+                ProposalExecStatus.RESOURCE_MISMATCH,
+                f"actuator is configured for resource {self._upstream.resource!r}, but this "
+                f"operation authorizes resource {resource!r}; refusing before any external call",
+                decision=decision.verdict.value,
+            )
+
         forward_context = dict(decision.forward_context or payload)
 
         auth_claims = dict(profile.auth_claims(forward_context))
@@ -289,6 +349,7 @@ class ReconcileOutcome(str, Enum):
     RESOLVED = "RESOLVED"              # evidence matched; UNKNOWN/DISPATCH_OWNED -> EXECUTED, by THIS call
     EVIDENCE_MATCHED_NOT_APPLIED = "EVIDENCE_MATCHED_NOT_APPLIED"  # matched, but a racing writer/stale fence beat this call
     NO_EVIDENCE = "NO_EVIDENCE"        # no positive external evidence found; left pending
+    EVIDENCE_MISMATCH = "EVIDENCE_MISMATCH"  # evidence WAS returned, but does not bind to this exact operation
     NOT_FOUND = "NOT_FOUND"            # no tenant-owned proposal, or no durable record; tenant-safe
     NOT_RECONCILABLE = "NOT_RECONCILABLE"  # durable state is not UNKNOWN/DISPATCH_OWNED
     REJECTED = "REJECTED"              # malformed input / internal-consistency mismatch
@@ -301,23 +362,62 @@ class ProposalReconciliationOutcome:
     reason: str
 
 
-# A verifier looks for independently-observed positive evidence that a
-# specific external side effect actually happened, and returns the exact
-# CONTENT that evidence reports (never a bare boolean) so the caller can
-# bind it to the authorized payload_hash -- OR ``None`` for "not found /
-# inconclusive", which is always treated identically to a genuine absence,
-# never distinguished for the purpose of authorizing anything further. This
-# mirrors ``examples/gpt6_astra_reference/reconciliation.py``'s
-# ``_find_issue_by_marker`` boundary, made explicitly pluggable so the
-# Universal Proposal Service's reconciliation stays domain-neutral (it must
-# work for ANY actuator, not just one hardcoded external service).
-EvidenceVerifier = Callable[[], Awaitable[Optional[Dict[str, Any]]]]
+# Phase 2 remediation, Blocker 1. A verifier looks for independently-
+# observed evidence of a specific external side effect, SCOPED by the
+# trusted operation context it is called with (never left to guess it),
+# and returns either ``None`` ("not found / inconclusive" -- always treated
+# identically to a genuine absence, never distinguished for the purpose of
+# authorizing anything further) or a dict the verifier itself asserts
+# describes what it found:
+#
+#     {"tenant_id": ..., "logical_operation_id": ..., "action": ...,
+#      "resource": ..., "payload": {...}}
+#
+# This return value is NEVER trusted as-is -- ``reconcile_proposal_operation``
+# independently re-checks every one of these fields against the TRUSTED,
+# STORED operation context before ever calling ``resolve_unknown`` (mirroring
+# ``examples/gpt6_astra_reference/reconciliation.py``'s own
+# marker-match-is-not-enough / candidate-content-must-hash-to-payload_hash
+# pattern, generalized so the Universal Proposal Service's reconciliation
+# stays domain-neutral instead of hardcoded to one actuator).
+EvidenceVerifier = Callable[..., Awaitable[Optional[Dict[str, Any]]]]
+
+
+def _evidence_binding_mismatch(
+    evidence: Any, *, tenant_id: str, logical_operation_id: str, action: str,
+    resource: Optional[str], authorized_payload_hash: str,
+) -> Optional[str]:
+    """Returns a human-readable mismatch reason, or ``None`` if ``evidence``
+    is a well-formed dict that binds to EVERY one of the trusted, stored
+    operation fields. Never raises -- any malformed shape is itself a
+    mismatch (fail-closed), never an exception that could skip the caller's
+    fail-closed branch."""
+    if not isinstance(evidence, dict):
+        return "evidence is not a dict"
+    required = ("tenant_id", "logical_operation_id", "action", "resource", "payload")
+    missing = [k for k in required if k not in evidence]
+    if missing:
+        return f"evidence is missing required bound field(s): {missing}"
+    if evidence["tenant_id"] != tenant_id:
+        return "evidence tenant_id does not match the trusted caller tenant_id"
+    if evidence["logical_operation_id"] != logical_operation_id:
+        return "evidence logical_operation_id does not match the trusted operation identity"
+    if evidence["action"] != action:
+        return "evidence action does not match the authorized action"
+    if evidence["resource"] != resource:
+        return "evidence resource does not match the authorized resource"
+    if not isinstance(evidence["payload"], dict):
+        return "evidence payload is not a dict"
+    if hash_payload(evidence["payload"]) != authorized_payload_hash:
+        return "evidence payload does not hash to the exact authorized payload_hash"
+    return None
 
 
 async def reconcile_proposal_operation(
     *,
     proposals: Any,
     idempotency: Any,
+    authority: AuthorityModel,
     tenant_id: str,
     logical_operation_id: str,
     verify_external_evidence: EvidenceVerifier,
@@ -328,7 +428,20 @@ async def reconcile_proposal_operation(
     so no tenant may ever resolve another tenant's identical-id record, even
     one sharing every other field byte-for-byte. Never dispatches to an
     actuator -- ``verify_external_evidence`` is a pure, already-scoped LOOK,
-    never a side-effecting call, and this function calls it at most once.
+    called at most once, and its returned evidence is independently
+    re-verified against the trusted stored operation before any durable
+    state mutation is attempted (Phase 2 remediation, Blocker 1).
+
+    ``authority`` is the SAME ``AuthorityModel`` :class:`ProposalExecutionService`
+    was constructed with. It is evaluated here a second time, over the SAME
+    ``(tenant_id, action, record.payload)`` triple that produced the
+    original admission -- a pure, deterministic recomputation (no new
+    decision logic) that reconstructs the EXACT authorized payload
+    (``decision.forward_context``, which for a CONSTRAIN verdict differs
+    from the raw proposal payload). This is what lets reconciliation bind
+    evidence to the operation's real, final authorized payload_hash rather
+    than the pre-authorization proposal content -- a distinction that
+    matters exactly for CONSTRAIN operations, where the two differ.
     """
     profiles = profiles or ProfileRegistry.default_pilot()
 
@@ -357,22 +470,56 @@ async def reconcile_proposal_operation(
             ReconcileOutcome.NOT_RECONCILABLE, f"durable state is {state.state.value}; nothing to reconcile",
         )
 
+    # Reconstruct the EXACT payload that was actually authorized (and, for
+    # CONSTRAIN, dispatched) -- never the raw pre-authorization proposal
+    # payload -- via the SAME AuthorityModel evaluated idempotently over
+    # the SAME inputs, exactly as ProposalExecutionService did at admission
+    # time. This is what the durable record's own ``binding`` was computed
+    # from, so this is the correct ground truth to check evidence against
+    # and to detect storage/state corruption against.
+    try:
+        profiles.for_action(record.action)
+    except ProfileError as exc:
+        return ProposalReconciliationOutcome(ReconcileOutcome.REJECTED, f"PROFILE_ERROR: {exc}")
+    decision = authority.evaluate(identity=tenant_id, action=record.action, context=dict(record.payload or {}))
+    if decision.verdict not in (Verdict.ALLOW, Verdict.CONSTRAIN):
+        return ProposalReconciliationOutcome(
+            ReconcileOutcome.REJECTED,
+            "authority no longer authorizes this operation; cannot reconstruct the "
+            "authorized payload to bind evidence against; fail-closed",
+        )
+    authorized_payload = dict(decision.forward_context or record.payload or {})
+    authorized_payload_hash = hash_payload(authorized_payload)
+
     try:
         expected_binding = compute_proposal_binding(
-            action=record.action, resource=record.resource, payload=dict(record.payload or {}), profiles=profiles,
+            action=record.action, resource=record.resource, payload=authorized_payload, profiles=profiles,
         )
     except BindingComputationError as exc:
         return ProposalReconciliationOutcome(ReconcileOutcome.REJECTED, f"stored proposal content invalid: {exc}")
     if expected_binding != state.binding:
         return ProposalReconciliationOutcome(
             ReconcileOutcome.REJECTED,
-            "durable record binding does not match this tenant's own proposal binding; "
-            "internal consistency error, fail-closed",
+            "durable record binding does not match the reconstructed authorized "
+            "operation; internal consistency error, fail-closed",
         )
 
-    evidence = await verify_external_evidence()
+    evidence = await verify_external_evidence(
+        tenant_id=tenant_id, logical_operation_id=logical_operation_id,
+        action=record.action, resource=record.resource, payload_hash=authorized_payload_hash,
+    )
     if evidence is None:
         return ProposalReconciliationOutcome(ReconcileOutcome.NO_EVIDENCE, "no positive external evidence found")
+
+    mismatch = _evidence_binding_mismatch(
+        evidence, tenant_id=tenant_id, logical_operation_id=logical_operation_id,
+        action=record.action, resource=record.resource, authorized_payload_hash=authorized_payload_hash,
+    )
+    if mismatch is not None:
+        # Evidence WAS returned, but does not prove it corresponds to this
+        # exact operation -- fail closed exactly like "no evidence found":
+        # zero durable state mutation, UNKNOWN/DISPATCH_OWNED unchanged.
+        return ProposalReconciliationOutcome(ReconcileOutcome.EVIDENCE_MISMATCH, mismatch)
 
     result_ref = hash_document({"evidence": evidence})
     result = await idempotency.resolve_unknown(
@@ -387,6 +534,7 @@ __all__ = [
     "ProposalExecStatus",
     "ProposalExecOutcome",
     "ProposalExecutionService",
+    "ResourceBoundUpstream",
     "ReconcileOutcome",
     "ProposalReconciliationOutcome",
     "EvidenceVerifier",

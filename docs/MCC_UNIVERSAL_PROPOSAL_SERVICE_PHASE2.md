@@ -89,6 +89,31 @@ backend-failure invariants `tests/test_mcc_proposal_registry.py` proves are
 unchanged; only the bytes on the wire changed shape (see that file's
 updated tests for the exact before/after).
 
+### Legacy record upgrade strategy (remediation round)
+
+An operator upgrading a live deployment has real Phase-1 records already on
+disk in the pipe-delimited format. The chosen, explicit strategy is **A —
+backward-compatible read**: `RedisProposalRegistry.get()` tries the Phase 2
+JSON format first; on failure (a JSON document always starts with `{`, so a
+legacy record never parses as one) it falls back to the Phase 1
+`binding|created_at` parse. A record recognized this way is returned as an
+ordinary `ProposalRecord` with `action=None, resource=None, payload=None`
+— NEVER treated as corruption, NEVER guessed/widened into an executable
+Phase-2 proposal. Status reads keep working (`get_operation_status` only
+ever touches `.binding`, for its internal-consistency check against
+durable execution state — unaffected by the content fields being absent).
+`ProposalExecutionService.authorize_and_execute` already fails closed on
+`record.action is None` exactly as it does for any other content-less
+record (§2 below) — no separate code path was needed there. A genuinely
+malformed value (neither valid JSON nor a parseable `binding|created_at`
+pair) still raises `ProposalBackendUnavailable`, unchanged.
+
+Proven directly (`tests/test_mcc_proposal_registry.py::
+test_legacy_pipe_format_*`) and against real Redis
+(`scripts/redis_proposal_phase2_smoke.py`'s `legacy-upgrade:` checks, which
+write a raw legacy-format string directly and confirm it is recognized
+with no executable content, and that `authorize_and_execute` refuses it).
+
 ## 2. Tenant identity
 
 `tenant_id` is the authenticated, trusted, server-side identity — exactly
@@ -180,6 +205,36 @@ ONLY new file that ever calls `coordinator.enforce`, and it lives outside
 `src/mcc_proposal/` specifically so the static architecture guard keeps
 proving that package can never become an execution authority.
 
+### Actuator resource binding (remediation round, Blocker 2)
+
+Signing `resource_id=resource` into the token only proves a string matched
+*inside the token* — it proves nothing about where the real external side
+effect is actually sent. A misconfigured or hardcoded actuator targeting a
+different resource than the one MCC authorized would previously still run.
+
+`ProposalExecutionService` now accepts exactly one actuator contract:
+`gateway.proposal_execution_service.ResourceBoundUpstream` — a thin wrapper
+around the plain `(action, payload) -> Awaitable[Any]` callable that ALSO
+carries a fixed, trusted `.resource` attribute: the actuator's OWN real
+configured destination, set once by the deployment operator, never derived
+from proposal content, request payload, or any other untrusted input.
+`ProposalExecutionService.__init__` refuses (`TypeError`) to construct
+against anything that doesn't expose `.resource` — there is no opt-out path
+back to an unchecked plain callable.
+
+Before any token is issued (and therefore before any I/O), `authorize_and_execute`
+compares `self._upstream.resource` against the operation's own authorized
+`resource` and refuses — `ProposalExecStatus.RESOURCE_MISMATCH`, zero token
+issuance, zero actuator invocation — on any mismatch. `resource=None` is a
+legitimate configuration for an actuator with no destination concept; it
+matches only a proposal whose own authorized resource is also `None` (never
+a real resource string, since `None != "some-resource"`).
+
+Proven directly (`tests/test_proposal_execution_bridge.py::test_blocker2_*`)
+and against real Redis (`scripts/redis_proposal_phase2_smoke.py`); the exact
+former gap (no independent check at all) is reproduced and shown to
+wrongly execute in `test_non_vacuity_6_missing_resource_check_makes_blocker2_tests_fail`.
+
 ## 6. Durable identity
 
 Unchanged from PR #105: `(tenant_id, logical_operation_id)`. Every
@@ -236,6 +291,64 @@ already-scoped LOOK (called at most once), never a side-effecting call
 (`tests/test_proposal_execution_bridge.py::
 test_reconciliation_never_dispatches_to_the_actuator`).
 
+### Operation-bound evidence contract (remediation round, Blocker 1)
+
+The original round treated ANY non-`None` dict `verify_external_evidence()`
+returned as sufficient positive evidence — an unrelated or fabricated
+object such as `{"marker": "found"}` could resolve `UNKNOWN`/`DISPATCH_OWNED`
+straight to `EXECUTED` with no proof it corresponded to this operation at
+all.
+
+`EvidenceVerifier` is now called WITH the trusted, stored operation context
+(`tenant_id`, `logical_operation_id`, `action`, `resource`, and
+`payload_hash` — the hash of the *actually authorized* payload; see below),
+so a real implementation can properly scope its own lookup (mirroring
+`examples/gpt6_astra_reference/reconciliation.py`'s `_find_issue_by_marker(repo=...)`
+receiving its trusted context as parameters, never guessing it). Its
+return value is still never trusted as-is: it must be a dict of the shape
+
+```python
+{"tenant_id": ..., "logical_operation_id": ..., "action": ...,
+ "resource": ..., "payload": {...}}
+```
+
+and `reconcile_proposal_operation` independently re-verifies EVERY one of
+these fields against the trusted, stored operation before calling
+`resolve_unknown` — `tenant_id`/`logical_operation_id`/`action`/`resource`
+by exact equality, and `hash_payload(evidence["payload"])` against the
+operation's own authorized `payload_hash` by exact hash equality (the same
+"candidate content must hash to the authorized payload_hash" pattern
+`examples/gpt6_astra_reference/reconciliation.py` already established). Any
+missing field, wrong type, or mismatch → `ReconcileOutcome.EVIDENCE_MISMATCH`
+— fail-closed, zero durable state mutation, `UNKNOWN`/`DISPATCH_OWNED`
+unchanged, identical treatment to `NO_EVIDENCE`.
+
+**The authorized payload, reconstructed correctly for CONSTRAIN too.** The
+durable record's `binding` was computed at admission time from the token's
+`payload_hash`, which is `hash_payload(forward_context)` — the AUTHORIZED
+(possibly authority-clamped) payload, not necessarily the raw proposal
+payload. Reconciliation now reconstructs this exact value by evaluating
+`authority.evaluate(identity=tenant_id, action=record.action,
+context=record.payload)` a second time — a pure, deterministic
+recomputation of the SAME decision (no new decision logic; `authority` is
+the identical `AuthorityModel` `ProposalExecutionService` itself uses) —
+and binds both the internal-consistency check and the evidence's
+`payload_hash` check against ITS `forward_context`. This also fixes a
+latent defect the original round's binding check had: for a CONSTRAIN
+operation, comparing against the RAW proposal payload's binding would never
+have matched the durable record's binding at all, making reconciliation of
+any constrained operation impossible.
+
+Proven directly (`tests/test_proposal_execution_bridge.py::test_blocker1_*`,
+9 adversarial cases: unrelated evidence, wrong resource, wrong payload,
+evidence claiming another tenant, evidence for another operation id, exact
+match resolving only the intended tenant, no-evidence leaves `UNKNOWN`
+unchanged, stale-generation concurrent race, reconciliation never calls
+upstream) and against real Redis (`scripts/redis_proposal_phase2_smoke.py`);
+the exact former "any non-None evidence resolves" gap is reproduced and
+shown to wrongly resolve in
+`test_non_vacuity_5_unbound_evidence_acceptance_makes_blocker1_tests_fail`.
+
 ## 9. Trust boundaries
 
 * **`tenant_id != authority`.** Holding a valid `tenant_id` proves only
@@ -269,6 +382,9 @@ test_reconciliation_never_dispatches_to_the_actuator`).
 | proposal/authority binding mismatch (storage corruption) | `REJECTED`, zero token issuance |
 | authority verdict `DENY` | `DENIED`, zero token issuance |
 | authority verdict `ESCALATE` | `ESCALATED`, zero token issuance |
+| actuator's configured resource != authorized resource (remediation Blocker 2) | `RESOURCE_MISMATCH`, zero token issuance, zero actuator call |
+| reconciliation evidence not bound to the exact operation (remediation Blocker 1) | `EVIDENCE_MISMATCH`, zero durable state mutation |
+| legacy Phase-1 Redis proposal record (remediation upgrade fix) | recognized, non-executable; `REJECTED` on `authorize_and_execute`, status reads still work |
 | expired authority / invalid signature / replayed nonce | `BLOCKED` — caught by `ExecutionGate` inside `coordinator.enforce`, unchanged |
 | durable backend unavailable | the coordinator's own `IdempotencyBackendUnavailable`/fail-closed `ERROR` reserve outcome propagates unchanged; zero actuation |
 | malformed durable record / migration-required legacy record | handled unchanged by `mcc_core.idempotency` (PR #105); `ReserveStatus.LEGACY_UNMIGRATED` blocks exactly as it does for any other caller |

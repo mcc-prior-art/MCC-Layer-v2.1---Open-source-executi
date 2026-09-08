@@ -200,3 +200,48 @@ def test_env_redis_with_url_builds_redis_registry():
 def test_env_unknown_backend_rejected():
     with pytest.raises(ProposalConfigError):
         proposal_registry_from_env({"MCC_PROPOSAL_BACKEND": "carrier-pigeon"})
+
+
+# -- Phase 2 remediation: legacy Phase-1 wire-format upgrade compatibility --- #
+#
+# Strategy A (docs/MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE2.md Section 12):
+# a Phase-1 "binding|created_at" record is RECOGNIZED (never treated as
+# corruption), exposed as a proposal record with NO executable content
+# (action/resource/payload all None) -- never guessed, widened, or silently
+# reinterpreted as an executable Phase-2 proposal.
+
+def test_legacy_pipe_format_record_is_recognized_with_no_executable_content():
+    fake = FakeRedis()
+    r = reg(fake)
+    key = r._key("t", "op-legacy")
+    fake.store[key] = "sha256:legacy-binding-abc123|1700000000.0"
+
+    got = run(r.get(tenant_id="t", logical_operation_id="op-legacy"))
+    assert got is not None
+    assert got.binding == "sha256:legacy-binding-abc123"
+    assert got.created_at == 1700000000.0
+    assert got.action is None
+    assert got.resource is None
+    assert got.payload is None
+
+
+def test_legacy_pipe_format_with_unparseable_created_at_is_backend_unavailable():
+    """A legacy binding could itself have contained '|' -- ``split('|', 1)``
+    takes only the FIRST pipe as the delimiter (exactly as Phase 1's own
+    reader did), so the remainder fails to parse as a float and this is
+    correctly refused, never silently misparsed."""
+    fake = FakeRedis()
+    r = reg(fake)
+    key = r._key("t", "op-legacy3")
+    fake.store[key] = "sha256:abc|def|1700000000.0"  # "def|1700000000.0" is not a float
+    with pytest.raises(ProposalBackendUnavailable):
+        run(r.get(tenant_id="t", logical_operation_id="op-legacy3"))
+
+
+def test_legacy_pipe_format_with_empty_binding_is_backend_unavailable():
+    fake = FakeRedis()
+    r = reg(fake)
+    key = r._key("t", "op-legacy4")
+    fake.store[key] = "|1700000000.0"
+    with pytest.raises(ProposalBackendUnavailable):
+        run(r.get(tenant_id="t", logical_operation_id="op-legacy4"))
