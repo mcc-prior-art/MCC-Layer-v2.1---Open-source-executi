@@ -11,6 +11,10 @@
 **Baseline date:** `2026-09-08`  
 **Doctrine record:** `2026-06-02`
 
+## Project provenance
+
+MCC-Core is an independently developed project by Alexandr Ponomariov / AXLOGIQ. Its architecture and implementation evolved through dated design notes, commits, specifications, pull requests, tests, assurance artifacts, and public technical records preserved in this repository. This repository serves as a verifiable chronology of that work.
+
 ## Reproducible Assurance Baseline
 
 ```bash
