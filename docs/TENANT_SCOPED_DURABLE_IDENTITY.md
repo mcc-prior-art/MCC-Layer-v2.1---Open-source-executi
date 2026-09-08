@@ -134,7 +134,7 @@ no possible collision between e.g. tenant `"a"` / key `"b:c"` and tenant
 **`RedisIdempotencyRegistry`** keys as:
 
 ```
-namespace + hash_component(tenant_id) + ":" + key
+scoped_root + hash_component(tenant_id) + ":" + key
 ```
 
 `hash_component` (`src/mcc_core/redis_keys.py`, reused unchanged from PR
@@ -146,6 +146,58 @@ Every durable-state Lua script (`_COMMIT_DISPATCH_LUA`, `_MARK_EXECUTED_LUA`,
 `_MARK_UNKNOWN_LUA`, `_RELEASE_LUA`, `_RESOLVE_UNKNOWN_LUA`) receives this
 one scoped key as `KEYS[1]`, unchanged in shape from before PR #105 — only
 what string is passed as that key changed.
+
+**`scoped_root` is deliberately NOT simply `namespace`** — see "Keyspace
+disjointness" immediately below; this was a remediated defect (Blocker 1),
+not the original PR #105 design.
+
+### Keyspace disjointness (remediation round, Blocker 1)
+
+The original PR #105 design built the scoped key as `namespace +
+hash_component(tenant_id) + ":" + key`. This is **not** structurally
+disjoint from the legacy keyspace: a legacy key is `namespace + raw_key` for
+an **unconstrained** `raw_key` (any string at all), so `namespace` is always
+a literal prefix of the original scheme's scoped key too. An adversarial (or
+merely coincidental) legacy `raw_key` equal to `hash_component(tenant_id) +
+":" + key` makes the two keys byte-for-byte identical — **no hash collision
+required**. The same flaw survives naively appending a version marker
+(`namespace + "v2:" + ...`): appending after `namespace` never changes the
+fact that `namespace` is a literal prefix of the result, so a legacy
+`raw_key` can always be chosen to fill in whatever comes after it.
+
+The fix (`_derive_disjoint_root` in `src/mcc_core/idempotency.py`): both the
+tenant-scoped root and the migration-claim root (below) are built by
+**replacing** `namespace`'s own guaranteed trailing `':'` with a
+distinguishing marker (`"~scope-v2"` / `"~migrate-claim"`), rather than
+appending after it:
+
+```
+namespace     = "mcc:idem:"
+scoped_root   = "mcc:idem" + "~scope-v2"       + ":"   =  "mcc:idem~scope-v2:"
+claim_root    = "mcc:idem" + "~migrate-claim"  + ":"   =  "mcc:idem~migrate-claim:"
+```
+
+This makes the two roots diverge from `namespace` at the exact character
+position of `namespace`'s own trailing colon (index `len(namespace) - 1`) —
+a position that is entirely FIXED by `namespace` itself: a legacy key's
+`raw_key` only ever supplies characters **after** the end of `namespace`, so
+it can never reach back and change a character that already differs.
+Consequently, for **every possible** `raw_key`, `tenant_id`, and `key`:
+
+```
+legacy_key(raw_key) != scoped_key(tenant_id, key)
+legacy_key(raw_key) != claim_key(key)
+```
+
+— provably, not just empirically. `RedisIdempotencyRegistry.__init__`
+normalizes `namespace` to always end in `':'` first, so this holds
+regardless of whatever `namespace` an operator configures.
+`tests/test_idempotency.py::test_a_legacy_scoped_key_alias_no_longer_exists`
+reconstructs the exact former alias and proves it no longer exists, against
+the Redis-backed path; `test_a_scoped_and_claim_roots_are_pairwise_disjoint_
+from_legacy` proves the general pairwise-disjointness property directly.
+`scripts/redis_migration_smoke.py` re-proves this against a **real** Redis
+server.
 
 ## Legacy (pre-PR-105) durable state — security-critical
 
@@ -174,18 +226,18 @@ This is closed structurally:
   tenant — a raw key alone proves nothing about which tenant legitimately
   owns it (no binding-based "auto-detection" either; binding is not
   evidence of tenant identity).
-- Migration is an explicit, operator-invoked, idempotent function,
-  **never** called from the hot path:
+- Migration is an explicit, operator-invoked function, **never** called
+  from the hot path:
 
   ```python
-  await migrate_legacy_record(registry, tenant_id="<verified-owning-tenant>",
-                               key="<logical_operation_id>", delete_legacy=True)
+  result = await migrate_legacy_record(registry, tenant_id="<verified-owning-tenant>",
+                                        key="<logical_operation_id>", delete_legacy=True)
+  # result.status: MIGRATED | ALREADY_MIGRATED | ABSENT | CONFLICT | INVALID_INPUT | ERROR
   ```
 
   The operator must independently verify, out-of-band (original request
   logs, the audit chain, a pre-migration inventory), which tenant actually
-  owns the operation before calling this. Idempotent: migrating an
-  already-migrated or already-absent legacy record is a safe no-op.
+  owns the operation before calling this.
 
 - **No duplicate-actuation window**: immediately after migration, a
   `reserve` for the same `(tenant_id, key)` correctly reports the migrated
@@ -197,6 +249,69 @@ This is closed structurally:
 a process restart there, so there is no pre-existing unscoped state a
 re-keying could ever fail to see (this is exclusively a durable-backend
 migration concern).
+
+### Input validation (remediation round, Blocker 2)
+
+`migrate_legacy_record` validates `tenant_id` (must be a non-empty,
+non-whitespace string) and `key` (must be a non-empty string) **before any
+Redis read, write, or delete**. An invalid value returns
+`MigrationStatus.INVALID_INPUT` immediately — zero Redis calls are made, and
+the legacy record (if any) is left byte-for-byte untouched. See
+`tests/test_idempotency.py::test_b_blank_or_invalid_tenant_migration_fails_closed`
+/ `test_b_invalid_key_migration_fails_closed` (parametrized over
+`None`/`""`/whitespace/non-string values) and
+`scripts/redis_migration_smoke.py` (real Redis).
+
+### Atomic migration (remediation round, Blocker 3)
+
+The original PR #105 design performed migration as four separate Redis
+calls (`GET legacy`, `GET scoped`, `SET scoped`, `DELETE legacy`) — not an
+atomic ownership transfer. Two concurrent migration attempts for **different
+tenants** could both observe the legacy record before either deleted it,
+and both copy it into two different tenant scopes: **one legacy durable
+record** could produce **two tenant-scoped owners**.
+
+The fix: migration is now **one atomic Redis Lua script**
+(`_MIGRATE_LEGACY_LUA`), gated by a per-legacy-key **claim marker**
+(`registry._claim_key(key)`, itself structurally disjoint from both the
+legacy and tenant-scoped keyspaces — see "Keyspace disjointness" above).
+The claim check, the legacy/target reads, the copy, the claim write, and
+the optional legacy delete all happen inside the single script execution,
+which Redis always runs to completion, single-threaded, before serving any
+other command — there is no read-then-write window a second concurrent
+caller can observe.
+
+Algorithm (`KEYS[1]`=legacy, `KEYS[2]`=tenant-scoped target,
+`KEYS[3]`=claim; `ARGV[1]`=tenant_id, `ARGV[2]`=delete_legacy flag):
+
+1. **Claim already held** — if `KEYS[3]` holds a DIFFERENT tenant_id ->
+   `CONFLICT` (refused before touching legacy/target at all). If it holds
+   the SAME tenant_id -> idempotent `ALREADY_MIGRATED` (re-invoking an
+   already-completed migration is always safe).
+2. **Legacy absent** — if the target scoped key already exists ->
+   `ALREADY_MIGRATED`; otherwise `ABSENT`. Never creates anything.
+3. **Legacy exists, target absent** — copy the encoded record into the
+   target, write the claim, and (if `delete_legacy`) delete the legacy key
+   — all in this same atomic step -> `MIGRATED`.
+4. **Legacy exists, target exists with the IDENTICAL encoded record** —
+   treated as safe idempotent equivalence: claim it and optionally drop the
+   now-redundant legacy copy -> `ALREADY_MIGRATED`. Never merges.
+5. **Legacy exists, target exists with a DIFFERENT record** — refused,
+   nothing is overwritten, merged, or deleted -> `CONFLICT`.
+6. **Backend failure** at any point -> `MigrationStatus.ERROR`, fail-closed.
+   Because the whole operation is one atomic script, there is no
+   client-observable state where the legacy record disappeared but the
+   scoped target was not durably written (or vice versa).
+
+**Concurrent two-tenant race**: whichever invocation Redis serializes first
+wins the claim (step 3, `MIGRATED`); the second invocation's script then
+sees the claim already held by a different tenant and is refused at step 1
+(`CONFLICT`) — never a duplicate copy, and never both `MIGRATED`. This holds
+even for concurrent attempts by the SAME tenant (idempotent: one gets
+`MIGRATED`, the other `ALREADY_MIGRATED`, never an error or a divergent
+outcome). Proven directly in `tests/test_idempotency.py` (tests `test_c_*`,
+`test_d_*`, `test_e_*`) and, for genuine concurrency against a real Redis
+server, in `scripts/redis_migration_smoke.py`.
 
 ## `MCCProposalService` status: tenant-scoped lookup, binding demoted
 

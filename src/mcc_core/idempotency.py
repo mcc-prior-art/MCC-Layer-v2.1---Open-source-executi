@@ -78,22 +78,48 @@ Legacy (pre-tenant-scoping) durable state
 ------------------------------------------
 Before PR #105, ``RedisIdempotencyRegistry`` stored one record per raw
 ``key`` (``namespace + key``, no tenant dimension at all). PR #105 re-keys
-storage to ``namespace + hash(tenant_id) + ':' + key``, so a durable record
-written under the OLD format is invisible to a lookup under the NEW format.
-Silently treating "no record at the new key" as "safe to admit" would let an
-operation that already reached DISPATCH_OWNED/UNKNOWN/EXECUTED under the old
-scheme be dispatched a SECOND time — a duplicate external side effect. This
-is closed structurally, not by convention: ``RedisIdempotencyRegistry.reserve``
-and ``get_state`` both check for a legacy-format record under the same raw
-``key`` FIRST; if one exists, admission (``reserve``) and status
-(``get_state``) both fail closed with a distinct, explicit signal
-(``ReserveStatus.LEGACY_UNMIGRATED`` / :class:`IdempotencyBackendUnavailable`)
-rather than silently proceeding as if nothing were there. There is no
-automatic ownership claim of a legacy record by any tenant (a raw key alone
-proves nothing about which tenant it belongs to) — an operator must run
-:func:`migrate_legacy_record` explicitly, after establishing out-of-band
-which tenant actually owns that operation, before it becomes admissible
-again under the new scheme. See ``docs/TENANT_SCOPED_DURABLE_IDENTITY.md``.
+storage to a tenant-scoped root. Silently treating "no record at the new
+key" as "safe to admit" would let an operation that already reached
+DISPATCH_OWNED/UNKNOWN/EXECUTED under the old scheme be dispatched a SECOND
+time — a duplicate external side effect. This is closed structurally, not by
+convention: ``RedisIdempotencyRegistry.reserve`` and ``get_state`` both check
+for a legacy-format record under the same raw ``key`` FIRST; if one exists,
+admission (``reserve``) and status (``get_state``) both fail closed with a
+distinct, explicit signal (``ReserveStatus.LEGACY_UNMIGRATED`` /
+:class:`IdempotencyBackendUnavailable`) rather than silently proceeding as if
+nothing were there. There is no automatic ownership claim of a legacy record
+by any tenant (a raw key alone proves nothing about which tenant it belongs
+to) — an operator must run :func:`migrate_legacy_record` explicitly, after
+establishing out-of-band which tenant actually owns that operation, before
+it becomes admissible again under the new scheme. See
+``docs/TENANT_SCOPED_DURABLE_IDENTITY.md``.
+
+Keyspace disjointness (PR #105 remediation, Blocker 1)
+--------------------------------------------------------
+A legacy key is ``namespace + raw_key`` for an UNCONSTRAINED ``raw_key`` —
+any string at all. Naively building the new tenant-scoped root by extending
+``namespace`` (e.g. ``namespace + hash(tenant_id) + ':' + key``, or even
+``namespace + "v2:" + ...``) is **not** structurally disjoint from the
+legacy keyspace: since ``namespace`` is always a literal prefix of anything
+built by extending it, an adversarial (or merely coincidental) legacy
+``raw_key`` equal to whatever comes after ``namespace`` in the new scheme
+makes the two keys byte-for-byte identical — no hash collision required.
+Appending content is never safe, because ``namespace + X`` always has
+``namespace`` as a prefix, for any ``X``.
+
+The fix (``_derive_disjoint_root``): both the tenant-scoped root and the
+migration-claim root are built by **replacing** ``namespace``'s own
+guaranteed trailing ``':'`` with a distinguishing marker, rather than
+appending after it. This makes the two roots diverge from the legacy root
+at the exact character position of that trailing colon — a position that is
+entirely FIXED by ``namespace`` itself (never reachable by a legacy
+``raw_key``, which only ever supplies characters *after* the end of
+``namespace``). Consequently, for literally every possible ``raw_key``,
+``tenant_id``, and ``key``, ``legacy_key(raw_key) != scoped_key(tenant_id,
+key)`` and ``legacy_key(raw_key) != claim_key(key)`` — provably, not just
+empirically. See ``tests/test_idempotency.py``'s adversarial-alias
+regression test, which reconstructs the exact former alias and proves it no
+longer exists, against the Redis-backed path.
 """
 
 from __future__ import annotations
@@ -163,6 +189,39 @@ class ReconcileResult:
         return self.status == ReconcileStatus.RESOLVED
 
 
+class MigrationStatus(str, Enum):
+    """Outcome of one :func:`migrate_legacy_record` attempt (PR #105
+    remediation, Blocker 3). Distinct from :class:`ReserveStatus` /
+    :class:`ReconcileStatus` -- migration is a separate, explicit,
+    operator-invoked lifecycle, never reachable from the hot admission
+    path."""
+
+    MIGRATED = "MIGRATED"                  # legacy record moved into the tenant scope by THIS call
+    ALREADY_MIGRATED = "ALREADY_MIGRATED"  # idempotent: already claimed/migrated (by this tenant, or an equivalent record already present)
+    ABSENT = "ABSENT"                      # no legacy record exists; nothing to migrate; never creates anything
+    CONFLICT = "CONFLICT"                  # refused: claimed by a different tenant, or target already holds different durable state
+    INVALID_INPUT = "INVALID_INPUT"        # tenant_id/key failed validation; fail-closed, ZERO Redis calls made
+    ERROR = "ERROR"                        # backend failure or inconsistent state; fail-closed, no partial mutation
+
+    @property
+    def ok(self) -> bool:
+        return self in (MigrationStatus.MIGRATED, MigrationStatus.ALREADY_MIGRATED, MigrationStatus.ABSENT)
+
+
+@dataclass(frozen=True)
+class MigrationResult:
+    status: MigrationStatus
+    reason: str
+
+    @property
+    def ok(self) -> bool:
+        """True for every outcome that leaves the system in a safe,
+        consistent state (including the no-op ABSENT/ALREADY_MIGRATED
+        cases) -- False for CONFLICT/INVALID_INPUT/ERROR, which the
+        caller must not treat as a completed migration."""
+        return self.status.ok
+
+
 @dataclass(frozen=True)
 class StateRecord:
     """A durable-state snapshot. ``get_state`` never mutates anything."""
@@ -179,6 +238,26 @@ class IdempotencyBackendUnavailable(Exception):
     yet resolved it. Callers MUST NOT treat this as "not found" / "not
     executed" / "safe to retry" — it is a distinct, explicit
     UNAVAILABLE/INDETERMINATE signal."""
+
+
+def _derive_disjoint_root(namespace: str, marker: str) -> str:
+    """Build a Redis key root that can NEVER be produced by ``namespace +
+    <any raw key>`` for ANY possible raw key (PR #105 remediation,
+    Blocker 1 -- see the module docstring's "Keyspace disjointness"
+    section).
+
+    ``namespace`` is required to end with ``':'`` (``RedisIdempotencyRegistry
+    .__init__`` normalizes this). Replacing that trailing colon with
+    ``marker + ':'`` -- rather than appending after it -- makes the two
+    roots diverge at that exact, fixed character position: index
+    ``len(namespace) - 1`` is ``':'`` in every legacy key (it belongs to
+    ``namespace`` itself, never to the caller-supplied raw key that follows
+    it), and is the first character of ``marker`` in the derived root. No
+    raw key, tenant_id, or key can ever reach back and change that already
+    fixed position, so the two key families are provably disjoint --
+    structurally, not merely empirically."""
+    assert namespace.endswith(":"), "namespace must end with ':' (normalized by __init__)"
+    return namespace[:-1] + marker + ":"
 
 
 def _require_tenant_id(tenant_id: Any) -> None:
@@ -460,6 +539,63 @@ return {'RESOLVED', 'EXECUTED'}
 """
 
 
+_MIGRATE_LEGACY_LUA = """
+-- KEYS[1] = legacy key, KEYS[2] = tenant-scoped target key,
+-- KEYS[3] = migration claim key (one claim slot per raw legacy key --
+--           NOT tenant-scoped itself, since at most one tenant may ever
+--           claim a given legacy record).
+-- ARGV[1] = requesting tenant_id, ARGV[2] = "1"/"0" delete_legacy flag
+--
+-- Single atomic operation (PR #105 remediation, Blocker 3): the claim
+-- check, the legacy/target reads, the copy, the claim write, and the
+-- optional legacy delete all happen in ONE Redis Lua execution -- there is
+-- no window in which two concurrent callers can both observe "unclaimed"
+-- and both copy the same legacy record into two different tenant scopes.
+local claim = redis.call('GET', KEYS[3])
+if claim then
+    if claim ~= ARGV[1] then
+        return {'CONFLICT', 'legacy record already claimed by a different tenant'}
+    end
+    -- Same tenant re-invoking an already-completed migration: idempotent.
+    local existing = redis.call('GET', KEYS[2])
+    if existing then
+        return {'ALREADY_MIGRATED', existing}
+    end
+    return {'ERROR', 'migration claim exists for this tenant but the scoped record is missing'}
+end
+
+local legacy = redis.call('GET', KEYS[1])
+if not legacy then
+    local existing = redis.call('GET', KEYS[2])
+    if existing then
+        return {'ALREADY_MIGRATED', existing}
+    end
+    return {'ABSENT', ''}
+end
+
+local existing = redis.call('GET', KEYS[2])
+if existing then
+    if existing == legacy then
+        -- Exact idempotent equivalence: safe to claim (and optionally
+        -- drop the now-redundant legacy copy), never merge/overwrite.
+        redis.call('SET', KEYS[3], ARGV[1])
+        if ARGV[2] == '1' then
+            redis.call('DEL', KEYS[1])
+        end
+        return {'ALREADY_MIGRATED', existing}
+    end
+    return {'CONFLICT', 'target tenant-scoped record already holds different durable state; refusing to overwrite'}
+end
+
+redis.call('SET', KEYS[2], legacy)
+redis.call('SET', KEYS[3], ARGV[1])
+if ARGV[2] == '1' then
+    redis.call('DEL', KEYS[1])
+end
+return {'MIGRATED', legacy}
+"""
+
+
 class RedisIdempotencyRegistry:
     """Durable, multi-instance idempotency backed by Redis.
 
@@ -481,13 +617,17 @@ class RedisIdempotencyRegistry:
     ``False`` / :class:`IdempotencyBackendUnavailable`, never a value that
     could be mistaken for "not found" or "safe to retry".
 
-    Keys are tenant-scoped (PR #105): ``namespace + hash(tenant_id) + ':' +
-    key``. ``hash(tenant_id)`` is a fixed-length (32 hex char)
+    Keys are tenant-scoped (PR #105): ``scoped_root + hash(tenant_id) + ':'
+    + key``. ``hash(tenant_id)`` is a fixed-length (32 hex char)
     ``redis_keys.hash_component`` digest, so the tenant/key boundary is
     always unambiguous regardless of what characters either contains --
     there is no concatenation format a crafted ``tenant_id`` or ``key``
-    could exploit to alias a different tenant's key. See the module
-    docstring for the legacy (pre-scoping) migration story.
+    could exploit to alias a different tenant's key. ``scoped_root`` is
+    itself derived from ``namespace`` so that it can NEVER be produced by
+    ``namespace + <any raw legacy key>`` (see ``_derive_disjoint_root`` and
+    the module docstring's "Keyspace disjointness" section -- PR #105
+    remediation, Blocker 1). See the module docstring for the legacy
+    (pre-scoping) migration story.
     """
 
     def __init__(
@@ -498,7 +638,12 @@ class RedisIdempotencyRegistry:
         op_timeout_seconds: float = DEFAULT_OP_TIMEOUT_SECONDS,
     ) -> None:
         self._redis = redis_client
-        self._namespace = namespace
+        self._namespace = namespace if namespace.endswith(":") else namespace + ":"
+        # PR #105 remediation (Blocker 1): structurally disjoint from the
+        # legacy keyspace (`self._namespace + <any raw key>`) for every
+        # possible raw key -- see `_derive_disjoint_root`.
+        self._scoped_root = _derive_disjoint_root(self._namespace, "~scope-v2")
+        self._claim_root = _derive_disjoint_root(self._namespace, "~migrate-claim")
         self._op_timeout = op_timeout_seconds
 
     @classmethod
@@ -517,12 +662,21 @@ class RedisIdempotencyRegistry:
     def _key(self, tenant_id: str, key: str) -> str:
         from . import redis_keys
 
-        return self._namespace + redis_keys.hash_component(tenant_id) + ":" + key
+        return self._scoped_root + redis_keys.hash_component(tenant_id) + ":" + key
 
     def _legacy_key(self, key: str) -> str:
-        """The pre-PR-105 unscoped key format. Read-only from this class's
-        perspective: nothing here ever writes to it again."""
+        """The pre-PR-105 unscoped key format. Read-only from every method
+        on this class except :func:`migrate_legacy_record` (which may
+        delete it, and only it)."""
         return self._namespace + key
+
+    def _claim_key(self, key: str) -> str:
+        """Per-legacy-key migration claim marker (PR #105 remediation,
+        Blocker 3) -- exactly one claim slot per raw legacy key (not
+        tenant-scoped itself), since at most one tenant may ever claim a
+        given legacy record. Written only by :func:`migrate_legacy_record`;
+        never consulted by ``reserve``/``get_state``."""
+        return self._claim_root + key
 
     async def _call(self, coro):
         return await asyncio.wait_for(coro, timeout=self._op_timeout)
@@ -676,7 +830,7 @@ class RedisIdempotencyRegistry:
 
 async def migrate_legacy_record(
     registry: "RedisIdempotencyRegistry", *, tenant_id: str, key: str, delete_legacy: bool = True,
-) -> bool:
+) -> MigrationResult:
     """Explicit, operator-invoked migration of ONE pre-PR-105 legacy record
     into the new tenant-scoped namespace.
 
@@ -686,28 +840,90 @@ async def migrate_legacy_record(
     only on binding"). An operator must independently verify, out-of-band
     (e.g. from the original request logs, the audit chain, or a
     pre-migration inventory), which tenant actually issued the operation
-    before calling this. Idempotent: migrating an already-migrated or
-    already-absent legacy record is a safe no-op (returns ``True``).
+    before calling this.
 
-    Returns ``True`` once the tenant-scoped key holds the migrated record
-    (or already did); ``False`` on a backend error (fail-closed -- the
-    legacy record is left in place, still blocking admission, rather than
-    risking a partial/lost migration).
+    PR #105 remediation (Blockers 2/3):
+
+    * **Input validation happens FIRST, before any Redis call.** An invalid
+      ``tenant_id`` (not a non-empty, non-whitespace string) or ``key`` (not
+      a non-empty string) returns :attr:`MigrationStatus.INVALID_INPUT`
+      immediately -- zero reads, zero writes, zero deletes. The legacy
+      record is left completely untouched.
+    * **The migration itself is ONE atomic Redis operation** (a single Lua
+      script, ``_MIGRATE_LEGACY_LUA``) -- there is no read-then-write
+      window in which two concurrent migrations (e.g. for two different
+      tenants) could both observe the legacy record before either claims
+      it. A per-legacy-key "claim" marker (``registry._claim_key(key)``,
+      itself structurally disjoint from both the legacy and tenant-scoped
+      keyspaces) ensures at most ONE tenant may ever successfully migrate a
+      given legacy record; every subsequent attempt -- by the same tenant,
+      idempotently, or by a different tenant, as a refusal -- observes that
+      claim atomically:
+
+      - no legacy record exists -> :attr:`MigrationStatus.ABSENT` (or
+        :attr:`MigrationStatus.ALREADY_MIGRATED` if the target scoped
+        record already exists) -- never creates anything;
+      - legacy exists, target scoped key absent -> copied into the target,
+        claimed, and (if ``delete_legacy``) the legacy key is deleted, ALL
+        within the same atomic script -> :attr:`MigrationStatus.MIGRATED`;
+      - legacy exists, target already holds the IDENTICAL encoded record ->
+        treated as safe idempotent equivalence (claimed, optionally
+        deletes the now-redundant legacy copy) ->
+        :attr:`MigrationStatus.ALREADY_MIGRATED`;
+      - legacy exists, target already holds a DIFFERENT durable record ->
+        refused, the legacy record is left exactly as it was, nothing is
+        overwritten or merged -> :attr:`MigrationStatus.CONFLICT`;
+      - the legacy record is already claimed by a DIFFERENT tenant ->
+        refused before touching either key ->
+        :attr:`MigrationStatus.CONFLICT`;
+      - a backend failure at any point -> :attr:`MigrationStatus.ERROR`,
+        fail-closed; since the whole operation is one atomic script, there
+        is no state in which the legacy record has disappeared but the
+        scoped target was not durably written (or vice versa).
+
+    Returns a :class:`MigrationResult`; see :attr:`MigrationResult.ok` for
+    "did this leave the system in a safe, no-action-needed-by-the-caller
+    state" (``MIGRATED``/``ALREADY_MIGRATED``/``ABSENT`` all count;
+    ``CONFLICT``/``INVALID_INPUT``/``ERROR`` do not).
     """
+    if not isinstance(tenant_id, str) or not tenant_id.strip():
+        return MigrationResult(MigrationStatus.INVALID_INPUT,
+                                "invalid tenant_id (must be a non-empty, non-whitespace string); "
+                                "zero Redis calls made, legacy record untouched")
+    if not isinstance(key, str) or not key:
+        return MigrationResult(MigrationStatus.INVALID_INPUT,
+                                "invalid key (must be a non-empty string); "
+                                "zero Redis calls made, legacy record untouched")
+
     legacy_key = registry._legacy_key(key)
     scoped_key = registry._key(tenant_id, key)
+    claim_key = registry._claim_key(key)
     try:
-        legacy_value = await registry._call(registry._redis.get(legacy_key))
-        if legacy_value is None:
-            return True  # nothing to migrate
-        existing_scoped = await registry._call(registry._redis.get(scoped_key))
-        if existing_scoped is None:
-            await registry._call(registry._redis.set(scoped_key, legacy_value))
-        if delete_legacy:
-            await registry._call(registry._redis.delete(legacy_key))
-        return True
-    except Exception:
-        return False
+        res = await registry._call(registry._redis.eval(
+            _MIGRATE_LEGACY_LUA, 3, legacy_key, scoped_key, claim_key,
+            tenant_id, "1" if delete_legacy else "0",
+        ))
+    except Exception as exc:
+        return MigrationResult(
+            MigrationStatus.ERROR,
+            f"idempotency backend unavailable: {exc!r}; fail-closed, no partial mutation possible "
+            "(the migration is a single atomic operation)",
+        )
+    try:
+        status = MigrationStatus(registry._text(res[0]))
+    except (IndexError, ValueError):
+        return MigrationResult(MigrationStatus.ERROR, "malformed migration response; fail-closed")
+    detail = registry._text(res[1]) if len(res) > 1 else ""
+
+    if status == MigrationStatus.MIGRATED:
+        return MigrationResult(status, "legacy record migrated into the tenant scope")
+    if status == MigrationStatus.ALREADY_MIGRATED:
+        return MigrationResult(status, "already migrated (idempotent no-op)")
+    if status == MigrationStatus.ABSENT:
+        return MigrationResult(status, "no legacy record exists; nothing to migrate")
+    if status == MigrationStatus.CONFLICT:
+        return MigrationResult(status, detail or "migration refused: conflicting durable state")
+    return MigrationResult(MigrationStatus.ERROR, detail or "migration claim inconsistency; fail-closed")
 
 
 class IdempotencyConfigError(Exception):

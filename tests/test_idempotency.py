@@ -28,6 +28,7 @@ from mcc_core.idempotency import (
     _COMMIT_DISPATCH_LUA,
     _MARK_EXECUTED_LUA,
     _MARK_UNKNOWN_LUA,
+    _MIGRATE_LEGACY_LUA,
     _RELEASE_LUA,
     _RESERVE_LUA,
     _RESOLVE_UNKNOWN_LUA,
@@ -73,6 +74,43 @@ class IdemFakeRedis:
         return 1
 
     async def eval(self, script, numkeys, *args):
+        if script == _MIGRATE_LEGACY_LUA:
+            # PR #105 remediation (Blocker 3): faithful Python
+            # re-implementation of the atomic migration script -- claim
+            # key gates exclusivity; legacy/target reads and the
+            # copy+claim+optional-delete all happen without any `await`
+            # in between (this method never suspends mid-body), exactly
+            # mirroring Redis's single-threaded Lua atomicity.
+            legacy_key, scoped_key, claim_key = args[0], args[1], args[2]
+            tenant_id, delete_flag = args[3], args[4]
+            claim = self._get(claim_key)
+            if claim is not None:
+                if claim != tenant_id:
+                    return ["CONFLICT", "legacy record already claimed by a different tenant"]
+                existing = self._get(scoped_key)
+                if existing is not None:
+                    return ["ALREADY_MIGRATED", existing]
+                return ["ERROR", "migration claim exists for this tenant but the scoped record is missing"]
+            legacy = self._get(legacy_key)
+            if legacy is None:
+                existing = self._get(scoped_key)
+                if existing is not None:
+                    return ["ALREADY_MIGRATED", existing]
+                return ["ABSENT", ""]
+            existing = self._get(scoped_key)
+            if existing is not None:
+                if existing == legacy:
+                    self.store[claim_key] = (tenant_id, None)
+                    if delete_flag == "1":
+                        self.store.pop(legacy_key, None)
+                    return ["ALREADY_MIGRATED", existing]
+                return ["CONFLICT", "target tenant-scoped record already holds different durable state"]
+            self.store[scoped_key] = (legacy, None)
+            self.store[claim_key] = (tenant_id, None)
+            if delete_flag == "1":
+                self.store.pop(legacy_key, None)
+            return ["MIGRATED", legacy]
+
         if script == _RESERVE_LUA:
             # PR #105: KEYS[1] = tenant-scoped key, KEYS[2] = legacy
             # (pre-tenant-scoping) key -- the legacy key is checked FIRST,
@@ -634,7 +672,7 @@ def test_factory_enforcement_mode_refuses_memory():
 # key AND the identical binding must be fully independent.
 # ===========================================================================
 
-from mcc_core.idempotency import migrate_legacy_record  # noqa: E402
+from mcc_core.idempotency import MigrationStatus, migrate_legacy_record  # noqa: E402
 
 
 @pytest.mark.parametrize("reg", registries())
@@ -951,7 +989,8 @@ def test_legacy_record_never_silently_reopens_an_already_executed_operation():
     assert blocked.status == ReserveStatus.LEGACY_UNMIGRATED
 
     migrated = run(migrate_legacy_record(reg, tenant_id="tenant-a", key=key))
-    assert migrated is True
+    assert migrated.status == MigrationStatus.MIGRATED
+    assert migrated.ok
 
     # Immediately after migration -- no gap in which a fresh RESERVED could
     # have been admitted.
@@ -969,8 +1008,10 @@ def test_legacy_record_never_silently_reopens_an_already_executed_operation():
 def test_migrate_legacy_record_is_idempotent_and_safe_on_absent_legacy_record():
     key = "op-no-legacy-record-at-all"
     reg = RedisIdempotencyRegistry(IdemFakeRedis({}))
-    assert run(migrate_legacy_record(reg, tenant_id="tenant-a", key=key)) is True
-    assert run(migrate_legacy_record(reg, tenant_id="tenant-a", key=key)) is True  # still a safe no-op
+    first = run(migrate_legacy_record(reg, tenant_id="tenant-a", key=key))
+    assert first.status == MigrationStatus.ABSENT and first.ok
+    second = run(migrate_legacy_record(reg, tenant_id="tenant-a", key=key))
+    assert second.status == MigrationStatus.ABSENT and second.ok  # still a safe no-op
     # And a fresh reservation is now cleanly admissible (nothing to block it).
     assert run(reg.reserve(key, tenant_id="tenant-a", binding="b")).ok
 
@@ -1006,3 +1047,222 @@ def test_migrate_legacy_record_delete_legacy_false_preserves_legacy_key():
     assert reg._legacy_key(key) in reg._redis.store
     # Scoped copy now exists too.
     assert run(reg.get_state(key, tenant_id="tenant-a")).state == IdempotencyState.EXECUTED
+
+
+# ===========================================================================
+# PR #105 remediation round -- mandatory adversarial tests A-E.
+#
+# Blocker 1 fix: the tenant-scoped root and the migration-claim root are
+# each derived from the legacy namespace so that NEITHER can ever be
+# produced by ``namespace + <any raw legacy key>`` (see
+# ``_derive_disjoint_root`` in src/mcc_core/idempotency.py). Blocker 2 fix:
+# migrate_legacy_record validates tenant_id/key BEFORE any Redis call.
+# Blocker 3 fix: migration is one atomic Lua script gated by a per-legacy-key
+# claim marker, so at most one tenant may ever successfully migrate a given
+# legacy record, with no read-then-write race window.
+# ===========================================================================
+
+from mcc_core import redis_keys  # noqa: E402
+
+
+# -- A: legacy/scoped key alias regression (the exact former alias) -------- #
+
+def test_a_legacy_scoped_key_alias_no_longer_exists():
+    """Reconstructs the EXACT former alias: a legacy raw key equal to
+    ``hash_component(tenant_id) + ':' + operation_id`` used to collide
+    byte-for-byte with the new tenant-scoped key for (tenant_id,
+    operation_id) under the pre-remediation scheme (``namespace +
+    hash(tenant_id) + ':' + key``). Proves the new keyspace design is
+    structurally disjoint: the two keys differ, and a durable record
+    planted under the adversarial legacy raw key is never returned as,
+    never overwrites, and never blocks the real scoped record."""
+    reg = RedisIdempotencyRegistry(IdemFakeRedis({}))
+    tenant_id, operation_id = "tenant-a", "op-1"
+    adversarial_raw_key = redis_keys.hash_component(tenant_id) + ":" + operation_id
+    old_style_alias_key = reg._namespace + adversarial_raw_key  # the pre-fix formula
+    new_scoped_key = reg._key(tenant_id, operation_id)
+
+    assert old_style_alias_key != new_scoped_key, "Blocker 1 regression: keys alias again"
+
+    # Plant a real EXECUTED record under the adversarial legacy raw key.
+    reg._redis.store[reg._legacy_key(adversarial_raw_key)] = ("EXECUTED|gen-adv|adv-binding|adv-result", None)
+
+    # The real (tenant_id, operation_id) scoped state is untouched: no
+    # record, no leak, no false LEGACY_UNMIGRATED block.
+    assert run(reg.get_state(operation_id, tenant_id=tenant_id)) is None
+    fresh = run(reg.reserve(operation_id, tenant_id=tenant_id, binding="the-real-binding"))
+    assert fresh.status == ReserveStatus.RESERVED, fresh
+    # And the adversarial legacy record itself is completely undisturbed.
+    assert reg._redis.store[reg._legacy_key(adversarial_raw_key)][0] == "EXECUTED|gen-adv|adv-binding|adv-result"
+
+
+def test_a_scoped_and_claim_roots_are_pairwise_disjoint_from_legacy():
+    """Directly proves the three key-family roots (legacy, tenant-scoped,
+    migration-claim) are pairwise non-prefixing, for the actual configured
+    namespace -- the general property `_derive_disjoint_root` relies on,
+    not just one example."""
+    reg = RedisIdempotencyRegistry(IdemFakeRedis({}))
+    legacy_root = reg._namespace
+    scoped_root = reg._scoped_root
+    claim_root = reg._claim_root
+    roots = [legacy_root, scoped_root, claim_root]
+    for i, a in enumerate(roots):
+        for j, b in enumerate(roots):
+            if i == j:
+                continue
+            assert not b.startswith(a), (a, b)
+
+
+# -- B: migration with a blank/invalid tenant leaves the legacy record untouched -- #
+
+@pytest.mark.parametrize("bad_tenant", [None, "", "   ", "\t", 12345, [], {}])
+def test_b_blank_or_invalid_tenant_migration_fails_closed(bad_tenant):
+    key = "op-blank-tenant-migration"
+    store = _legacy_store_with(key, "EXECUTED", "gen-legacy", "b", "issue-1")
+    reg = RedisIdempotencyRegistry(IdemFakeRedis(store))
+    original = dict(reg._redis.store)
+
+    result = run(migrate_legacy_record(reg, tenant_id=bad_tenant, key=key))
+    assert result.status == MigrationStatus.INVALID_INPUT
+    assert not result.ok
+    # Zero mutation: the entire store is byte-for-byte unchanged.
+    assert reg._redis.store == original
+    assert reg._legacy_key(key) in reg._redis.store
+
+
+@pytest.mark.parametrize("bad_key", ["", None, 12345, [], {}])
+def test_b_invalid_key_migration_fails_closed(bad_key):
+    legacy_key = "op-invalid-key-migration"
+    store = _legacy_store_with(legacy_key, "EXECUTED", "gen-legacy", "b", "issue-1")
+    reg = RedisIdempotencyRegistry(IdemFakeRedis(store))
+    original = dict(reg._redis.store)
+
+    result = run(migrate_legacy_record(reg, tenant_id="tenant-a", key=bad_key))
+    assert result.status == MigrationStatus.INVALID_INPUT
+    assert not result.ok
+    assert reg._redis.store == original
+
+
+# -- C: concurrent two-tenant migration of the SAME legacy record ---------- #
+
+def test_c_concurrent_two_tenant_migration_at_most_one_wins():
+    """Requirement: exactly one of two tenants racing to migrate the
+    IDENTICAL legacy record may claim/move it -- never both, no duplicate
+    scoped copies, no silent overwrite. The fake's ``eval`` never awaits
+    mid-body, so this exercises the SAME single-writer-wins guarantee the
+    real atomic Lua script provides against real Redis (also proven
+    directly against a real Redis server -- see the non-vacuity script)."""
+    key = "op-concurrent-migration-race"
+    store = _legacy_store_with(key, "EXECUTED", "gen-legacy", "b", "issue-race")
+    reg = RedisIdempotencyRegistry(IdemFakeRedis(store))
+
+    async def race():
+        return await asyncio.gather(
+            migrate_legacy_record(reg, tenant_id="tenant-race-a", key=key),
+            migrate_legacy_record(reg, tenant_id="tenant-race-b", key=key),
+        )
+
+    result_a, result_b = run(race())
+    statuses = sorted([result_a.status.value, result_b.status.value])
+    assert statuses == sorted([MigrationStatus.MIGRATED.value, MigrationStatus.CONFLICT.value]), (result_a, result_b)
+
+    a_state = run(reg.get_state(key, tenant_id="tenant-race-a"))
+    b_state = run(reg.get_state(key, tenant_id="tenant-race-b"))
+    got_a, got_b = a_state is not None, b_state is not None
+    assert got_a != got_b, "duplicate scoped copies created by a concurrent migration race"
+    # The legacy record was consumed exactly once (default delete_legacy=True).
+    assert reg._legacy_key(key) not in reg._redis.store
+
+
+def test_c_concurrent_same_tenant_double_migration_is_idempotent_not_duplicated():
+    """The SAME tenant racing against itself (e.g. a retried operator
+    script) must also never produce two divergent outcomes -- one MIGRATED,
+    the other ALREADY_MIGRATED (or both referring to the identical
+    record), never an error or a duplicate."""
+    key = "op-concurrent-same-tenant-migration"
+    store = _legacy_store_with(key, "EXECUTED", "gen-legacy", "b", "issue-x")
+    reg = RedisIdempotencyRegistry(IdemFakeRedis(store))
+
+    async def race():
+        return await asyncio.gather(
+            migrate_legacy_record(reg, tenant_id="tenant-a", key=key),
+            migrate_legacy_record(reg, tenant_id="tenant-a", key=key),
+        )
+
+    r1, r2 = run(race())
+    assert {r1.status, r2.status} <= {MigrationStatus.MIGRATED, MigrationStatus.ALREADY_MIGRATED}
+    assert MigrationStatus.MIGRATED in (r1.status, r2.status)
+    assert r1.ok and r2.ok
+    state = run(reg.get_state(key, tenant_id="tenant-a"))
+    assert state.state == IdempotencyState.EXECUTED
+
+
+# -- D: migration target already holds a DIFFERENT durable record ---------- #
+
+def test_d_migration_never_overwrites_a_differing_target_record():
+    key = "op-target-conflict"
+    store = _legacy_store_with(key, "EXECUTED", "gen-legacy", "legacy-binding", "legacy-result")
+    reg = RedisIdempotencyRegistry(IdemFakeRedis(store))
+    # tenant-a already independently holds ITS OWN, unrelated scoped record
+    # for this exact id (e.g. from a genuinely fresh reservation).
+    reg._redis.store[reg._key("tenant-a", key)] = ("RESERVED|gen-independent|independent-binding|", None)
+
+    result = run(migrate_legacy_record(reg, tenant_id="tenant-a", key=key))
+    assert result.status == MigrationStatus.CONFLICT
+    assert not result.ok
+
+    # Neither record was touched.
+    assert reg._redis.store[reg._legacy_key(key)][0] == "EXECUTED|gen-legacy|legacy-binding|legacy-result"
+    assert reg._redis.store[reg._key("tenant-a", key)][0] == "RESERVED|gen-independent|independent-binding|"
+    still = run(reg.get_state(key, tenant_id="tenant-a"))
+    assert still.state == IdempotencyState.RESERVED  # tenant-a's own record, unchanged
+
+
+def test_d_migration_treats_exact_duplicate_target_as_safe_idempotent_equivalence():
+    """The one carve-out: if the target ALREADY holds the byte-for-byte
+    identical encoded record (e.g. a previous migration attempt partially
+    observed but the caller never got the response), that is safe to
+    recognize as already-migrated -- never a CONFLICT, never a second
+    distinct write."""
+    key = "op-target-exact-duplicate"
+    store = _legacy_store_with(key, "EXECUTED", "gen-legacy", "b", "res-1")
+    reg = RedisIdempotencyRegistry(IdemFakeRedis(store))
+    reg._redis.store[reg._key("tenant-a", key)] = ("EXECUTED|gen-legacy|b|res-1", None)  # byte-for-byte identical
+
+    result = run(migrate_legacy_record(reg, tenant_id="tenant-a", key=key))
+    assert result.status == MigrationStatus.ALREADY_MIGRATED
+    assert result.ok
+    assert reg._legacy_key(key) not in reg._redis.store  # safe to clean up on exact equivalence
+
+
+# -- E: backend interruption/failure never splits legacy-deleted from scoped-written -- #
+
+def test_e_backend_failure_leaves_no_split_state():
+    """No state may exist where the legacy record disappeared but the
+    scoped target was not durably written, or vice versa -- because the
+    migration is a SINGLE atomic call, a backend failure means the whole
+    operation is refused before any of it (from the caller's observable
+    point of view) takes effect."""
+    key = "op-backend-failure-migration"
+    store = _legacy_store_with(key, "EXECUTED", "gen-legacy", "b", "res-1")
+    reg = RedisIdempotencyRegistry(IdemFakeRedis(store))
+
+    class _BoomOnEval(IdemFakeRedis):
+        async def eval(self, *a, **k):
+            raise ConnectionError("simulated redis outage mid-migration")
+
+    boom_redis = _BoomOnEval(reg._redis.store)  # SAME underlying store
+    boom_reg = RedisIdempotencyRegistry(boom_redis, namespace=reg._namespace)
+
+    result = run(migrate_legacy_record(boom_reg, tenant_id="tenant-a", key=key))
+    assert result.status == MigrationStatus.ERROR
+    assert not result.ok
+
+    # No split state: legacy still present, scoped target still absent.
+    assert reg._legacy_key(key) in reg._redis.store
+    assert reg._key("tenant-a", key) not in reg._redis.store
+    # The retained legacy record correctly still fails closed as UNAVAILABLE
+    # (never silently "not found") -- exactly the pre-migration behavior,
+    # proving the failed migration attempt left the world unchanged.
+    with pytest.raises(IdempotencyBackendUnavailable):
+        run(reg.get_state(key, tenant_id="tenant-a"))
