@@ -96,6 +96,31 @@ The three root-level doctrine documents — `MCC-Core_Decision_Boundary_Doctrine
 
 The earliest available materials use **"MCC — Model Context Control"** (PR #1 screenshot) and, in `docs/exhibits/README.md`, **"MCC — Meta-Cognitive Control"** ("Architect of MCC — Meta-Cognitive Control"). The current top-level README canonical definition (added in PR #107) uses **"Meta-Cognitive Control Core."** The repository does not contain a dated document explaining the exact transition between these three expansions; this document records the terminology as found rather than inferring an origin story for the change.
 
+### 1.7 Private design records (disclosed, not used as evidence)
+
+The author has stated that private design notes predating the public record in §1.1–§1.4 exist and are preserved separately from this repository. As identified for this task, visible records include, among others:
+
+- "MCC-CANON v.1" — 15.01.2026
+- "MCC Reference Architecture v0.1" — 15.01.2026
+- "CANON-2 Validation / Operational Protocol" — 17.01.2026
+- "CANON III — Meta-Cognitive Governance Reference Architecture" — 02.04.2026
+
+None of these records, or their content, are reproduced in this repository or this document — only their titles and stated dates, as disclosed for this task. This document:
+
+- does **not** treat their stated dates as independently git-verifiable, archive-timestamped, or otherwise externally corroborated. They have no public artifact, timestamp service, or commit associated with them that this document (or any third party) could inspect, so they fall outside what the "Evidence rule" above can check;
+- does **not** copy their content into this public repository;
+- does **not** use them as the sole or primary basis for any public priority claim, here or elsewhere.
+
+**Three categories, kept distinct throughout this document:**
+
+| Category | What it means | Example in this document | Independently checkable by a third party? |
+|---|---|---|---|
+| **PRIVATE DESIGN RECORD** | Notes/drafts held privately by the author, never published or independently timestamped | The four titles above | **No** — existence and dates rest solely on the author's own record-keeping; not verified here |
+| **PUBLIC DISCLOSURE** | Content made publicly visible at some point (a post, an archived page), whether or not independently re-renderable today | §1.1 (Prior Art Archive / archive.ph / X post), §1.2 (PR #1 / Grok exchange) | **Sometimes** — depends on whether an independent party's timestamp or archive exists and remains accessible; §1.1–§1.2 record exactly what could and could not be re-confirmed |
+| **REPOSITORY EVIDENCE** | An artifact present in, and directly inspectable within, this git repository | Any commit SHA, PR number, or file cited elsewhere in this document | **Yes** — by construction; this is what every verified claim elsewhere in this document is restricted to |
+
+The verified public chronology in this document (§1.1 onward, and every date-ordered table, including §12) is built only from public disclosure and repository evidence. Private design records are disclosed here, at the author's request, for completeness — they are not dated milestones in §12's chronology table, and no claim in this document depends on them being true.
+
 ---
 
 ## Public technical record
@@ -416,7 +441,7 @@ Every stage name above corresponds to a class, function, documented step, or nam
 ## 15. Provenance limitations
 
 - Git history establishes a repository-recorded chronology of what was committed, when, and (via GitHub's PR metadata) when each pull request was opened and merged. It does not, by itself, prove the date of every earlier private idea, design note, or draft that may have existed before it entered this repository.
-- Earlier private records (design notes, drafts, local files never committed) are not part of this repository's evidence and should be preserved separately if they are to support any future claim; this document does not assert dates for anything it cannot point to a repository or independently-timestamped external artifact for.
+- Earlier private records (design notes, drafts, local files never committed) are not part of this repository's evidence and should be preserved separately if they are to support any future claim; this document does not assert dates for anything it cannot point to a repository or independently-timestamped external artifact for. See §1.7 for the specific private design records disclosed for this task.
 - This repository's own commit history is not fully continuous: local `git log` does not reach earlier than the 2026-07-25 root commit (§1.3); GitHub's PR-API records for PRs #1–56 are the only independently timestamped evidence available for that earlier period, and this document relies on GitHub's control of those timestamps rather than a locally reachable commit.
 - This is a technical provenance record, not a legal opinion. It does not determine legal priority, inventorship, ownership, or any patent-related status, and it should not be read as one.
 - Where a retrospective document (such as an exhibit "filed" months after the events it describes) and a contemporaneously-timestamped artifact (a commit, a PR-API timestamp, an externally timestamped archive link) disagree or one is unverifiable, this document prefers the contemporaneously-timestamped artifact and says so explicitly, per §1.
