@@ -2,6 +2,8 @@
 
 **MCC-Core = Meta-Cognitive Control Core. Proposal ≠ Permission. Intelligence proposes; MCC-Core verifies signed authority; a server-controlled actuator executes.**
 
+**MCC-Core is not a model. It is an external authority and execution-control layer outside the model: intelligence proposes an action; MCC-Core verifies whether that action has valid authority; the execution boundary enforces the result. Proposal ≠ Permission.**
+
 **Public technical record established:** May 2026  
 **Author:** Alexandr Ponomariov / AXLOGIQ Inc.  
 **Repository:** https://github.com/mcc-prior-art/mcc-layer  

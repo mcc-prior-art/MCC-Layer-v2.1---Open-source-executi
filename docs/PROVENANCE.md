@@ -105,7 +105,9 @@ The author has stated that private design notes predating the public record in �
 - "CANON-2 Validation / Operational Protocol" — 17.01.2026
 - "CANON III — Meta-Cognitive Governance Reference Architecture" — 02.04.2026
 
-None of these records, or their content, are reproduced in this repository or this document — only their titles and stated dates, as disclosed for this task. This document:
+The author has also preserved a private design record titled **"MCC Reference Architecture v0.1,"** displaying the date **15.01.2026**. The material describes MCC as a control layer external to the cognitive/model layer, with policy/control functions governing action before execution and an execution-side gate rather than embedding authority inside the model. This private record is relevant to the documented design lineage because the same separation later appears in public and repository-backed MCC architecture: intelligence/model output is treated as a proposal, while authority verification and execution enforcement remain outside the model. **The 15.01.2026 date is not independently verified** — it is presented here exactly as classified above, as a PRIVATE DESIGN RECORD, not as a PUBLIC DISCLOSURE or REPOSITORY EVIDENCE date, and it is not converted into a public priority claim.
+
+None of these records, or their content, are reproduced in this repository or this document beyond the minimal architectural characterization above — only their titles and stated dates, as disclosed for this task. This document:
 
 - does **not** treat their stated dates as independently git-verifiable, archive-timestamped, or otherwise externally corroborated. They have no public artifact, timestamp service, or commit associated with them that this document (or any third party) could inspect, so they fall outside what the "Evidence rule" above can check;
 - does **not** copy their content into this public repository;
