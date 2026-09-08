@@ -2,6 +2,8 @@
 
 **MCC-Core = Meta-Cognitive Control Core. Proposal ≠ Permission. Intelligence proposes; MCC-Core verifies signed authority; a server-controlled actuator executes.**
 
+**MCC-Core is not a model. It is an external authority and execution-control layer outside the model: intelligence proposes an action; MCC-Core verifies whether that action has valid authority; the execution boundary enforces the result. Proposal ≠ Permission.**
+
 **Public technical record established:** May 2026  
 **Author:** Alexandr Ponomariov / AXLOGIQ Inc.  
 **Repository:** https://github.com/mcc-prior-art/mcc-layer  
@@ -14,6 +16,8 @@
 ## Project provenance
 
 MCC-Core is an independently developed project by Alexandr Ponomariov / AXLOGIQ. Its architecture and implementation evolved through dated design notes, commits, specifications, pull requests, tests, assurance artifacts, and public technical records preserved in this repository. This repository serves as a verifiable chronology of that work.
+
+[Project Provenance — Verifiable Technical Chronology](docs/PROVENANCE.md)
 
 ## Reproducible Assurance Baseline
 
