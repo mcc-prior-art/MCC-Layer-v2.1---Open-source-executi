@@ -4,11 +4,20 @@ a hand-rolled fake Redis client implementing exactly the Lua scripts
 ``tests/test_idempotency.py`` uses for ``RedisIdempotencyRegistry``, so a
 live Redis server is not required for the suite), plus the
 ``MCC_PROPOSAL_BACKEND`` environment factory (Section 19).
+
+Phase 2 (MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE2) changed the wire format from
+a ``binding|created_at`` pipe-delimited string to a single JSON document
+(``{"binding", "created_at", "action", "resource", "payload"}``) -- a
+proposal's governable content, not merely its binding hash, must be durably
+available so a later authorization decision has ONE source of truth (see
+``gateway/proposal_execution_service.py``). ``FakeRedis`` below mirrors the
+new ``_REGISTER_LUA`` exactly, in plain Python.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 
@@ -31,13 +40,17 @@ class FakeRedis:
     def __init__(self) -> None:
         self.store: dict[str, str] = {}
 
-    async def eval(self, script, numkeys, key, binding, created):
+    async def eval(self, script, numkeys, key, candidate_json, binding):
         assert script == _REGISTER_LUA
         cur = self.store.get(key)
         if cur is None:
-            self.store[key] = f"{binding}|{created}"
+            self.store[key] = candidate_json
             return ["REGISTERED", binding]
-        existing_binding, _ = cur.split("|", 1)
+        try:
+            decoded = json.loads(cur)
+            existing_binding = decoded["binding"]
+        except (ValueError, KeyError, TypeError):
+            return ["ERROR", ""]
         if existing_binding == binding:
             return ["IDEMPOTENT_DUPLICATE", existing_binding]
         return ["BINDING_CONFLICT", existing_binding]
@@ -83,9 +96,57 @@ def test_redis_different_binding_is_conflict_and_never_overwrites():
     assert got.binding == "b1"
 
 
-def test_redis_pipe_in_binding_is_rejected():
-    r = run(reg().register(tenant_id="t", logical_operation_id="op-4", binding="has|pipe"))
+def test_redis_binding_containing_delimiter_characters_is_fine_under_json():
+    """Phase 1's pipe-delimited wire format made a binding containing '|' a
+    structural hazard, rejected outright. Phase 2's JSON wire format makes
+    that whole hazard class impossible by construction (json.dumps escapes
+    any content unambiguously) -- proving the underlying invariant (a
+    proposal's stored binding is never corrupted/misparsed by adversarial
+    content) now holds unconditionally, rather than by restricting input."""
+    r = run(reg().register(tenant_id="t", logical_operation_id="op-4", binding="has|pipe|chars"))
+    assert r.status == ProposalRegisterStatus.REGISTERED
+    got = run(reg(FakeRedis()).register(tenant_id="t", logical_operation_id="op-4b", binding="has|pipe|chars"))
+    assert got.status == ProposalRegisterStatus.REGISTERED
+    assert got.binding == "has|pipe|chars"
+
+
+def test_redis_empty_binding_is_rejected():
+    r = run(reg().register(tenant_id="t", logical_operation_id="op-4c", binding=""))
     assert r.status == ProposalRegisterStatus.ERROR
+
+
+def test_redis_non_json_serializable_payload_is_rejected_with_zero_mutation():
+    """A payload that cannot be JSON-encoded (e.g. a Python set) must never
+    corrupt the stored record or silently drop content -- fail closed before
+    any Redis write."""
+    fake = FakeRedis()
+    r = run(reg(fake).register(
+        tenant_id="t", logical_operation_id="op-4d", binding="b1",
+        action="a", resource="r", payload={"bad": {1, 2, 3}},
+    ))
+    assert r.status == ProposalRegisterStatus.ERROR
+    assert fake.store == {}
+
+
+def test_redis_register_and_get_round_trip_action_resource_payload():
+    fake = FakeRedis()
+    r = run(reg(fake).register(
+        tenant_id="t", logical_operation_id="op-4e", binding="b1",
+        action="send_payment", resource="acct-1", payload={"amount": 10},
+    ))
+    assert r.status == ProposalRegisterStatus.REGISTERED
+    got = run(reg(fake).get(tenant_id="t", logical_operation_id="op-4e"))
+    assert got.action == "send_payment"
+    assert got.resource == "acct-1"
+    assert got.payload == {"amount": 10}
+
+
+def test_redis_malformed_stored_json_raises_backend_unavailable():
+    fake = FakeRedis()
+    r = reg(fake)
+    fake.store[r._key("t", "op-4f")] = "not valid json"
+    with pytest.raises(ProposalBackendUnavailable):
+        run(r.get(tenant_id="t", logical_operation_id="op-4f"))
 
 
 def test_redis_down_register_is_error_fail_closed():
@@ -139,3 +200,48 @@ def test_env_redis_with_url_builds_redis_registry():
 def test_env_unknown_backend_rejected():
     with pytest.raises(ProposalConfigError):
         proposal_registry_from_env({"MCC_PROPOSAL_BACKEND": "carrier-pigeon"})
+
+
+# -- Phase 2 remediation: legacy Phase-1 wire-format upgrade compatibility --- #
+#
+# Strategy A (docs/MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE2.md Section 12):
+# a Phase-1 "binding|created_at" record is RECOGNIZED (never treated as
+# corruption), exposed as a proposal record with NO executable content
+# (action/resource/payload all None) -- never guessed, widened, or silently
+# reinterpreted as an executable Phase-2 proposal.
+
+def test_legacy_pipe_format_record_is_recognized_with_no_executable_content():
+    fake = FakeRedis()
+    r = reg(fake)
+    key = r._key("t", "op-legacy")
+    fake.store[key] = "sha256:legacy-binding-abc123|1700000000.0"
+
+    got = run(r.get(tenant_id="t", logical_operation_id="op-legacy"))
+    assert got is not None
+    assert got.binding == "sha256:legacy-binding-abc123"
+    assert got.created_at == 1700000000.0
+    assert got.action is None
+    assert got.resource is None
+    assert got.payload is None
+
+
+def test_legacy_pipe_format_with_unparseable_created_at_is_backend_unavailable():
+    """A legacy binding could itself have contained '|' -- ``split('|', 1)``
+    takes only the FIRST pipe as the delimiter (exactly as Phase 1's own
+    reader did), so the remainder fails to parse as a float and this is
+    correctly refused, never silently misparsed."""
+    fake = FakeRedis()
+    r = reg(fake)
+    key = r._key("t", "op-legacy3")
+    fake.store[key] = "sha256:abc|def|1700000000.0"  # "def|1700000000.0" is not a float
+    with pytest.raises(ProposalBackendUnavailable):
+        run(r.get(tenant_id="t", logical_operation_id="op-legacy3"))
+
+
+def test_legacy_pipe_format_with_empty_binding_is_backend_unavailable():
+    fake = FakeRedis()
+    r = reg(fake)
+    key = r._key("t", "op-legacy4")
+    fake.store[key] = "|1700000000.0"
+    with pytest.raises(ProposalBackendUnavailable):
+        run(r.get(tenant_id="t", logical_operation_id="op-legacy4"))
