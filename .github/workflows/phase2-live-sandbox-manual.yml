@@ -1,0 +1,69 @@
+name: Phase 2 Live Sandbox Proof (manual, optional)
+
+# Optional, MANUALLY-TRIGGERED live proof that the existing, unmodified
+# gateway.proposal_execution_service.ProposalExecutionService path can
+# reach a real external sandbox side effect (one harmless GitHub issue in
+# an explicitly configured, isolated sandbox repository). Never runs on
+# pull_request/push -- normal CI stays green with zero external secrets
+# (see mcc-runtime-ci.yml's own deterministic Phase 2 live-sandbox job,
+# which uses a local mock GitHub server and never this workflow).
+#
+# Requires BOTH of:
+#   - repository variable  PHASE2_SANDBOX_REPO   (owner/repo -- NEVER this
+#     repository itself; the code-level guard in
+#     examples/phase2_live_sandbox/config.py refuses
+#     mcc-prior-art/mcc-layer regardless of what is configured here)
+#   - repository secret    PHASE2_SANDBOX_GITHUB_TOKEN
+#
+# If either is unset, the run fails fast with
+# "LIVE EXTERNAL SANDBOX: NOT EXECUTED — CREDENTIALS NOT AVAILABLE" and
+# makes zero external requests.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  live-sandbox-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run the live sandbox proof
+        env:
+          MCC_PHASE2_LIVE_SANDBOX: "1"
+          MCC_PHASE2_SANDBOX_REPO: ${{ vars.PHASE2_SANDBOX_REPO }}
+          GITHUB_TOKEN: ${{ secrets.PHASE2_SANDBOX_GITHUB_TOKEN }}
+          MCC_REDIS_URL: redis://127.0.0.1:6379/0
+        run: |
+          if [ -z "${MCC_PHASE2_SANDBOX_REPO}" ] || [ -z "${GITHUB_TOKEN}" ]; then
+            echo "LIVE EXTERNAL SANDBOX: NOT EXECUTED — CREDENTIALS NOT AVAILABLE"
+            echo "::warning::Set the 'PHASE2_SANDBOX_REPO' repository variable and the"
+            echo "::warning::'PHASE2_SANDBOX_GITHUB_TOKEN' repository secret to enable this workflow."
+            exit 1
+          fi
+          python examples/phase2_live_sandbox/run_live_proof.py
