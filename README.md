@@ -68,6 +68,35 @@ References:
 This closes the previously documented empirical gap that the live external GitHub
 sandbox execution had not yet been performed.
 
+### Why this matters
+
+Before this run, MCC-Core had extensive deterministic, adversarial, Redis-backed,
+replay/idempotency, binding, durability, reconciliation, and assurance evidence, but
+the Phase 2 external GitHub sandbox path had not yet been executed against a real
+external service. This successful run closes that empirical gap. It demonstrates
+that the governed Phase 2 execution path can cross the system boundary and produce a
+real external side effect while retaining the existing execution-authority controls.
+
+The observed live sequence was:
+
+```
+PROPOSED
+  -> authorized governed execution
+  -> real external GitHub side effect
+  -> EXECUTED
+  -> identical replay BLOCKED
+  -> already-executed reconciliation NOT_RECONCILABLE
+```
+
+Therefore this milestone moves the evidence from a controlled/simulated external
+actuation proof to a controlled LIVE external actuation proof. This is the first
+repository-recorded Phase 2 proof that MCC-Core's governed execution-authority path
+reached a real external service and produced a real side effect through the existing
+`ProposalExecutionService` path.
+
+This does not establish production readiness, production-scale reliability,
+third-party validation, or certification.
+
 **Boundary:** This is a successful controlled live external execution proof, not a
 production deployment, third-party security audit, formal certification, or proof of
 production-scale reliability.
