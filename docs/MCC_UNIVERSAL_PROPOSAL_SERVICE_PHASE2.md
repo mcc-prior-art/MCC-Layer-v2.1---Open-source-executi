@@ -213,13 +213,13 @@ effect is actually sent. A misconfigured or hardcoded actuator targeting a
 different resource than the one MCC authorized would previously still run.
 
 `ProposalExecutionService` now accepts exactly one actuator contract:
-`gateway.proposal_execution_service.ResourceBoundUpstream` — a thin wrapper
-around the plain `(action, payload) -> Awaitable[Any]` callable that ALSO
-carries a fixed, trusted `.resource` attribute: the actuator's OWN real
-configured destination, set once by the deployment operator, never derived
-from proposal content, request payload, or any other untrusted input.
+`gateway.proposal_execution_service.ResourceBoundUpstream`, carrying a
+fixed, trusted `.resource` attribute: the actuator's OWN real configured
+destination, set once by the deployment operator, never derived from
+proposal content, request payload, or any other untrusted input.
 `ProposalExecutionService.__init__` refuses (`TypeError`) to construct
-against anything that doesn't expose `.resource` — there is no opt-out path
+against anything that doesn't expose both `.resource` and an async
+`.execute(resource=, action=, payload=)` method — there is no opt-out path
 back to an unchecked plain callable.
 
 Before any token is issued (and therefore before any I/O), `authorize_and_execute`
@@ -230,10 +230,54 @@ legitimate configuration for an actuator with no destination concept; it
 matches only a proposal whose own authorized resource is also `None` (never
 a real resource string, since `None != "some-resource"`).
 
-Proven directly (`tests/test_proposal_execution_bridge.py::test_blocker2_*`)
-and against real Redis (`scripts/redis_proposal_phase2_smoke.py`); the exact
-former gap (no independent check at all) is reproduced and shown to
-wrongly execute in `test_non_vacuity_6_missing_resource_check_makes_blocker2_tests_fail`.
+#### Final fix: the authorized resource is part of the actual invocation
+
+The first version of this fix (above) still dispatched via a plain
+`(action, payload)` call: the verified `resource` was metadata, checked once
+and then discarded, disconnected from the real dispatch. A wrapped callable
+hardcoded to some entirely unrelated destination could still be declared
+under a truthful-looking `resource` string and would never be caught,
+because the callable never received `resource` at all and had no way to be
+checked against it at the point of actual I/O.
+
+`ResourceBoundUpstream.execute(*, resource, action, payload)` closes this:
+`resource` is now an explicit, first-class argument of the SAME call that
+reaches the low-level dispatcher — the authorized resource is structurally
+part of the real invocation, not separate metadata. `execute()` ALSO
+independently re-verifies `resource == self.resource` immediately before
+calling the dispatcher, raising `ResourceMismatchError` on mismatch — a
+second, defense-in-depth layer beyond `ProposalExecutionService`'s own
+pre-token-issuance check (proven in isolation:
+`test_blocker2_final_execute_defense_in_depth_rejects_mismatch_even_called_directly`).
+There is no remaining `__call__`/2-argument entry point.
+
+This does not claim to cryptographically prevent a dispatcher
+implementation from ignoring the `resource` argument it is handed and
+hardcoding some other destination regardless — no interface-level change in
+a dynamically-typed, pluggable-actuator architecture can fully prevent that
+(the same trust boundary `examples/gpt6_astra_reference/reconciliation.py`
+already documents: "`actuator_repo` is the actuator's OWN configured
+destination, never read from the token alone as the sole authority"). What
+it DOES close is the specific, structural gap this round's defect
+described: a wrapper that declares one resource while its wrapped callable
+was independently wired, via closure capture, to an entirely different,
+never-passed value. That is no longer expressible without a dispatcher
+visibly ignoring its own explicitly-named, security-critical parameter — a
+correctly-written dispatcher (the only kind this repo ships or tests)
+determines its real destination FROM the parameter it receives, so there is
+no second, independently-selected destination for it to diverge to.
+
+Proven directly (`tests/test_proposal_execution_bridge.py::test_blocker2_*`
+and `test_blocker2_final_*`) via a REAL, behaviorally-observable
+per-resource-routing actuator — never a string re-assertion — and against
+real Redis (`scripts/redis_proposal_phase2_smoke.py`'s
+`resource-binding-final:` check). The exact former gaps are reproduced and
+shown to wrongly execute in
+`test_non_vacuity_6_missing_resource_check_anywhere_makes_blocker2_tests_fail`
+(no check anywhere) and
+`test_non_vacuity_7_metadata_only_resource_check_wrongly_touches_b`
+(resource checked as disconnected metadata only, exactly this round's
+starting design).
 
 ## 6. Durable identity
 

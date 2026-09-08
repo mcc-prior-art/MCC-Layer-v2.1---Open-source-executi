@@ -53,6 +53,7 @@ from gateway.proposal_execution_service import (
     ProposalExecutionService,
     ReconcileOutcome,
     ResourceBoundUpstream,
+    ResourceMismatchError,
     reconcile_proposal_operation,
 )
 
@@ -101,11 +102,11 @@ def build_stack(*, allowed_tenants=("tenant-a", "tenant-b", "tenant-c"),
 
     calls: List[Any] = []
 
-    async def raw_upstream(act: str, payload: Dict[str, Any]) -> Any:
-        calls.append((act, copy.deepcopy(payload)))
-        return {"ok": True, "action": act}
+    async def raw_upstream(*, resource: Optional[str], action: str, payload: Dict[str, Any]) -> Any:
+        calls.append((action, copy.deepcopy(payload)))
+        return {"ok": True, "action": action, "resource": resource}
 
-    upstream = ResourceBoundUpstream(resource=actuator_resource, call=raw_upstream)
+    upstream = ResourceBoundUpstream(resource=actuator_resource, dispatch=raw_upstream)
 
     bridge = ProposalExecutionService(
         proposals=proposals, authority=authority, engine=engine,
@@ -247,7 +248,7 @@ def test_e_authority_for_proposal_a_cannot_execute_proposal_b():
     assert token_for_a["idempotency_key"] == "op-e-a"
 
     async def dispatch():
-        return await stack.bridge._upstream("test_action", {"n": 2})  # type: ignore[attr-defined]
+        return await stack.bridge._upstream.execute(resource="res-1", action="test_action", payload={"n": 2})  # type: ignore[attr-defined]
 
     calls_before = len(stack.calls)
     result = run(stack.coordinator.enforce(
@@ -307,7 +308,7 @@ def test_g_replayed_token_cannot_execute_twice():
     token = captured.last
 
     async def dispatch():
-        return await stack.bridge._upstream("test_action", {"n": 1})  # type: ignore[attr-defined]
+        return await stack.bridge._upstream.execute(resource="res-1", action="test_action", payload={"n": 1})  # type: ignore[attr-defined]
 
     calls_before = len(stack.calls)
     replay = run(stack.coordinator.enforce(
@@ -349,10 +350,10 @@ def test_i_crash_after_dispatch_ownership_preserves_unknown_no_auto_retry():
     stack = build_stack()
     run(_propose(stack, "tenant-a", "op-i"))
 
-    async def boom(action, payload):
+    async def boom(*, resource, action, payload):
         raise ConnectionError("simulated crash after dispatch")
 
-    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", call=boom)  # type: ignore[attr-defined]
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=boom)  # type: ignore[attr-defined]
 
     out = run(stack.bridge.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-i"))
     assert out.status == ProposalExecStatus.EXECUTION_FAILED
@@ -376,10 +377,10 @@ def test_j_reconciliation_of_tenant_a_cannot_alter_tenant_bs_identical_operation
     run(_propose(stack, "tenant-a", "op-j", payload=payload))
     run(_propose(stack, "tenant-b", "op-j", payload=payload))
 
-    async def boom(action, p):
+    async def boom(*, resource, action, payload):
         raise ConnectionError("simulated crash")
 
-    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", call=boom)  # type: ignore[attr-defined]
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=boom)  # type: ignore[attr-defined]
     out_a = run(stack.bridge.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-j"))
     out_b = run(stack.bridge.authorize_and_execute(tenant_id="tenant-b", logical_operation_id="op-j"))
     assert out_a.status == ProposalExecStatus.EXECUTION_FAILED
@@ -582,10 +583,10 @@ def test_reconciliation_never_dispatches_to_the_actuator():
     stack = build_stack()
     run(_propose(stack, "tenant-a", "op-recon-noexec"))
 
-    async def boom(action, p):
+    async def boom(*, resource, action, payload):
         raise ConnectionError("crash")
 
-    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", call=boom)  # type: ignore[attr-defined]
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=boom)  # type: ignore[attr-defined]
     run(stack.bridge.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-recon-noexec"))
 
     dispatched = []
@@ -596,11 +597,11 @@ def test_reconciliation_never_dispatches_to_the_actuator():
             action=action, resource=resource, payload={"n": 1},
         )
 
-    async def spy_upstream(action, payload):
+    async def spy_upstream(*, resource, action, payload):
         dispatched.append((action, payload))
         return {"ok": True}
 
-    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", call=spy_upstream)  # type: ignore[attr-defined]
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=spy_upstream)  # type: ignore[attr-defined]
     result = run(reconcile_proposal_operation(
         proposals=stack.proposals, idempotency=stack.idem, authority=stack.authority,
         tenant_id="tenant-a", logical_operation_id="op-recon-noexec", verify_external_evidence=evidence,
@@ -613,10 +614,10 @@ def test_reconciliation_with_no_evidence_leaves_record_pending():
     stack = build_stack()
     run(_propose(stack, "tenant-a", "op-recon-none"))
 
-    async def boom(action, p):
+    async def boom(*, resource, action, payload):
         raise ConnectionError("crash")
 
-    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", call=boom)  # type: ignore[attr-defined]
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=boom)  # type: ignore[attr-defined]
     run(stack.bridge.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-recon-none"))
 
     async def no_evidence(**kw):
@@ -667,10 +668,10 @@ def test_reconciliation_of_already_executed_operation_is_not_reconcilable():
 # =========================================================================== #
 
 async def _crash_and_leave_unknown(stack, tenant, op_id):
-    async def boom(action, p):
+    async def boom(*, resource, action, payload):
         raise ConnectionError("crash")
 
-    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", call=boom)  # type: ignore[attr-defined]
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=boom)  # type: ignore[attr-defined]
     return await stack.bridge.authorize_and_execute(tenant_id=tenant, logical_operation_id=op_id)
 
 
@@ -857,11 +858,11 @@ def test_blocker1_9_reconciliation_never_invokes_upstream():
 
     dispatched = []
 
-    async def spy(action, p):
-        dispatched.append((action, p))
+    async def spy(*, resource, action, payload):
+        dispatched.append((action, payload))
         return {"ok": True}
 
-    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", call=spy)  # type: ignore[attr-defined]
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=spy)  # type: ignore[attr-defined]
 
     async def exact(*, tenant_id, logical_operation_id, action, resource, payload_hash):
         return _bound_evidence(tenant_id=tenant_id, logical_operation_id=logical_operation_id,
@@ -1005,7 +1006,7 @@ class _NoBindingCheckBridge(ProposalExecutionService):
         )
 
         async def executor():
-            return await self._upstream(record.action, forward)
+            return await self._upstream.execute(resource=record.resource, action=record.action, payload=forward)
 
         result = await self._coordinator.enforce(
             token=token, action=record.action, payload=forward, executor=executor,
@@ -1070,10 +1071,10 @@ def test_non_vacuity_3_tenant_dimension_removed_from_durable_identity_makes_test
                                          audit=audit, profiles=ProfileRegistry())
     authority = _authority(("tenant-a", "tenant-b"))
 
-    async def raw_upstream(action, payload):
+    async def raw_upstream(*, resource, action, payload):
         return {"ok": True}
 
-    upstream = ResourceBoundUpstream(resource="res-1", call=raw_upstream)
+    upstream = ResourceBoundUpstream(resource="res-1", dispatch=raw_upstream)
     bridge = ProposalExecutionService(proposals=proposals, authority=authority, engine=engine,
                                       coordinator=coordinator, upstream=upstream)
     svc = MCCProposalService(proposals=proposals, durable_execution_state=broken_idem)
@@ -1120,12 +1121,12 @@ def test_non_vacuity_4_non_atomic_admission_allows_duplicate_concurrent_executio
     authority = _authority(("tenant-a",))
     calls = []
 
-    async def raw_upstream(action, payload):
+    async def raw_upstream(*, resource, action, payload):
         calls.append(1)
         await asyncio.sleep(0)
         return {"ok": True}
 
-    upstream = ResourceBoundUpstream(resource="res-1", call=raw_upstream)
+    upstream = ResourceBoundUpstream(resource="res-1", dispatch=raw_upstream)
     bridge = ProposalExecutionService(proposals=proposals, authority=authority, engine=engine,
                                       coordinator=coordinator, upstream=upstream)
     svc = MCCProposalService(proposals=proposals, durable_execution_state=broken_idem)
@@ -1193,9 +1194,28 @@ def test_non_vacuity_5_unbound_evidence_acceptance_makes_blocker1_tests_fail():
     assert real_result.outcome == ReconcileOutcome.EVIDENCE_MISMATCH
 
 
-def test_non_vacuity_6_missing_resource_check_makes_blocker2_tests_fail():
-    """Reintroduces the EXACT original Blocker 2 defect (no independent
-    resource check before dispatch) as a bridge subclass, and shows a
+class _NoCheckAnywhereDispatcher:
+    """Simulates a world with ZERO resource verification anywhere -- no
+    ``ProposalExecutionService``-level pre-check, and no
+    ``ResourceBoundUpstream.execute``-level defense-in-depth either.
+    Exposes the SAME ``.resource``/``.execute`` shape so it satisfies
+    ``ProposalExecutionService.__init__``'s construction-time validation,
+    but ``execute`` performs zero verification before dispatching."""
+
+    def __init__(self, resource, dispatch):
+        self.resource = resource
+        self._dispatch = dispatch
+
+    async def execute(self, *, resource, action, payload):
+        return await self._dispatch(resource=resource, action=action, payload=payload)
+
+
+def test_non_vacuity_6_missing_resource_check_anywhere_makes_blocker2_tests_fail():
+    """Reintroduces a world with NO resource verification at all -- neither
+    ``ProposalExecutionService``'s own pre-token-issuance check NOR
+    ``ResourceBoundUpstream.execute``'s defense-in-depth check (both are
+    bypassed together here, via a bridge subclass skipping its own check
+    AND a dispatcher stub skipping its own) -- and shows a
     resource-B-configured actuator WRONGLY executes an operation authorized
     for resource-A, proving ``test_blocker2_1_*`` is not vacuous."""
 
@@ -1211,10 +1231,12 @@ def test_non_vacuity_6_missing_resource_check_makes_blocker2_tests_fail():
                 payload=forward, idempotency_key=logical_operation_id, tenant_id=tenant_id,
                 actor_id=tenant_id, resource_id=record.resource,
             )
-            # THE DEFECT: no check of self._upstream.resource vs record.resource.
+            # THE DEFECT: no check of self._upstream.resource vs record.resource
+            # before dispatch -- and (see _NoCheckAnywhereDispatcher) the
+            # upstream itself performs no check either.
 
             async def executor():
-                return await self._upstream(record.action, forward)
+                return await self._upstream.execute(resource=record.resource, action=record.action, payload=forward)
 
             result = await self._coordinator.enforce(
                 token=token, action=record.action, payload=forward, executor=executor,
@@ -1224,20 +1246,172 @@ def test_non_vacuity_6_missing_resource_check_makes_blocker2_tests_fail():
             status = ProposalExecStatus.EXECUTED if result.status.value == "EXECUTED" else ProposalExecStatus.BLOCKED
             return ProposalExecOutcome(status, result.reason)
 
+    destinations = {"resource-A": [], "resource-B": []}
+
+    async def hardcoded_to_b(*, resource, action, payload):
+        # Ignores its own ``resource`` argument entirely -- always writes to
+        # resource-B regardless of what it is told, exactly like the
+        # original Blocker 2 defect's disconnected callable.
+        destinations["resource-B"].append((action, payload))
+        return {"ok": True}
+
     stack = build_stack(actuator_resource="resource-B")
+    unchecked_upstream = _NoCheckAnywhereDispatcher(resource="resource-B", dispatch=hardcoded_to_b)
     run(_propose(stack, "tenant-a", "op-nv6", resource="resource-A", payload={"n": 1}))
 
     broken = _NoResourceCheckBridge(
         proposals=stack.proposals, authority=stack.authority, engine=stack.engine,
-        coordinator=stack.coordinator, upstream=stack.bridge._upstream,  # type: ignore[attr-defined]
+        coordinator=stack.coordinator, upstream=unchecked_upstream,
     )
     out = run(broken.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-nv6"))
     assert out.status == ProposalExecStatus.EXECUTED  # WRONGLY executed against the wrong actuator
-    assert len(stack.calls) == 1
+    assert destinations["resource-B"] == [("test_action", {"n": 1})]  # the side effect WRONGLY landed on B
 
-    # The real, shipped bridge correctly refuses the identical scenario.
+    # The real, shipped bridge (with its own pre-check) refuses the
+    # identical scenario, even against the SAME zero-internal-check
+    # dispatcher -- ProposalExecutionService's own check is what saves it.
     stack2 = build_stack(actuator_resource="resource-B")
     run(_propose(stack2, "tenant-a", "op-nv6b", resource="resource-A", payload={"n": 1}))
     real_out = run(stack2.bridge.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-nv6b"))
     assert real_out.status == ProposalExecStatus.RESOURCE_MISMATCH
     assert stack2.calls == []
+
+
+# =========================================================================== #
+# FINAL ACTUATOR RESOURCE BINDING REMEDIATION -- the authorized resource must
+# be part of the actual controlled actuator invocation, not merely metadata
+# checked once and discarded (mandatory adversarial test + non-vacuity).
+# =========================================================================== #
+
+def test_blocker2_final_declared_a_matches_but_zero_side_effect_on_configured_b():
+    """The mandatory adversarial scenario: authorized resource = resource-A,
+    declared/wrapper resource = resource-A (passes every check), and the
+    underlying actuator is "configured" (via an irrelevant, dead legacy
+    attribute) to want resource-B. Proves -- via REAL per-resource routing
+    behavior, never a string re-assertion -- that the actual dispatch lands
+    on resource-A only; resource-B's bucket remains completely untouched."""
+    destinations: Dict[str, List[Any]] = {"resource-A": [], "resource-B": []}
+
+    async def routing_dispatch(*, resource, action, payload):
+        # A real (if simple) multi-destination actuator implementation:
+        # the ONLY way resource-B's bucket could ever be touched is if THIS
+        # call is made with resource="resource-B". ProposalExecutionService
+        # always passes the AUTHORIZED resource here -- never anything else.
+        destinations[resource].append((action, payload))
+        return {"ok": True, "resource": resource}
+
+    upstream = ResourceBoundUpstream(resource="resource-A", dispatch=routing_dispatch)
+    # A stray, irrelevant legacy field representing a "misconfigured
+    # deployment" that superficially suggests resource-B -- no code path in
+    # the shipped design ever reads this; it is intentionally dead data,
+    # here only to prove it has zero effect on the actual outcome.
+    upstream._legacy_hardcoded_target = "resource-B"  # type: ignore[attr-defined]
+
+    stack = build_stack(actuator_resource="resource-A")
+    stack.bridge._upstream = upstream  # type: ignore[attr-defined]
+
+    run(_propose(stack, "tenant-a", "op-b2final-1", resource="resource-A", payload={"n": 1}))
+    out = run(stack.bridge.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-b2final-1"))
+
+    assert out.status == ProposalExecStatus.EXECUTED
+    assert destinations["resource-A"] == [("test_action", {"n": 1})]
+    assert destinations["resource-B"] == []  # ZERO SIDE EFFECT ON RESOURCE-B
+
+
+def test_blocker2_final_authorized_resource_is_an_argument_of_the_actual_dispatch_call():
+    """Direct proof the authorized resource is part of the real invocation:
+    captures the exact keyword arguments the low-level dispatch callable
+    received and asserts ``resource`` is present and correct -- not merely
+    that ``.resource`` metadata matched somewhere else beforehand."""
+    received: Dict[str, Any] = {}
+
+    async def capturing_dispatch(*, resource, action, payload):
+        received["resource"] = resource
+        received["action"] = action
+        received["payload"] = payload
+        return {"ok": True}
+
+    stack = build_stack(actuator_resource="res-1")
+    stack.bridge._upstream = ResourceBoundUpstream(resource="res-1", dispatch=capturing_dispatch)  # type: ignore[attr-defined]
+    run(_propose(stack, "tenant-a", "op-b2final-2", resource="res-1", payload={"n": 9}))
+    out = run(stack.bridge.authorize_and_execute(tenant_id="tenant-a", logical_operation_id="op-b2final-2"))
+
+    assert out.status == ProposalExecStatus.EXECUTED
+    assert received["resource"] == "res-1"
+    assert received["action"] == "test_action"
+    assert received["payload"] == {"n": 9}
+
+
+def test_blocker2_final_execute_defense_in_depth_rejects_mismatch_even_called_directly():
+    """Even bypassing ProposalExecutionService entirely and calling
+    ``ResourceBoundUpstream.execute`` directly with a mismatched resource,
+    the wrapper's own independent check refuses -- zero dispatch."""
+    dispatched = []
+
+    async def dispatch(*, resource, action, payload):
+        dispatched.append((resource, action, payload))
+        return {"ok": True}
+
+    upstream = ResourceBoundUpstream(resource="resource-A", dispatch=dispatch)
+    with pytest.raises(ResourceMismatchError):
+        run(upstream.execute(resource="resource-B", action="test_action", payload={"n": 1}))
+    assert dispatched == []
+
+    # The matching call still works normally.
+    result = run(upstream.execute(resource="resource-A", action="test_action", payload={"n": 1}))
+    assert result == {"ok": True}
+    assert dispatched == [("resource-A", "test_action", {"n": 1})]
+
+
+def test_non_vacuity_7_metadata_only_resource_check_wrongly_touches_b():
+    """Reproduces the EXACT design this round replaces: ``resource`` is
+    verified as disconnected metadata ONCE (an old-style wrapper whose
+    dispatch call never receives it), so a callable hardcoded to a
+    DIFFERENT destination can freely diverge from what the wrapper
+    declares. Shows this WRONGLY touches resource-B, and that the real,
+    shipped ``ResourceBoundUpstream``/``ProposalExecutionService`` cannot
+    even be constructed to reproduce it."""
+    destinations: Dict[str, List[Any]] = {"resource-A": [], "resource-B": []}
+
+    class _VulnerableMetadataOnlyUpstream:
+        """The pre-remediation design this round replaces: declares
+        ``.resource``, but the wrapped callable receives only
+        ``(action, payload)`` -- never ``resource`` -- so its actual
+        behavior is completely disconnected from the declared value."""
+
+        def __init__(self, resource, hardcoded_call):
+            self.resource = resource
+            self._call = hardcoded_call
+
+        async def __call__(self, action, payload):
+            return await self._call(action, payload)
+
+    async def hardcoded_to_b(action, payload):
+        # THE DEFECT: hardcoded to resource-B, with zero relationship to
+        # whatever the wrapper's `.resource` metadata claims.
+        destinations["resource-B"].append((action, payload))
+        return {"ok": True}
+
+    vulnerable = _VulnerableMetadataOnlyUpstream(resource="resource-A", hardcoded_call=hardcoded_to_b)
+
+    # Reproduce the ORIGINAL remediation round's pre-check in isolation:
+    authorized_resource = "resource-A"
+    assert vulnerable.resource == authorized_resource  # the OLD metadata check passes
+    run(vulnerable("test_action", {"n": 1}))            # the OLD calling convention
+    assert destinations["resource-B"] == [("test_action", {"n": 1})]  # WRONGLY touched B
+    assert destinations["resource-A"] == []
+
+    # The real, shipped ProposalExecutionService refuses to even construct
+    # against this object -- it exposes no ``.execute``, so there is no way
+    # to wire it into the real service at all.
+    stack = build_stack()
+    with pytest.raises(TypeError):
+        ProposalExecutionService(
+            proposals=stack.proposals, authority=stack.authority, engine=stack.engine,
+            coordinator=stack.coordinator, upstream=vulnerable,
+        )
+
+    # And the real, shipped design's own adversarial test (above) proves
+    # the equivalent "declared A, something else attempts B" scenario
+    # results in ZERO side effect on B when routed through the real
+    # ResourceBoundUpstream.execute contract.

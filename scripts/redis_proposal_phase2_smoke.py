@@ -101,11 +101,11 @@ async def main() -> int:
 
     dispatched = []
 
-    async def raw_upstream(action: str, payload) -> dict:
+    async def raw_upstream(*, resource, action: str, payload) -> dict:
         dispatched.append((action, dict(payload)))
-        return {"ok": True, "action": action}
+        return {"ok": True, "action": action, "resource": resource}
 
-    upstream = ResourceBoundUpstream(resource="res-1", call=raw_upstream)
+    upstream = ResourceBoundUpstream(resource="res-1", dispatch=raw_upstream)
 
     bridge = ProposalExecutionService(
         proposals=proposals, authority=authority, engine=engine,
@@ -200,6 +200,40 @@ async def main() -> int:
     if len(dispatched) != dispatched_before_mismatch_check:
         failures.append("resource-binding: a resource mismatch caused an actuator dispatch")
 
+    # --- Final actuator resource-binding remediation: the authorized
+    # resource must be part of the ACTUAL dispatch call, not merely
+    # metadata compared once beforehand. A real, per-resource-routing
+    # actuator (against real Redis-backed proposal/durable state) proves
+    # an operation authorized for res-1 causes zero side effect on a
+    # DIFFERENT resource bucket, even one a stray legacy field claims. ---
+    routing_destinations = {"res-1": [], "res-OTHER": []}
+
+    async def routing_dispatch(*, resource, action, payload):
+        routing_destinations[resource].append((action, payload))
+        return {"ok": True, "resource": resource}
+
+    routing_upstream = ResourceBoundUpstream(resource="res-1", dispatch=routing_dispatch)
+    routing_upstream._legacy_hardcoded_target = "res-OTHER"  # dead metadata; must never be consulted
+    bridge_routing = ProposalExecutionService(
+        proposals=proposals, authority=authority, engine=engine, coordinator=coordinator,
+        upstream=routing_upstream,
+    )
+    routing_op = f"op-routing-{run_id}"
+    routing_payload = {"n": 5, "run": run_id}
+    await svc.submit_proposal(tenant_id=tenant_a, request={
+        "logical_operation_id": routing_op, "actor": "agent/smoke", "action": "smoke_action",
+        "resource": "res-1", "payload": routing_payload,
+    })
+    routing_out = await bridge_routing.authorize_and_execute(tenant_id=tenant_a, logical_operation_id=routing_op)
+    print(f"resource-binding-final: authorized res-1, actuator declares res-1 (stray field claims res-OTHER) "
+          f"-> {routing_out.status.value}")
+    if routing_out.status != ProposalExecStatus.EXECUTED:
+        failures.append(f"resource-binding-final: expected EXECUTED, got {routing_out.status}")
+    if routing_destinations["res-1"] != [("smoke_action", routing_payload)]:
+        failures.append(f"resource-binding-final: expected exactly one dispatch to res-1, got {routing_destinations['res-1']}")
+    if routing_destinations["res-OTHER"] != []:
+        failures.append(f"resource-binding-final: ZERO SIDE EFFECT ON res-OTHER violated: {routing_destinations['res-OTHER']}")
+
     # --- Blocker 1: reconciliation requires operation-bound evidence ---
     recon_op = f"op-recon-{run_id}"
     recon_payload = {"n": 4, "run": run_id}
@@ -208,12 +242,12 @@ async def main() -> int:
         "resource": "res-1", "payload": recon_payload,
     })
 
-    async def crashing_upstream(action, payload):
+    async def crashing_upstream(*, resource, action, payload):
         raise ConnectionError("simulated crash after dispatch")
 
     bridge_crash = ProposalExecutionService(
         proposals=proposals, authority=authority, engine=engine, coordinator=coordinator,
-        upstream=ResourceBoundUpstream(resource="res-1", call=crashing_upstream),
+        upstream=ResourceBoundUpstream(resource="res-1", dispatch=crashing_upstream),
     )
     crashed = await bridge_crash.authorize_and_execute(tenant_id=tenant_a, logical_operation_id=recon_op)
     print(f"reconciliation: crash leaves state -> {crashed.status.value}")

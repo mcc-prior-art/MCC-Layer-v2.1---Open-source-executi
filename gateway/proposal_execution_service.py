@@ -62,37 +62,73 @@ from mcc_proposal.binding import BindingComputationError, compute_proposal_bindi
 from mcc_proposal.registry import ProposalBackendUnavailable
 
 
+class ResourceMismatchError(Exception):
+    """Raised by :meth:`ResourceBoundUpstream.execute` when asked to
+    dispatch to a resource other than its own fixed, trusted configuration.
+    Defense in depth (Phase 2 remediation, final Blocker 2 fix):
+    ``ProposalExecutionService`` already refuses ``RESOURCE_MISMATCH``
+    before ever calling ``execute`` -- this second, independent check
+    inside the actuator wrapper itself means there is no path, present or
+    future, through which any caller could reach a real dispatch with a
+    mismatched resource, even one that bypassed
+    ``ProposalExecutionService``'s own pre-check entirely."""
+
+
+# The low-level I/O implementation an operator plugs in. Unlike Phase 2's
+# original ``(action, payload) -> Awaitable[Any]`` shape, ``resource`` is now
+# an explicit, first-class argument of the SAME call that performs the real
+# side effect -- the authorized resource is part of the actual controlled
+# invocation, never a separate piece of metadata checked once and then
+# forgotten. A correctly-written dispatcher determines its real I/O
+# destination FROM this parameter (e.g. builds its outbound request/lookup
+# key directly from it); there is no second, independently-selected
+# destination for a competent implementation to diverge to.
+ActuatorDispatch = Callable[..., Awaitable[Any]]  # (*, resource, action, payload) -> Awaitable[Any]
+
+
 class ResourceBoundUpstream:
     """The ONLY actuator contract :class:`ProposalExecutionService` accepts
-    (Phase 2 remediation, Blocker 2). ``resource`` is the actuator's OWN
-    fixed, trusted configured destination -- set once, at construction, by
-    the deployment operator; NEVER derived from proposal content, request
-    payload, or any other untrusted input. Before any dispatch,
-    ``ProposalExecutionService`` independently compares this value against
-    the resource the operation is actually authorized for and refuses (zero
-    I/O) on any mismatch -- proving the real external side effect can only
-    ever be sent to the destination MCC actually authorized, not merely
-    that a resource *string* happened to match inside the signed token.
+    (Phase 2 remediation, Blocker 2 -- final fix). ``resource`` is the
+    actuator's OWN fixed, trusted configured destination -- set once, at
+    construction, by the deployment operator; NEVER derived from proposal
+    content, request payload, or any other untrusted input.
 
-    ``resource=None`` is a legitimate configuration for an actuator that
-    has no distinguishable destination concept -- it matches only a
-    proposal whose OWN authorized ``resource`` is also ``None``, never a
-    real resource string (``None != "some-resource"``).
+    The original remediation round's design verified ``resource`` against
+    the authorized resource, but then dispatched via a plain
+    ``(action, payload)`` call: the verified resource was metadata,
+    disconnected from the actual invocation, so a wrapped callable
+    hardcoded to some entirely different, unrelated destination could still
+    be wrapped and declared under a truthful-looking (but disconnected)
+    ``resource`` string. This final fix closes that gap TWO ways, together:
+
+    1. ``resource`` is now an explicit argument of :meth:`execute` --
+       the SAME call that reaches ``dispatch`` -- so the authorized
+       resource is structurally part of the real invocation, not a
+       separate fact checked once elsewhere and then discarded.
+    2. :meth:`execute` independently re-verifies ``resource`` against
+       ``self.resource`` immediately before calling ``dispatch``, raising
+       :class:`ResourceMismatchError` on any mismatch -- defense in depth
+       beyond ``ProposalExecutionService``'s own pre-token-issuance check.
+
+    There is no plain ``__call__``/2-argument entry point left: every
+    caller must go through :meth:`execute`, which always carries the
+    resource. ``resource=None`` is a legitimate configuration for an
+    actuator with no distinguishable destination concept -- it matches only
+    a proposal whose OWN authorized ``resource`` is also ``None`` (never a
+    real resource string, since ``None != "some-resource"``).
     """
 
-    def __init__(self, resource: Optional[str], call: "Upstream") -> None:
+    def __init__(self, resource: Optional[str], dispatch: ActuatorDispatch) -> None:
         self.resource = resource
-        self._call = call
+        self._dispatch = dispatch
 
-    async def __call__(self, action: str, payload: Dict[str, Any]) -> Any:
-        return await self._call(action, payload)
-
-
-# An upstream actuator performs the real side effect. It is the *only* thing
-# the coordinator's executor calls -- identical contract to
-# ``gateway.governance_service.Upstream``, wrapped in :class:`ResourceBoundUpstream`
-# so its configured destination can be independently verified before dispatch.
-Upstream = Callable[[str, Dict[str, Any]], Awaitable[Any]]
+    async def execute(self, *, resource: Optional[str], action: str, payload: Dict[str, Any]) -> Any:
+        if resource != self.resource:
+            raise ResourceMismatchError(
+                f"actuator configured for resource {self.resource!r} refuses to "
+                f"dispatch to {resource!r}"
+            )
+        return await self._dispatch(resource=resource, action=action, payload=payload)
 
 
 class ProposalExecStatus(str, Enum):
@@ -153,18 +189,23 @@ class ProposalExecutionService:
         upstream: ResourceBoundUpstream,
         profiles: Optional[ProfileRegistry] = None,
     ) -> None:
-        # Phase 2 remediation, Blocker 2: a plain (action, payload) -> ...
-        # callable is refused at construction time -- there would be no
-        # place left to independently verify its real destination against
-        # the authorized resource. ``upstream`` must expose the fixed,
-        # trusted ``.resource`` attribute :class:`ResourceBoundUpstream`
-        # defines, and remain callable exactly like the plain contract.
-        if not hasattr(upstream, "resource") or not callable(upstream):
+        # Phase 2 remediation, Blocker 2 (final fix): a plain (action,
+        # payload) -> ... callable is refused at construction time -- there
+        # would be no place left to independently verify its real
+        # destination against the authorized resource, AND no way to make
+        # the authorized resource part of the actual dispatch call.
+        # ``upstream`` must expose the fixed, trusted ``.resource``
+        # attribute AND the ``execute(resource=, action=, payload=)`` entry
+        # point :class:`ResourceBoundUpstream` defines -- there is no
+        # remaining unchecked plain-callable path.
+        if not hasattr(upstream, "resource") or not callable(getattr(upstream, "execute", None)):
             raise TypeError(
                 "upstream must be a ResourceBoundUpstream (or otherwise expose a "
-                "fixed, trusted '.resource' attribute naming its configured "
-                "destination) so ProposalExecutionService can verify it against "
-                "the authorized resource before any external dispatch"
+                "fixed, trusted '.resource' attribute and an async "
+                "'.execute(resource=, action=, payload=)' method) so "
+                "ProposalExecutionService can verify it against the authorized "
+                "resource, and pass that same resource into the actual dispatch, "
+                "before any external I/O"
             )
         self._proposals = proposals
         self._authority = authority
@@ -313,7 +354,13 @@ class ProposalExecutionService:
         effective_payload = copy.deepcopy(forward_context)
 
         async def executor() -> Any:
-            return await self._upstream(action, effective_payload)
+            # Phase 2 remediation, Blocker 2 (final fix): ``resource`` here
+            # is the SAME authorized value just verified above -- passed
+            # directly into the call that performs the real dispatch, not
+            # merely compared against separate metadata beforehand. See
+            # ResourceBoundUpstream.execute's own defense-in-depth
+            # re-verification of this exact value.
+            return await self._upstream.execute(resource=resource, action=action, payload=effective_payload)
 
         result = await self._coordinator.enforce(
             token=token, action=action, payload=effective_payload, executor=executor,
@@ -535,6 +582,8 @@ __all__ = [
     "ProposalExecOutcome",
     "ProposalExecutionService",
     "ResourceBoundUpstream",
+    "ResourceMismatchError",
+    "ActuatorDispatch",
     "ReconcileOutcome",
     "ProposalReconciliationOutcome",
     "EvidenceVerifier",
