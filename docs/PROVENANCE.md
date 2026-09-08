@@ -69,6 +69,31 @@ The earliest available materials use **"MCC — Model Context Control"** (PR #1 
 
 ---
 
+## Public technical record
+
+This section separates three distinct evidence classes for the April 2026 period, per the evidence-classification rule applied throughout this document:
+
+- **Contemporaneous evidence** — an artifact independently timestamped at (or very near) the time of the event itself, by a party other than the repository owner (GitHub's PR API, an external archiving service).
+- **Repository evidence** — an artifact present in this repository, checkable directly, but whose own internal date claim may or may not be independently corroborated.
+- **Retrospective public record** — a later account of earlier events, written after the fact, offered as context but not as proof of the earlier date.
+
+A LinkedIn article by Alexandr Ponomariov / AXLOGIQ was identified for this task as a retrospective account describing early MCC development and quoting architectural statements ("Execution capability is not execution authority," "Proposal ≠ Permission," "No verified authority. No execution," "Fail-closed by design"), and referencing the same 25 Apr 2026 X/Grok interaction documented in §1.3. Per the evidence rule applied throughout this document, **this article is not used as proof that the 25 Apr 2026 event occurred** — that date is instead supported independently, below, by a GitHub-API-timestamped repository artifact (PR #1) and direct inspection of its content.
+
+This session attempted to independently locate the article using web search (multiple queries combining the author's name, "AXLOGIQ," "MCC," "MCC-Core," the quoted architectural statements, and the `axlogiq.ai`/`axlogiq.org`/`axlogiq.com` domains named in `docs/exhibits/README.md`) and could not locate a fetchable URL for it. A direct fetch of the underlying X post (`x.com/axlogiq_ai/status/2046674474452357490`, cited in `docs/exhibits/Prior_Art_Archive_2026-04.md`) was also attempted and blocked by this session's own network egress policy (`x.com` is not reachable from this environment), and a direct fetch of the `archive.ph` snapshot cited in the same exhibit was attempted and failed (the fetch tool could not retrieve `archive.ph` content). None of these attempts changes the verification status already established from the repository's own GitHub-API-checkable evidence (PR #1) in §1.3; they simply could not add independent corroboration beyond what the repository already provides, in the time available to this session.
+
+| Date | Evidence type | Artifact | Claim supported | Verification status |
+|---|---|---|---|---|
+| 20.04.2026 | Retrospective (text claim inside an archived post) | `docs/exhibits/Prior_Art_Archive_2026-04.md`, citing the archived Telegra.ph post's own "First disclosure" field | First public MCC disclosure | Not independently verified — the date is asserted by text inside the archived post itself, one step removed from the archive's own timestamp; this session could not fetch the archive to inspect it directly |
+| 21.04.2026, 22:35 | Contemporaneous (external, independently timestamped) | `archive.ph/2026.04.21-195051/...` snapshot of a Telegra.ph post ("MCC v0.5 + GPT-4.1 Features 21.04.2026"), X post `x.com/axlogiq_ai/status/2046674474452357490`, cited in `docs/exhibits/Prior_Art_Archive_2026-04.md` | Early MCC execution-control architecture (intent → policy → allow/deny/escalate, multi-agent consensus, hash-chain audit) publicly described before the June 2026 doctrine formalization | Partially verified — the `archive.ph` URL's own path encodes an independent snapshot timestamp (`2026.04.21-19:50:51`), but this session could not fetch either `archive.ph` or `x.com` directly to confirm rendered content (egress-blocked/fetch-failed); repository-cited, not independently re-fetched here |
+| 23.04.2026 | Retrospective (repository exhibit, filed June 2026) | `docs/exhibits/X_Ban_Event_2026-04.md` | `@axlogiq_ai` account locked by X platform systems | Not independently verified — rests on the exhibit's own account; no external corroboration located by this session |
+| **25.04.2026** | **Contemporaneous (GitHub-API-timestamped) + repository evidence, directly inspected** | **[PR #1](https://github.com/mcc-prior-art/mcc-layer/pull/1)** (created/merged 2026-04-25T22:04–22:05 UTC) → `proof/screenshot.png` | Public X exchange: `@axlogiq_ai` describes an MCC layer with ALLOW/DENY/ESCALATE mode, fail-closed behavior, audit, and rollback; `@grok` (xAI) responds publicly, acknowledging the approach | **Verified** — GitHub's own PR-API timestamp is independent of the repository owner, and this session directly viewed the image content (not merely its filename) to confirm the claim it supports |
+| 29.04.2026 | Repository evidence (image artifact) + retrospective narrative | `docs/exhibits/X_Appeal_Response_2026-04-29.png`, cited in `docs/exhibits/X_Ban_Event_2026-04.md` | X Support appeal response stated automated systems determined a rule violation occurred and declined to overturn the account action | Partially verified — the image is present in the repository (first git-observable at the same 2026-07-25 root commit as all other pre-#57 content, per §1.2); the 29.04.2026 date comes from the filename and the exhibit's own account, not from an independently re-checked source |
+| Not established | Retrospective public record (this task's source material) | LinkedIn article by Alexandr Ponomariov / AXLOGIQ (no URL located) | Restates that MCC was already under execution-governance development by 25.04.2026; quotes "Execution capability is not execution authority," "Proposal ≠ Permission," "No verified authority. No execution," "Fail-closed by design" | **Not independently verified** — could not be located via web search in this session; not used to support any date claim in this document. The 25.04.2026 claim it restates is independently supported above by PR #1, without relying on this article. |
+
+This document does not claim priority over any other party on the basis of any row above; it records what could and could not be independently checked, and by what means.
+
+---
+
 ## 2. Core authority architecture
 
 Repository-backed emergence of the core MCC-Core authority concepts (all PR numbers per §1.2's sourcing rule — #7 onward have local commit SHAs; #2–#6 are PR-API-only):
