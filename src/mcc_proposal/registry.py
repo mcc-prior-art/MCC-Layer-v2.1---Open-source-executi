@@ -19,6 +19,7 @@ value taken from proposal payload/actor fields.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import time
 from dataclasses import dataclass
@@ -50,6 +51,18 @@ class ProposalRecord:
     logical_operation_id: str
     binding: str
     created_at: float
+    # Phase 2 (MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE2): the exact canonical
+    # content this binding was computed over. Stored so a later authorization
+    # decision has ONE source of truth for what it is authorizing -- never an
+    # independently re-supplied action/resource/payload that could diverge
+    # from what was actually proposed and bound. ``None`` for records written
+    # before this field existed, or written directly via the low-level
+    # registry API without content (Phase-1-only registration) -- callers
+    # that need to execute MUST treat ``action is None`` as "no governable
+    # content available" and fail closed rather than guess.
+    action: Optional[str] = None
+    resource: Optional[str] = None
+    payload: Optional[Dict[str, Any]] = None
 
 
 class ProposalBackendUnavailable(Exception):
@@ -83,6 +96,8 @@ class InMemoryProposalRegistry:
 
     async def register(
         self, *, tenant_id: str, logical_operation_id: str, binding: str,
+        action: Optional[str] = None, resource: Optional[str] = None,
+        payload: Optional[Dict[str, Any]] = None,
     ) -> ProposalRegisterResult:
         key = _tenant_key(tenant_id, logical_operation_id)
         existing = self._store.get(key)
@@ -90,6 +105,7 @@ class InMemoryProposalRegistry:
             self._store[key] = ProposalRecord(
                 tenant_id=tenant_id, logical_operation_id=logical_operation_id,
                 binding=binding, created_at=time.time(),
+                action=action, resource=resource, payload=payload,
             )
             return ProposalRegisterResult(ProposalRegisterStatus.REGISTERED, "registered", binding)
         if existing.binding == binding:
@@ -109,14 +125,17 @@ class InMemoryProposalRegistry:
 _REGISTER_LUA = """
 local cur = redis.call('GET', KEYS[1])
 if not cur then
-    redis.call('SET', KEYS[1], ARGV[1] .. '|' .. ARGV[2])
-    return {'REGISTERED', ARGV[1]}
+    redis.call('SET', KEYS[1], ARGV[1])
+    return {'REGISTERED', ARGV[2]}
 end
-local binding, created = cur:match('^([^|]*)|(.*)$')
-if binding == ARGV[1] then
-    return {'IDEMPOTENT_DUPLICATE', binding}
+local ok, decoded = pcall(cjson.decode, cur)
+if not ok or type(decoded) ~= 'table' or decoded.binding == nil then
+    return {'ERROR', ''}
 end
-return {'BINDING_CONFLICT', binding}
+if decoded.binding == ARGV[2] then
+    return {'IDEMPOTENT_DUPLICATE', decoded.binding}
+end
+return {'BINDING_CONFLICT', decoded.binding}
 """
 
 
@@ -125,7 +144,22 @@ class RedisProposalRegistry:
     moment (first-writer-wins) is a single Lua script -- exactly one
     concurrent caller creates the key; every racing caller after that either
     observes IDEMPOTENT_DUPLICATE (same binding) or BINDING_CONFLICT
-    (different binding), never a mixed/overwritten record."""
+    (different binding), never a mixed/overwritten record.
+
+    Phase 2 (MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE2): the stored value is a
+    single JSON document (``{"binding", "created_at", "action", "resource",
+    "payload"}``) rather than the Phase-1 ``binding|created_at`` pipe format
+    -- a proposal's governable content (action/resource/canonical payload),
+    not merely its binding hash, must be durably available so a later
+    authorization decision has ONE source of truth and never accepts an
+    independently re-supplied payload (Section 2). ``ARGV[1]`` is the full
+    candidate record as JSON (used only when creating); ``ARGV[2]`` is the
+    binding string alone (used for the idempotent-duplicate/conflict
+    comparison against whatever is already stored, without needing to
+    re-decode the candidate). The Lua script never trusts client-supplied
+    JSON blindly for the *existing* value -- it decodes the STORED value
+    itself and fails closed (``ERROR``) if that stored value is not
+    well-formed JSON carrying a ``binding`` field."""
 
     def __init__(self, redis_client: Any, *, namespace: str) -> None:
         self._redis = redis_client
@@ -153,13 +187,25 @@ class RedisProposalRegistry:
 
     async def register(
         self, *, tenant_id: str, logical_operation_id: str, binding: str,
+        action: Optional[str] = None, resource: Optional[str] = None,
+        payload: Optional[Dict[str, Any]] = None,
     ) -> ProposalRegisterResult:
-        if "|" in binding:
-            return ProposalRegisterResult(ProposalRegisterStatus.ERROR, "invalid binding: must not contain '|'")
+        if not isinstance(binding, str) or not binding:
+            return ProposalRegisterResult(ProposalRegisterStatus.ERROR, "invalid binding: must be a non-empty string")
+        candidate = {
+            "binding": binding, "created_at": time.time(),
+            "action": action, "resource": resource, "payload": payload,
+        }
+        try:
+            candidate_json = json.dumps(candidate, sort_keys=True)
+        except (TypeError, ValueError):
+            return ProposalRegisterResult(
+                ProposalRegisterStatus.ERROR, "proposal content is not JSON-serializable; fail-closed"
+            )
         key = self._key(tenant_id, logical_operation_id)
         try:
             res = await asyncio.wait_for(
-                self._redis.eval(_REGISTER_LUA, 1, key, binding, repr(time.time())), timeout=1.0,
+                self._redis.eval(_REGISTER_LUA, 1, key, candidate_json, binding), timeout=1.0,
             )
         except Exception:
             return ProposalRegisterResult(ProposalRegisterStatus.ERROR, "proposal registry unavailable; fail-closed")
@@ -173,8 +219,9 @@ class RedisProposalRegistry:
             ProposalRegisterStatus.IDEMPOTENT_DUPLICATE: "identical proposal already registered",
             ProposalRegisterStatus.BINDING_CONFLICT: "logical_operation_id is already bound to a "
                                                       "different action/resource/payload",
+            ProposalRegisterStatus.ERROR: "malformed existing registry record; fail-closed",
         }[status]
-        return ProposalRegisterResult(status, reason, observed_binding)
+        return ProposalRegisterResult(status, reason, observed_binding or None)
 
     async def get(self, *, tenant_id: str, logical_operation_id: str) -> Optional[ProposalRecord]:
         key = self._key(tenant_id, logical_operation_id)
@@ -185,13 +232,20 @@ class RedisProposalRegistry:
         if current is None:
             return None
         try:
-            binding, created = current.split("|", 1)
-            created_at = float(created)
-        except (ValueError, AttributeError) as exc:
+            decoded = json.loads(current)
+            binding = decoded["binding"]
+            if not isinstance(binding, str) or not binding:
+                raise ValueError("binding missing/empty")
+            created_at = float(decoded["created_at"])
+            action = decoded.get("action")
+            resource = decoded.get("resource")
+            payload = decoded.get("payload")
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
             raise ProposalBackendUnavailable(f"malformed proposal record for {key!r}") from exc
         return ProposalRecord(
             tenant_id=tenant_id, logical_operation_id=logical_operation_id,
             binding=binding, created_at=created_at,
+            action=action, resource=resource, payload=payload,
         )
 
 

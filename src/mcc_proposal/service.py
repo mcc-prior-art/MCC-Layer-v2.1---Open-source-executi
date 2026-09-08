@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from mcc_core.profiles import ProfileRegistry
+from mcc_core.profiles import ProfileError, ProfileRegistry
 
 from .binding import BindingComputationError, compute_proposal_binding
 from .models import (
@@ -116,7 +116,17 @@ class MCCProposalService:
                 action=proposal.action, resource=proposal.resource,
                 payload=proposal.payload, profiles=self._profiles,
             )
-        except BindingComputationError as exc:
+            # Phase 2 (MCC_UNIVERSAL_PROPOSAL_SERVICE_PHASE2): the SAME
+            # canonical payload just hashed into ``binding`` is durably
+            # stored alongside it -- a pure, deterministic, side-effect-free
+            # recomputation via the identical profile, never a second
+            # canonicalization rule. This is what lets a later authorization
+            # decision execute the proposal's OWN stored content instead of
+            # accepting an independently supplied payload (Section 2).
+            canonical_payload = self._profiles.for_action(proposal.action).canonical_payload(
+                dict(proposal.payload)
+            )
+        except (BindingComputationError, ProfileError) as exc:
             return ProposalReceiptV1.rejected(
                 logical_operation_id=proposal.logical_operation_id, reason=str(exc),
             )
@@ -124,7 +134,8 @@ class MCCProposalService:
         try:
             result = await self._proposals.register(
                 tenant_id=tenant_id, logical_operation_id=proposal.logical_operation_id,
-                binding=binding,
+                binding=binding, action=proposal.action, resource=proposal.resource,
+                payload=canonical_payload,
             )
         except ProposalBackendUnavailable as exc:
             return ProposalReceiptV1.unavailable(
